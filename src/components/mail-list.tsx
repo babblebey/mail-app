@@ -290,7 +290,7 @@ export function MailList() {
         </div>
 
         <div className="ml-auto">
-          <Button size="sm" className="gap-1.5">
+          <Button size="lg" className="gap-1.5">
             <PenSquareIcon className="size-4" />
             Write Message
           </Button>
@@ -322,13 +322,13 @@ export function MailList() {
             </div>
 
             {/* Avatar */}
-            <Avatar className="size-9 shrink-0">
+            <Avatar className="size-9 shrink-0 rounded-lg">
               {mail.avatar ? (
                 <AvatarImage src={mail.avatar} alt={mail.sender} />
               ) : null}
               <AvatarFallback
                 className={cn(
-                  "text-xs font-semibold text-white",
+                  "text-xs font-semibold text-white rounded-lg",
                   mail.avatarColor ?? "bg-muted"
                 )}
               >
