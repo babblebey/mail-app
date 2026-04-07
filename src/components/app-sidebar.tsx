@@ -11,159 +11,113 @@ import {
   SidebarContent,
   SidebarFooter,
   SidebarHeader,
+  SidebarInput,
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
 } from "~/components/ui/sidebar"
-import { TerminalSquareIcon, BotIcon, BookOpenIcon, Settings2Icon, LifeBuoyIcon, SendIcon, FrameIcon, PieChartIcon, MapIcon, TerminalIcon } from "lucide-react"
+import {
+  InboxIcon,
+  SendIcon,
+  ClockIcon,
+  FileTextIcon,
+  AlertOctagonIcon,
+  ArchiveIcon,
+  Trash2Icon,
+  SettingsIcon,
+  CircleHelpIcon,
+  MailIcon,
+  SearchIcon,
+} from "lucide-react"
 
 const data = {
   user: {
-    name: "shadcn",
-    email: "m@example.com",
-    avatar: "/avatars/shadcn.jpg",
+    name: "John Doe",
+    email: "john.doe@example.com",
+    avatar: "",
   },
   navMain: [
     {
-      title: "Playground",
+      title: "Inbox",
       url: "#",
-      icon: (
-        <TerminalSquareIcon
-        />
-      ),
+      icon: <InboxIcon />,
       isActive: true,
       items: [
         {
-          title: "History",
+          title: "All Messages",
           url: "#",
         },
         {
-          title: "Starred",
+          title: "Already Read",
           url: "#",
         },
         {
-          title: "Settings",
+          title: "Unreadable",
           url: "#",
         },
       ],
     },
     {
-      title: "Models",
+      title: "Sent",
       url: "#",
-      icon: (
-        <BotIcon
-        />
-      ),
-      items: [
-        {
-          title: "Genesis",
-          url: "#",
-        },
-        {
-          title: "Explorer",
-          url: "#",
-        },
-        {
-          title: "Quantum",
-          url: "#",
-        },
-      ],
+      icon: <SendIcon />,
     },
     {
-      title: "Documentation",
+      title: "Send later",
       url: "#",
-      icon: (
-        <BookOpenIcon
-        />
-      ),
-      items: [
-        {
-          title: "Introduction",
-          url: "#",
-        },
-        {
-          title: "Get Started",
-          url: "#",
-        },
-        {
-          title: "Tutorials",
-          url: "#",
-        },
-        {
-          title: "Changelog",
-          url: "#",
-        },
-      ],
+      icon: <ClockIcon />,
     },
     {
-      title: "Settings",
+      title: "Drafts",
       url: "#",
-      icon: (
-        <Settings2Icon
-        />
-      ),
-      items: [
-        {
-          title: "General",
-          url: "#",
-        },
-        {
-          title: "Team",
-          url: "#",
-        },
-        {
-          title: "Billing",
-          url: "#",
-        },
-        {
-          title: "Limits",
-          url: "#",
-        },
-      ],
+      icon: <FileTextIcon />,
+    },
+    {
+      title: "Spam",
+      url: "#",
+      icon: <AlertOctagonIcon />,
+    },
+    {
+      title: "Archive",
+      url: "#",
+      icon: <ArchiveIcon />,
+    },
+    {
+      title: "Trash",
+      url: "#",
+      icon: <Trash2Icon />,
     },
   ],
   navSecondary: [
     {
-      title: "Support",
+      title: "Settings",
       url: "#",
-      icon: (
-        <LifeBuoyIcon
-        />
-      ),
+      icon: <SettingsIcon />,
     },
     {
-      title: "Feedback",
+      title: "Help Center",
       url: "#",
-      icon: (
-        <SendIcon
-        />
-      ),
+      icon: <CircleHelpIcon />,
     },
   ],
-  projects: [
+  labels: [
     {
-      name: "Design Engineering",
+      name: "Billing & Payments",
       url: "#",
-      icon: (
-        <FrameIcon
-        />
-      ),
+      color: "bg-green-500",
+      count: 31,
     },
     {
-      name: "Sales & Marketing",
+      name: "Project Updates",
       url: "#",
-      icon: (
-        <PieChartIcon
-        />
-      ),
+      color: "bg-orange-500",
+      count: 19,
     },
     {
-      name: "Travel",
+      name: "Client Inquiries",
       url: "#",
-      icon: (
-        <MapIcon
-        />
-      ),
+      color: "bg-blue-500",
+      count: 22,
     },
   ],
 }
@@ -177,20 +131,25 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             <SidebarMenuButton size="lg" asChild>
               <a href="#">
                 <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
-                  <TerminalIcon className="size-4" />
+                  <MailIcon className="size-4" />
                 </div>
                 <div className="grid flex-1 text-left text-sm leading-tight">
-                  <span className="truncate font-medium">Acme Inc</span>
-                  <span className="truncate text-xs">Enterprise</span>
+                  <span className="truncate font-medium">Mail App</span>
                 </div>
               </a>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
+        <form>
+          <div className="relative">
+            <SearchIcon className="pointer-events-none absolute left-2 top-1/2 size-4 -translate-y-1/2 opacity-50" />
+            <SidebarInput placeholder="Search..." className="pl-8" />
+          </div>
+        </form>
       </SidebarHeader>
       <SidebarContent>
         <NavMain items={data.navMain} />
-        <NavProjects projects={data.projects} />
+        <NavProjects labels={data.labels} />
         <NavSecondary items={data.navSecondary} className="mt-auto" />
       </SidebarContent>
       <SidebarFooter>
