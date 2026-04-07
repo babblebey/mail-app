@@ -4,6 +4,7 @@ import { type Metadata } from "next";
 import { Geist, Inter } from "next/font/google";
 
 import { TRPCReactProvider } from "~/trpc/react";
+import { TooltipProvider } from "~/components/ui/tooltip"
 import { cn } from "~/lib/utils";
 
 const inter = Inter({subsets:['latin'],variable:'--font-sans'});
@@ -25,7 +26,11 @@ export default function RootLayout({
   return (
     <html lang="en" className={cn(geist.variable, "font-sans", inter.variable)}>
       <body>
-        <TRPCReactProvider>{children}</TRPCReactProvider>
+        <TRPCReactProvider>
+          <TooltipProvider>
+            {children}
+          </TooltipProvider>
+        </TRPCReactProvider>
       </body>
     </html>
   );
