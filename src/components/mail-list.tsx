@@ -338,7 +338,7 @@ export function MailList() {
 
             {/* Content */}
             <div className="flex min-w-0 flex-1 items-center gap-3">
-              <div className="min-w-0 flex-1">
+              <div className="w-44 shrink-0">
                 <div className="flex items-center gap-2">
                   <span
                     className={cn(
@@ -354,19 +354,19 @@ export function MailList() {
                     </span>
                   )}
                 </div>
-                <div className="flex items-baseline gap-2">
-                  <span
+              </div>
+              <div className="flex min-w-0 flex-1 items-center gap-1">
+                <span
                     className={cn(
-                      "truncate text-sm",
-                      !mail.read ? "font-semibold text-foreground" : "text-foreground"
+                        "shrink-0 truncate text-sm max-w-[50%]",
+                        !mail.read ? "font-semibold text-foreground" : "text-foreground"
                     )}
-                  >
+                >
                     {mail.subject}
-                  </span>
-                  <span className="truncate text-sm text-muted-foreground">
+                </span>
+                <span className="truncate text-sm text-muted-foreground">
                     - {mail.preview}
-                  </span>
-                </div>
+                </span>
               </div>
 
               {/* Date */}
