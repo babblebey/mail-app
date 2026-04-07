@@ -337,9 +337,9 @@ export function MailList() {
             </Avatar>
 
             {/* Content */}
-            <div className="flex min-w-0 flex-1 items-center gap-3">
-              <div className="w-44 shrink-0">
-                <div className="flex items-center gap-2">
+            <div className="flex min-w-0 flex-1 flex-col gap-0.5 md:flex-row md:items-center md:gap-3">
+              <div className="flex min-w-0 items-center justify-between gap-2 md:w-44 md:shrink-0">
+                <div className="flex min-w-0 items-center gap-2">
                   <span
                     className={cn(
                       "truncate text-sm",
@@ -354,6 +354,10 @@ export function MailList() {
                     </span>
                   )}
                 </div>
+                {/* Date on mobile */}
+                <span className="shrink-0 text-xs text-muted-foreground md:hidden">
+                  {mail.date}
+                </span>
               </div>
               <div className="flex min-w-0 flex-1 items-center gap-1">
                 <span
@@ -369,8 +373,8 @@ export function MailList() {
                 </span>
               </div>
 
-              {/* Date */}
-              <span className="shrink-0 text-xs text-muted-foreground">
+              {/* Date on desktop */}
+              <span className="hidden shrink-0 text-xs text-muted-foreground md:block">
                 {mail.date}
               </span>
             </div>
