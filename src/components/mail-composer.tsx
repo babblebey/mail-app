@@ -20,9 +20,17 @@ import {
   LinkIcon,
   MoreHorizontalIcon,
   FileTextIcon,
+  ChevronDownIcon,
+  ClockIcon,
 } from "lucide-react"
 import { cn } from "~/lib/utils"
 import { Button } from "~/components/ui/button"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "~/components/ui/dropdown-menu"
 
 interface Recipient {
   name: string
@@ -368,16 +376,34 @@ export function MailComposer({
 
           {/* Bottom toolbar */}
           <div className="flex items-center gap-1 border-t px-3 py-2">
-            <Button
-              size="sm"
-              className="gap-1.5"
-              onClick={() => {
-                /* send logic */
-              }}
-            >
-              <SendIcon className="size-4" />
-              Send
-            </Button>
+            <div className="flex items-center">
+              <Button
+                size="sm"
+                className="gap-1.5 rounded-r-none"
+                onClick={() => {
+                  /* send logic */
+                }}
+              >
+                <SendIcon className="size-4" />
+                Send
+              </Button>
+              <DropdownMenu modal={false}>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    size="sm"
+                    className="rounded-l-none border-l border-primary-foreground/20 px-1.5"
+                  >
+                    <ChevronDownIcon className="size-3.5" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start" side="top">
+                  <DropdownMenuItem>
+                    <ClockIcon className="size-4" />
+                    Send Later
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
 
             <div className="flex items-center gap-0.5 border-l pl-2 ml-1">
               <Button variant="ghost" size="icon-xs" title="Bold">
