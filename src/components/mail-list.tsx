@@ -35,7 +35,7 @@ const mails: Mail[] = [
     email: "azie@example.com",
     subject: "Full Time UI Designer - Judha Maygustya",
     preview:
-      "Dear Mrs Azie Melasari, I am Judha Maygustya, writing to ex...",
+      "Dear Mrs Azie Melasari, I am Judha Maygustya, writing to express my interest in the Full Time UI Designer position at your company. I have over 5 years of experience in creating user-centered designs and would love the opportunity to contribute to your team.",
     date: "6:25PM",
     read: false,
     threadCount: 9,
@@ -47,7 +47,7 @@ const mails: Mail[] = [
     email: "news@emura.com",
     subject: "Emura Daily News - Latest Updates",
     preview:
-      "Welcome to Emura Daily News! Here are the latest updates and hi...",
+      "Welcome to Emura Daily News! Here are the latest updates and highlights from this week. From product launches to community events, we have everything you need to stay informed about what is happening around Emura.",
     date: "6:25PM",
     read: false,
     avatar: "/avatars/emura.png",
@@ -59,7 +59,7 @@ const mails: Mail[] = [
     email: "promo@jago.com",
     subject: "Glamping with a view get a DISCOUNT of 75 thousand?!",
     preview:
-      "How are you, Hero? Looking for a healing pla...",
+      "How are you, Hero? Looking for a healing place to escape the city buzz? We have an exclusive glamping experience with breathtaking mountain views, and right now you can get a massive discount of 75 thousand on your first booking!",
     date: "6:25PM",
     read: false,
     avatarColor: "bg-orange-500",
@@ -70,7 +70,7 @@ const mails: Mail[] = [
     email: "zidane@example.com",
     subject: "Let's Plan a Getaway!",
     preview:
-      "I hope you're doing well! I was thinking it might be a great time for a little getawa...",
+      "I hope you're doing well! I was thinking it might be a great time for a little getaway. Maybe we could plan a weekend trip somewhere nice, like Bali or maybe the countryside. Let me know what you think and when you're free!",
     date: "Feb 20",
     read: false,
     avatarColor: "bg-emerald-500",
@@ -81,7 +81,7 @@ const mails: Mail[] = [
     email: "robbi@example.com",
     subject: "Happy Birthday!",
     preview:
-      "I hope your special day is filled with happiness, good health, and everything that bring...",
+      "I hope your special day is filled with happiness, good health, and everything that brings you joy. Wishing you a wonderful year ahead full of amazing adventures, great memories, and all the success you deserve. Happy Birthday!",
     date: "6:25PM",
     read: false,
     threadCount: 5,
@@ -93,7 +93,7 @@ const mails: Mail[] = [
     email: "notifications@linkedin.com",
     subject: "Muhammad Royhan Darmawan and 13 others commented",
     preview:
-      'Showcase porto" Hey everyone! 👋 I\'m ex...',
+      'Showcase porto" Hey everyone! 👋 I\'m excited to share my latest portfolio update featuring new case studies from recent client projects. Would love to hear your thoughts and feedback on the design direction I\'ve been exploring.',
     date: "Feb 19",
     read: true,
     avatar: "/avatars/linkedin.png",
@@ -105,7 +105,7 @@ const mails: Mail[] = [
     email: "rafi@example.com",
     subject: "Long Time No Talk!",
     preview:
-      "It's been a minute since we last caught up. Just wanted to check in and have a laid-...",
+      "It's been a minute since we last caught up. Just wanted to check in and have a laid-back conversation about how things are going on your end. I've been working on some exciting new projects and would love to share the details with you over coffee sometime.",
     date: "Feb 18",
     read: true,
     avatarColor: "bg-indigo-500",
@@ -116,7 +116,7 @@ const mails: Mail[] = [
     email: "muzaki@example.com",
     subject: "Let's Catch Up!",
     preview:
-      "Just thought I'd drop a message to catch up and chat a bit. It's been a while, and it wou...",
+      "Just thought I'd drop a message to catch up and chat a bit. It's been a while, and it would be great to hear what you've been up to lately. I recently moved to a new apartment and started a side project that I think you'd find really interesting.",
     date: "Feb 12",
     read: true,
     threadCount: 9,
@@ -128,7 +128,7 @@ const mails: Mail[] = [
     email: "no-reply@google.com",
     subject: "Inquiry Regarding Google Services",
     preview:
-      "I'm reaching out to inquire about some of the services and tools G...",
+      "I'm reaching out to inquire about some of the services and tools Google offers for small businesses. Specifically, I'm interested in Google Workspace, Cloud Platform pricing, and how to integrate Google Analytics with our existing marketing stack.",
     date: "Feb 8",
     read: true,
     avatar: "/avatars/google.png",
@@ -140,7 +140,7 @@ const mails: Mail[] = [
     email: "alfan@example.com",
     subject: "Job Opportunity: Project Manager",
     preview:
-      "I'm currently looking to hire a talented and experienced Project Man...",
+      "I'm currently looking to hire a talented and experienced Project Manager to lead our growing team. The role involves managing cross-functional teams, overseeing product timelines, and ensuring delivery of high-quality digital products for our clients.",
     date: "Feb 6",
     read: true,
     threadCount: 9,
@@ -152,7 +152,7 @@ const mails: Mail[] = [
     email: "no-reply@google.com",
     subject: "Security Alert: Action Required to Protect Your Account",
     preview:
-      "We detected suspicious activity that may ha...",
+      "We detected suspicious activity that may have compromised your account security. Someone attempted to sign in from an unrecognized device in a new location. Please review your recent activity and update your password immediately to protect your account.",
     date: "Feb 1",
     read: true,
     avatar: "/avatars/google.png",
@@ -164,7 +164,7 @@ const mails: Mail[] = [
     email: "faris@example.com",
     subject: "Let's Collaborate on a Web Development Project!",
     preview:
-      "I believe our combined skills could lead to somethin...",
+      "I believe our combined skills could lead to something truly amazing. I have a web development project in mind that requires both strong frontend design and solid backend architecture. Would you be open to discussing a potential collaboration?",
     date: "Jan 29",
     read: true,
     threadCount: 5,
@@ -176,7 +176,7 @@ const mails: Mail[] = [
     email: "service@paypal.com",
     subject: "You've received $1,430.00 USD from Emura Studio",
     preview:
-      "Judha Maygustya, you received $430 USD Dear J...",
+      "Judha Maygustya, you received $1,430.00 USD from Emura Studio. The payment has been deposited into your PayPal balance. You can withdraw or transfer this amount to your linked bank account at any time.",
     date: "Jan 29",
     read: true,
     avatar: "/avatars/paypal.png",
@@ -188,7 +188,7 @@ const mails: Mail[] = [
     email: "ryan@example.com",
     subject: "Inquiry About Design Fee",
     preview:
-      "I wanted to inquire about the fee for a single design project with you. Could...",
+      "I wanted to inquire about the fee for a single design project with you. Could you share your rate card or provide an estimate for a landing page redesign? We're looking at a 2-week turnaround and have a clear brief ready to share.",
     date: "Jan 29",
     read: true,
     threadCount: 24,
@@ -200,7 +200,7 @@ const mails: Mail[] = [
     email: "galang@example.com",
     subject: "Website Design Collaboration",
     preview:
-      "I'm reaching out to explore the possibility of a design collaboration betw...",
+      "I'm reaching out to explore the possibility of a design collaboration between our teams. We're building a new SaaS product and need help with the entire design system, from wireframes and prototyping all the way through to final UI implementation.",
     date: "Jan 26",
     read: true,
     avatarColor: "bg-green-600",
@@ -210,7 +210,7 @@ const mails: Mail[] = [
     sender: "Paypal",
     email: "service@paypal.com",
     subject: "You've received $230.00 USD from Upwork",
-    preview: "Judha Maygustya, you received $230 USD Dear Judha M...",
+    preview: "Judha Maygustya, you received $230.00 USD from Upwork. This payment is for your completed milestone on the Dashboard UI Design project. The funds are now available in your PayPal account and can be transferred at any time.",
     date: "Jan 24",
     read: true,
     avatar: "/avatars/paypal.png",
@@ -368,7 +368,7 @@ export function MailList() {
                 >
                     {mail.subject}
                 </span>
-                <span className="truncate text-sm text-muted-foreground">
+                <span className="min-w-0 truncate text-sm text-muted-foreground">
                     - {mail.preview}
                 </span>
               </div>
