@@ -1,6 +1,6 @@
 "use client"
 
-import * as React from "react"
+import { useState } from "react"
 import {
   ArchiveIcon,
   FolderIcon,
@@ -14,6 +14,7 @@ import { cn } from "~/lib/utils"
 import { Avatar, AvatarFallback, AvatarImage } from "~/components/ui/avatar"
 import { Button } from "~/components/ui/button"
 import { Checkbox } from "~/components/ui/checkbox"
+import { MailComposer } from "~/components/mail-composer"
 
 export interface Mail {
   id: string
@@ -228,7 +229,8 @@ function getInitials(name: string) {
 }
 
 export function MailList() {
-  const [selected, setSelected] = React.useState<Set<string>>(new Set())
+  const [selected, setSelected] = useState<Set<string>>(new Set())
+  const [composerOpen, setComposerOpen] = useState(false)
 
   function toggleSelect(id: string) {
     setSelected((prev) => {
@@ -290,7 +292,7 @@ export function MailList() {
         </div>
 
         <div className="ml-auto">
-          <Button size="lg" className="gap-1.5">
+          <Button size="lg" className="gap-1.5" onClick={() => setComposerOpen(true)}>
             <PenSquareIcon className="size-4" />
             Write Message
           </Button>
@@ -381,6 +383,8 @@ export function MailList() {
           </div>
         ))}
       </div>
+
+      <MailComposer open={composerOpen} onClose={() => setComposerOpen(false)} />
     </div>
   )
 }
