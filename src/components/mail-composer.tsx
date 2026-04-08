@@ -378,7 +378,7 @@ export function MailComposer({
           <div className="flex items-center gap-1 border-t px-3 py-2">
             <div className="flex items-center">
               <Button
-                size="sm"
+                size="default"
                 className="gap-1.5 rounded-r-none"
                 onClick={() => {
                   /* send logic */
@@ -390,15 +390,15 @@ export function MailComposer({
               <DropdownMenu modal={false}>
                 <DropdownMenuTrigger asChild>
                   <Button
-                    size="sm"
+                    size="default"
                     className="rounded-l-none border-l border-primary-foreground/20 px-1.5"
                   >
                     <ChevronDownIcon className="size-3.5" />
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="start" side="top">
+                <DropdownMenuContent align="center" side="top">
                   <DropdownMenuItem>
-                    <ClockIcon className="size-4" />
+                    <ClockIcon className="size-3.5" />
                     Send Later
                   </DropdownMenuItem>
                 </DropdownMenuContent>
