@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import Link from "next/link"
 import {
   ArchiveIcon,
   FolderIcon,
@@ -302,8 +303,9 @@ export function MailList() {
       {/* Mail list */}
       <div className="flex-1 overflow-y-auto">
         {mails.map((mail) => (
-          <div
+          <Link
             key={mail.id}
+            href={`/dashboard/mail/${mail.id}`}
             className={cn(
               "group flex items-center gap-3 border-b px-4 py-3 transition-colors hover:bg-muted/50",
               selected.has(mail.id) && "bg-muted/50"
@@ -380,7 +382,7 @@ export function MailList() {
                 {mail.date}
               </span>
             </div>
-          </div>
+          </Link>
         ))}
       </div>
 
