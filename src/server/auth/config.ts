@@ -35,6 +35,9 @@ export const authConfig = {
     GitHubProvider,
   ],
   adapter: PrismaAdapter(db),
+  pages: {
+    signIn: "/login",
+  },
   callbacks: {
     session: ({ session, user }) => ({
       ...session,
