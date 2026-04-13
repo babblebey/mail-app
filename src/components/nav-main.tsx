@@ -47,7 +47,9 @@ export function NavMain({
                 </a>
               </SidebarMenuButton>
               {item.badge != null && item.badge > 0 && (
-                <SidebarMenuBadge>{item.badge}</SidebarMenuBadge>
+                <SidebarMenuBadge className="text-white! bg-sidebar-accent-foreground">
+                  {item.badge}
+                </SidebarMenuBadge>
               )}
               {item.items?.length ? (
                 <>
