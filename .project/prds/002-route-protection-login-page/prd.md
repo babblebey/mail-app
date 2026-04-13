@@ -1,6 +1,6 @@
 ---
 title: "Route Protection & Custom Login Page"
-status: draft
+status: in-progress
 references:
   - type: doc
     url: .project/brief.md
@@ -49,9 +49,9 @@ This PRD covers two concerns:
 
 #### Tasks
 
-- [ ] Run `pnpm dlx shadcn@latest add login-02` to scaffold the block into the project
-- [ ] Verify the scaffolded files are placed under `src/app/login/page.tsx` and the `LoginForm` component is created (move from `app/` to `src/app/` if the CLI targets the wrong directory)
-- [ ] Confirm all UI dependencies (`button`, `input`, `label`, `field`) are present — these already exist in the project
+- [x] Run `pnpm dlx shadcn@latest add login-02` to scaffold the block into the project
+- [x] Verify the scaffolded files are placed under `src/app/login/page.tsx` and the `LoginForm` component is created (move from `app/` to `src/app/` if the CLI targets the wrong directory)
+- [x] Confirm all UI dependencies (`button`, `input`, `label`, `field`) are present — these already exist in the project
 
 ### Phase 2: Customize Login Page & Form
 
