@@ -220,7 +220,7 @@ This PRD covers:
 
 #### Tasks
 
-- [ ] Update `src/components/mail-thread.tsx`:
+- [x] Update `src/components/mail-thread.tsx`:
   - Accept `uid` and `folder` as props (derived from the route params)
   - Call `api.mail.getMessage.useQuery({ folder, uid })` to fetch the full message
   - Replace `sampleThread` and its `ThreadMessage[]` with real data
@@ -229,8 +229,8 @@ This PRD covers:
   - Display attachment metadata (filename, size, type) as a list — actual download is deferred to a future PRD
   - Show a loading skeleton while the message is being fetched
   - Handle fetch errors gracefully
-- [ ] Update `src/app/dashboard/mail/[id]/page.tsx` to extract `uid` and `folder` from params/searchParams and pass them to `MailThreadView`
-- [ ] Auto-mark the message as read when opened (the `getMessage` procedure handles this server-side)
+- [x] Update `src/app/dashboard/mail/[id]/page.tsx` to extract `uid` and `folder` from params/searchParams and pass them to `MailThreadView`
+- [x] Auto-mark the message as read when opened (the `getMessage` procedure handles this server-side)
 
 ### Phase 8: Replace testConnection Stub
 

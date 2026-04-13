@@ -58,7 +58,7 @@ export default async function MailPage({
             </Breadcrumb>
           </div>
         </header>
-        <MailThreadView threadId={id} />
+        <MailThreadView uid={Number(id)} folder={folder} />
       </SidebarInset>
     </SidebarProvider>
   )
