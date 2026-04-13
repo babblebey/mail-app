@@ -81,9 +81,9 @@ Before the app can fetch or send any email it needs to know **how to connect** t
 
 #### Tasks
 
-- [ ] Add an `ENCRYPTION_KEY` environment variable (32-byte hex string) to `.env` and validate it via `src/env.js` using `@t3-oss/env-nextjs`
-- [ ] Create `src/lib/crypto.ts` exporting `encrypt(plaintext: string): string` and `decrypt(ciphertext: string): string` using Node.js `crypto` module with AES-256-GCM (IV + auth tag stored alongside the ciphertext)
-- [ ] Write unit tests for encrypt/decrypt round-trip
+- [x] Add an `ENCRYPTION_KEY` environment variable (32-byte hex string) to `.env` and validate it via `src/env.js` using `@t3-oss/env-nextjs`
+- [x] Create `src/lib/crypto.ts` exporting `encrypt(plaintext: string): string` and `decrypt(ciphertext: string): string` using Node.js `crypto` module with AES-256-GCM (IV + auth tag stored alongside the ciphertext)
+- [x] Write unit tests for encrypt/decrypt round-trip
 
 ### Phase 3: tRPC Router
 
