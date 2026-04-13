@@ -24,7 +24,8 @@ const createContext = cache(async () => {
 const getQueryClient = cache(createQueryClient);
 const caller = createCaller(createContext);
 
+// eslint-disable-next-line @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-explicit-any
 export const { trpc: api, HydrateClient } = createHydrationHelpers<AppRouter>(
-  caller,
+  caller as any,
   getQueryClient,
 );

@@ -1,6 +1,6 @@
 ---
 title: "Mail Account Credentials & Data Model"
-status: draft
+status: in-progress
 references:
   - type: doc
     url: .project/brief.md
@@ -38,9 +38,9 @@ Before the app can fetch or send any email it needs to know **how to connect** t
 
 #### Tasks
 
-- [ ] Remove the `Post` model from `prisma/schema.prisma` and delete `src/server/api/routers/post.ts`
-- [ ] Remove the `post` router from `src/server/api/root.ts` and any references in `src/app/_components/post.tsx`
-- [ ] Add a `MailAccount` model to `prisma/schema.prisma` with the following fields:
+- [x] Remove the `Post` model from `prisma/schema.prisma` and delete `src/server/api/routers/post.ts`
+- [x] Remove the `post` router from `src/server/api/root.ts` and any references in `src/app/_components/post.tsx`
+- [x] Add a `MailAccount` model to `prisma/schema.prisma` with the following fields:
   ```
   model MailAccount {
       id        String   @id @default(cuid())
@@ -72,8 +72,8 @@ Before the app can fetch or send any email it needs to know **how to connect** t
       @@index([userId])
   }
   ```
-- [ ] Add the `mailAccounts MailAccount[]` relation to the `User` model
-- [ ] Generate and apply the Prisma migration (`pnpm db:generate`)
+- [x] Add the `mailAccounts MailAccount[]` relation to the `User` model
+- [x] Generate and apply the Prisma migration (`pnpm db:generate`)
 
 ### Phase 2: Credential Encryption Utility
 
