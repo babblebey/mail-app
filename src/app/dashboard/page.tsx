@@ -43,7 +43,7 @@ export default async function Page({
                 </BreadcrumbItem>
                 <BreadcrumbSeparator className="hidden md:block" />
                 <BreadcrumbItem>
-                  <BreadcrumbPage>{folder}</BreadcrumbPage>
+                  <BreadcrumbPage>{folder.charAt(0).toUpperCase() + folder.slice(1).toLowerCase()}</BreadcrumbPage>
                 </BreadcrumbItem>
               </BreadcrumbList>
             </Breadcrumb>
