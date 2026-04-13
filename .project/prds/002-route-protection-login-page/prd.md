@@ -59,12 +59,12 @@ This PRD covers two concerns:
 
 #### Tasks
 
-- [ ] Update the brand name from "Acme Inc." to the app name in `src/app/login/page.tsx`
-- [ ] Replace or remove the `/placeholder.svg` cover image with an appropriate placeholder
-- [ ] Make the `LoginForm` component a client component (`"use client"`) so it can handle form actions and call `signIn`
-- [ ] Wire the "Login with GitHub" button to call `signIn("github", { redirectTo: "/dashboard" })` imported from `~/server/auth`
-- [ ] Keep email/password fields intact but non-functional (ready for future providers)
-- [ ] Ensure the login page renders correctly on mobile (single-column) and desktop (two-column)
+- [x] Update the brand name from "Acme Inc." to the app name in `src/app/login/page.tsx`
+- [x] Replace or remove the `/placeholder.svg` cover image with an appropriate placeholder
+- [x] Make the `LoginForm` component a client component (`"use client"`) so it can handle form actions and call `signIn`
+- [x] Wire the "Login with GitHub" button to call `signIn("github", { redirectTo: "/dashboard" })` imported from `~/server/auth`
+- [x] Keep email/password fields intact but non-functional (ready for future providers)
+- [x] Ensure the login page renders correctly on mobile (single-column) and desktop (two-column)
 
 ### Phase 3: Configure NextAuth Custom Pages
 
