@@ -49,7 +49,7 @@ export default async function Page({
             </Breadcrumb>
           </div>
         </header>
-        <MailList />
+        <MailList folder={folder} />
       </SidebarInset>
     </SidebarProvider>
   )

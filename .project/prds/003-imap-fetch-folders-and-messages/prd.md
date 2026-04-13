@@ -201,7 +201,7 @@ This PRD covers:
 
 #### Tasks
 
-- [ ] Update `src/components/mail-list.tsx`:
+- [x] Update `src/components/mail-list.tsx`:
   - Accept a `folder` prop (or read it from the URL / search params)
   - Call `api.mail.listMessages.useInfiniteQuery()` with cursor-based pagination
   - Replace the hardcoded `mails` array with the query results
@@ -210,9 +210,9 @@ This PRD covers:
   - Show a skeleton/loading state for the initial load
   - Show an empty state when the folder has no messages
   - Handle errors with an inline error message and retry
-- [ ] Clicking a message navigates to `/dashboard/mail/[uid]?folder=<path>` (or equivalent route)
-- [ ] Reflect read/unread state visually (bold text for unread, as currently styled)
-- [ ] Reflect starred/flagged state visually
+- [x] Clicking a message navigates to `/dashboard/mail/[uid]?folder=<path>` (or equivalent route)
+- [x] Reflect read/unread state visually (bold text for unread, as currently styled)
+- [x] Reflect starred/flagged state visually
 
 ### Phase 7: Wire UI — Thread / Message View
 

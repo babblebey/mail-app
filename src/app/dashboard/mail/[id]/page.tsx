@@ -17,14 +17,18 @@ import {
 
 export default async function MailPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>
+  searchParams: Promise<Record<string, string | string[] | undefined>>
 }) {
   const { id } = await params
+  const sp = await searchParams
+  const folder = typeof sp.folder === "string" ? sp.folder : "INBOX"
 
   return (
     <SidebarProvider>
-      <AppSidebar />
+      <AppSidebar folder={folder} />
       <SidebarInset>
         <header className="flex h-12 shrink-0 items-center gap-2 border-b">
           <div className="flex items-center gap-2 px-4">
@@ -42,8 +46,8 @@ export default async function MailPage({
                 </BreadcrumbItem>
                 <BreadcrumbSeparator className="hidden md:block" />
                 <BreadcrumbItem className="hidden md:block">
-                  <BreadcrumbLink href="/dashboard">
-                    Inbox
+                  <BreadcrumbLink href={`/dashboard?folder=${encodeURIComponent(folder)}`}>
+                    {folder}
                   </BreadcrumbLink>
                 </BreadcrumbItem>
                 <BreadcrumbSeparator className="hidden md:block" />
