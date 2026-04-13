@@ -1,6 +1,6 @@
 ---
 title: "Mail Account Credentials & Data Model"
-status: in-progress
+status: completed
 references:
   - type: doc
     url: .project/brief.md
@@ -121,18 +121,18 @@ Before the app can fetch or send any email it needs to know **how to connect** t
 
 #### Tasks
 
-- [ ] When a user saves their first account, automatically set `isDefault: true`
-- [ ] Add a "Set as default" action in the account list UI
-- [ ] Ensure only one account per user can be the default (unset others in a transaction)
+- [x] When a user saves their first account, automatically set `isDefault: true`
+- [x] Add a "Set as default" action in the account list UI
+- [x] Ensure only one account per user can be the default (unset others in a transaction)
 
 ## Acceptance Criteria
 
-- [ ] The `Post` model, router, and related UI are fully removed
-- [ ] A `MailAccount` model exists in Prisma with all fields listed above; migration applies cleanly
-- [ ] Passwords are encrypted at rest using AES-256-GCM; raw passwords never appear in the database or API responses
-- [ ] All `mailAccount` tRPC procedures are protected and scoped to the current user's data
-- [ ] A logged-in user can add, view, edit, and delete mail accounts from the settings page
-- [ ] The "Test Connection" button provides clear success or error feedback (stubbed for now)
-- [ ] One account is marked as default; the first account added is auto-defaulted
-- [ ] The settings page is reachable from the sidebar navigation
-- [ ] No TypeScript or lint errors after all changes
+- [x] The `Post` model, router, and related UI are fully removed
+- [x] A `MailAccount` model exists in Prisma with all fields listed above; migration applies cleanly
+- [x] Passwords are encrypted at rest using AES-256-GCM; raw passwords never appear in the database or API responses
+- [x] All `mailAccount` tRPC procedures are protected and scoped to the current user's data
+- [x] A logged-in user can add, view, edit, and delete mail accounts from the settings page
+- [x] The "Test Connection" button provides clear success or error feedback (stubbed for now)
+- [x] One account is marked as default; the first account added is auto-defaulted
+- [x] The settings page is reachable from the sidebar navigation
+- [x] No TypeScript or lint errors after all changes

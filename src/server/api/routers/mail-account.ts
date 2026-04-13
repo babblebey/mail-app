@@ -41,14 +41,19 @@ const testConnectionInput = z.object({
 const passwordField = { password: true } as const;
 
 export const mailAccountRouter = createTRPCRouter({
-  /** Create a new mail account for the current user. */
+  /** Create a new mail account for the current user. Auto-defaults the first account. */
   create: protectedProcedure
     .input(createInput)
     .mutation(async ({ ctx, input }) => {
+      const existingCount = await ctx.db.mailAccount.count({
+        where: { userId: ctx.session.user.id },
+      });
+
       const account = await ctx.db.mailAccount.create({
         data: {
           ...input,
           password: encrypt(input.password),
+          isDefault: existingCount === 0,
           user: { connect: { id: ctx.session.user.id } },
         },
       });
@@ -120,7 +125,7 @@ export const mailAccountRouter = createTRPCRouter({
       return rest;
     }),
 
-  /** Delete a mail account by ID. */
+  /** Delete a mail account by ID. Reassigns default if needed. */
   delete: protectedProcedure
     .input(z.object({ id: z.string().cuid() }))
     .mutation(async ({ ctx, input }) => {
@@ -137,6 +142,50 @@ export const mailAccountRouter = createTRPCRouter({
       }
 
       await ctx.db.mailAccount.delete({ where: { id: input.id } });
+
+      // If we deleted the default account, promote the oldest remaining one
+      if (existing.isDefault) {
+        const oldest = await ctx.db.mailAccount.findFirst({
+          where: { userId: ctx.session.user.id },
+          orderBy: { createdAt: "asc" },
+        });
+        if (oldest) {
+          await ctx.db.mailAccount.update({
+            where: { id: oldest.id },
+            data: { isDefault: true },
+          });
+        }
+      }
+
+      return { success: true };
+    }),
+
+  /** Set a mail account as the default. Unsets all others in a transaction. */
+  setDefault: protectedProcedure
+    .input(z.object({ id: z.string().cuid() }))
+    .mutation(async ({ ctx, input }) => {
+      // Verify ownership
+      const existing = await ctx.db.mailAccount.findFirst({
+        where: { id: input.id, userId: ctx.session.user.id },
+      });
+
+      if (!existing) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Mail account not found",
+        });
+      }
+
+      await ctx.db.$transaction([
+        ctx.db.mailAccount.updateMany({
+          where: { userId: ctx.session.user.id, isDefault: true },
+          data: { isDefault: false },
+        }),
+        ctx.db.mailAccount.update({
+          where: { id: input.id },
+          data: { isDefault: true },
+        }),
+      ]);
 
       return { success: true };
     }),

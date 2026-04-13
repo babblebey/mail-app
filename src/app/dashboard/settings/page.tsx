@@ -45,6 +45,7 @@ import {
   MailIcon,
   PencilIcon,
   PlusIcon,
+  StarIcon,
   Trash2Icon,
 } from "lucide-react"
 import { api } from "~/trpc/react"
@@ -60,6 +61,12 @@ export default function SettingsPage() {
   const utils = api.useUtils()
 
   const deleteMutation = api.mailAccount.delete.useMutation({
+    onSuccess: () => {
+      void utils.mailAccount.list.invalidate()
+    },
+  })
+
+  const setDefaultMutation = api.mailAccount.setDefault.useMutation({
     onSuccess: () => {
       void utils.mailAccount.list.invalidate()
     },
@@ -230,6 +237,19 @@ export default function SettingsPage() {
                           <CardDescription>{account.email}</CardDescription>
                         </div>
                         <div className="flex items-center gap-1">
+                          {!account.isDefault && (
+                            <Button
+                              variant="ghost"
+                              size="icon-sm"
+                              onClick={() =>
+                                setDefaultMutation.mutate({ id: account.id })
+                              }
+                              disabled={setDefaultMutation.isPending}
+                            >
+                              <StarIcon />
+                              <span className="sr-only">Set as default</span>
+                            </Button>
+                          )}
                           <Button
                             variant="ghost"
                             size="icon-sm"
