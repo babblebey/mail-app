@@ -15,10 +15,17 @@ import {
   SidebarTrigger,
 } from "~/components/ui/sidebar"
 
-export default function Page() {
+export default async function Page({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>
+}) {
+  const params = await searchParams
+  const folder = typeof params.folder === "string" ? params.folder : "INBOX"
+
   return (
     <SidebarProvider>
-      <AppSidebar />
+      <AppSidebar folder={folder} />
       <SidebarInset>
         <header className="flex h-12 shrink-0 items-center gap-2 border-b">
           <div className="flex items-center gap-2 px-4">
@@ -30,19 +37,19 @@ export default function Page() {
             <Breadcrumb>
               <BreadcrumbList>
                 <BreadcrumbItem className="hidden md:block">
-                  <BreadcrumbLink href="#">
+                  <BreadcrumbLink href="/dashboard">
                     Mail
                   </BreadcrumbLink>
                 </BreadcrumbItem>
                 <BreadcrumbSeparator className="hidden md:block" />
                 <BreadcrumbItem>
-                  <BreadcrumbPage>Inbox</BreadcrumbPage>
+                  <BreadcrumbPage>{folder.charAt(0).toUpperCase() + folder.slice(1).toLowerCase()}</BreadcrumbPage>
                 </BreadcrumbItem>
               </BreadcrumbList>
             </Breadcrumb>
           </div>
         </header>
-        <MailList />
+        <MailList folder={folder} />
       </SidebarInset>
     </SidebarProvider>
   )

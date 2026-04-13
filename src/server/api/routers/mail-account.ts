@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
+import { ImapFlow } from "imapflow";
 
 import { createTRPCRouter, protectedProcedure } from "~/server/api/trpc";
 import { encrypt, decrypt } from "~/lib/crypto";
@@ -191,14 +192,40 @@ export const mailAccountRouter = createTRPCRouter({
     }),
 
   /**
-   * Test connection with the given credentials.
-   * Stub: validates input shape and returns { ok: true }.
-   * Will be replaced with real IMAP login using `imapflow` in a later milestone.
+   * Test connection with the given IMAP credentials.
+   * Attempts a real IMAP connection, authenticates, and immediately disconnects.
    */
   testConnection: protectedProcedure
     .input(testConnectionInput)
-    .mutation(async ({ input: _input }) => {
-      // TODO: Replace with actual IMAP connection test using imapflow
+    .mutation(async ({ input }) => {
+      const client = new ImapFlow({
+        host: input.imapHost,
+        port: input.imapPort,
+        secure: input.imapTls,
+        auth: {
+          user: input.username,
+          pass: input.password,
+        },
+        logger: false,
+      });
+
+      try {
+        await client.connect();
+      } catch (error) {
+        const message =
+          error instanceof Error ? error.message : "Unknown connection error";
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: `IMAP connection failed: ${message}`,
+        });
+      } finally {
+        try {
+          await client.logout();
+        } catch {
+          // Ignore logout errors
+        }
+      }
+
       return { ok: true };
     }),
 });

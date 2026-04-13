@@ -1,4 +1,5 @@
 import { mailAccountRouter } from "~/server/api/routers/mail-account";
+import { mailRouter } from "~/server/api/routers/mail";
 import { createCallerFactory, createTRPCRouter } from "~/server/api/trpc";
 
 /**
@@ -8,6 +9,7 @@ import { createCallerFactory, createTRPCRouter } from "~/server/api/trpc";
  */
 export const appRouter = createTRPCRouter({
   mailAccount: mailAccountRouter,
+  mail: mailRouter,
 });
 
 // export type definition of API

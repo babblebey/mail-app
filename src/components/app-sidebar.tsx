@@ -16,10 +16,10 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "~/components/ui/sidebar"
+import { Skeleton } from "~/components/ui/skeleton"
 import {
   InboxIcon,
   SendIcon,
-  ClockIcon,
   FileTextIcon,
   AlertOctagonIcon,
   ArchiveIcon,
@@ -28,7 +28,21 @@ import {
   CircleHelpIcon,
   MailIcon,
   SearchIcon,
+  FolderIcon,
+  RefreshCwIcon,
+  AlertCircleIcon,
 } from "lucide-react"
+import { api } from "~/trpc/react"
+
+/** Maps IMAP special-use flags to icons. */
+const SPECIAL_USE_ICONS: Record<string, React.ReactNode> = {
+  "\\Inbox": <InboxIcon />,
+  "\\Sent": <SendIcon />,
+  "\\Drafts": <FileTextIcon />,
+  "\\Junk": <AlertOctagonIcon />,
+  "\\Trash": <Trash2Icon />,
+  "\\Archive": <ArchiveIcon />,
+}
 
 const data = {
   user: {
@@ -36,58 +50,6 @@ const data = {
     email: "john.doe@example.com",
     avatar: "",
   },
-  navMain: [
-    {
-      title: "Inbox",
-      url: "#",
-      icon: <InboxIcon />,
-      isActive: true,
-      items: [
-        {
-          title: "All Messages",
-          url: "#",
-        },
-        {
-          title: "Already Read",
-          url: "#",
-        },
-        {
-          title: "Unreadable",
-          url: "#",
-        },
-      ],
-    },
-    {
-      title: "Sent",
-      url: "#",
-      icon: <SendIcon />,
-    },
-    {
-      title: "Send later",
-      url: "#",
-      icon: <ClockIcon />,
-    },
-    {
-      title: "Drafts",
-      url: "#",
-      icon: <FileTextIcon />,
-    },
-    {
-      title: "Spam",
-      url: "#",
-      icon: <AlertOctagonIcon />,
-    },
-    {
-      title: "Archive",
-      url: "#",
-      icon: <ArchiveIcon />,
-    },
-    {
-      title: "Trash",
-      url: "#",
-      icon: <Trash2Icon />,
-    },
-  ],
   navSecondary: [
     {
       title: "Settings",
@@ -122,7 +84,24 @@ const data = {
   ],
 }
 
-export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
+export function AppSidebar({ folder, ...props }: React.ComponentProps<typeof Sidebar> & { folder?: string }) {
+  const currentFolder = folder ?? "INBOX"
+
+  const foldersQuery = api.mail.listFolders.useQuery({})
+
+  const navItems = React.useMemo(() => {
+    if (!foldersQuery.data) return []
+
+    return foldersQuery.data.map((folder) => ({
+      title: folder.name.charAt(0).toUpperCase() + folder.name.slice(1).toLowerCase(),
+      url: `/dashboard?folder=${encodeURIComponent(folder.path)}`,
+      icon: folder.specialUse
+        ? (SPECIAL_USE_ICONS[folder.specialUse] ?? <FolderIcon />)
+        : <FolderIcon />,
+      isActive: folder.path === currentFolder,
+      badge: folder.unseenMessages,
+    }))
+  }, [foldersQuery.data, currentFolder])
   return (
     <Sidebar variant="inset" {...props}>
       <SidebarHeader>
@@ -148,7 +127,27 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         </form>
       </SidebarHeader>
       <SidebarContent>
-        <NavMain items={data.navMain} />
+        {foldersQuery.isLoading ? (
+          <div className="flex flex-col gap-2 p-4">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <Skeleton key={i} className="h-8 w-full rounded-md" />
+            ))}
+          </div>
+        ) : foldersQuery.isError ? (
+          <div className="flex flex-col items-center gap-2 px-4 py-6 text-center text-sm text-muted-foreground">
+            <AlertCircleIcon className="size-5 text-destructive" />
+            <p>Failed to load folders</p>
+            <button
+              onClick={() => foldersQuery.refetch()}
+              className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
+            >
+              <RefreshCwIcon className="size-3" />
+              Retry
+            </button>
+          </div>
+        ) : (
+          <NavMain items={navItems} />
+        )}
         <NavProjects labels={data.labels} />
         <NavSecondary items={data.navSecondary} className="mt-auto" />
       </SidebarContent>
