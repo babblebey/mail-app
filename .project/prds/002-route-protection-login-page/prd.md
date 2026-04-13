@@ -81,12 +81,12 @@ This PRD covers two concerns:
 
 #### Tasks
 
-- [ ] Create `src/app/dashboard/layout.tsx` as a server component that:
+- [x] Create `src/app/dashboard/layout.tsx` as a server component that:
   - Calls `auth()` from `~/server/auth` to retrieve the session
   - If no session exists, calls `redirect("/login")` from `next/navigation`
   - If authenticated, renders `{children}`
-- [ ] Verify that `/dashboard`, `/dashboard/settings`, and `/dashboard/mail/[id]` all redirect to `/login` when no session exists
-- [ ] Verify that authenticated users can access all dashboard routes normally
+- [x] Verify that `/dashboard`, `/dashboard/settings`, and `/dashboard/mail/[id]` all redirect to `/login` when no session exists
+- [x] Verify that authenticated users can access all dashboard routes normally
 
 ### Phase 5: Update Home Page Links
 
