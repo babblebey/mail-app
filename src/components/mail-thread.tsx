@@ -86,19 +86,9 @@ type MessageData = {
 function MessageBody({ message }: { message: MessageData }) {
   if (message.htmlBody) {
     return (
-      <iframe
-        srcDoc={message.htmlBody}
-        sandbox="allow-popups allow-popups-to-escape-sandbox"
-        title="Email content"
-        className="w-full border-0"
-        style={{ minHeight: 200 }}
-        onLoad={(e) => {
-          const iframe = e.currentTarget
-          const body = iframe.contentDocument?.body
-          if (body) {
-            iframe.style.height = `${body.scrollHeight + 20}px`
-          }
-        }}
+      <div
+        className="prose prose-sm max-w-none text-foreground"
+        dangerouslySetInnerHTML={{ __html: message.htmlBody }}
       />
     )
   }
