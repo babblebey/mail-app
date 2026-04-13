@@ -1,7 +1,28 @@
 import { z } from "zod";
+import type { MessageStructureObject } from "imapflow";
 
 import { createTRPCRouter, protectedProcedure } from "~/server/api/trpc";
 import { withImapClient, resolveAccountId } from "~/server/imap/client";
+
+/** Check whether a BODYSTRUCTURE tree contains attachments. */
+function hasAttachments(structure?: MessageStructureObject): boolean {
+  if (!structure) return false;
+  // A part is an attachment if it has a "attachment" disposition,
+  // or if it's not a text/html/multipart with a filename
+  if (structure.disposition === "attachment") return true;
+  if (
+    structure.dispositionParameters?.filename ||
+    structure.parameters?.name
+  ) {
+    // inline images with a CID are not counted as user-facing attachments
+    if (structure.disposition === "inline" && structure.id) return false;
+    return true;
+  }
+  if (structure.childNodes) {
+    return structure.childNodes.some(hasAttachments);
+  }
+  return false;
+}
 
 /** Ordering for well-known special-use folders. Lower = higher priority. */
 const SPECIAL_USE_ORDER: Record<string, number> = {
@@ -65,6 +86,116 @@ export const mailRouter = createTRPCRouter({
         });
 
         return folders;
+      });
+    }),
+
+  /**
+   * Returns a paginated list of message summaries for a given folder,
+   * ordered newest-first using sequence-number-based cursor pagination.
+   */
+  listMessages: protectedProcedure
+    .input(
+      z.object({
+        accountId: z.string().cuid().optional(),
+        folder: z.string().min(1),
+        cursor: z.number().int().positive().optional(),
+        limit: z.number().int().min(1).max(100).default(50),
+      }),
+    )
+    .query(async ({ ctx, input }) => {
+      const accountId = await resolveAccountId(
+        input.accountId,
+        ctx.session.user.id,
+      );
+
+      return withImapClient(accountId, ctx.session.user.id, async (client) => {
+        const mailbox = await client.mailboxOpen(input.folder, {
+          readOnly: true,
+        });
+
+        const total = mailbox.exists;
+        if (total === 0) {
+          return { messages: [], nextCursor: null as number | null };
+        }
+
+        // Determine the sequence range (newest-first).
+        // cursor is the sequence number to paginate FROM (exclusive upper bound).
+        const upperSeq = input.cursor ? input.cursor - 1 : total;
+        if (upperSeq <= 0) {
+          return { messages: [], nextCursor: null as number | null };
+        }
+
+        const lowerSeq = Math.max(1, upperSeq - input.limit + 1);
+        const range = `${lowerSeq}:${upperSeq}`;
+
+        const messages: Array<{
+          uid: number;
+          sequenceNumber: number;
+          subject: string;
+          from: { name: string; address: string };
+          to: { name: string; address: string }[];
+          date: string;
+          flags: string[];
+          read: boolean;
+          starred: boolean;
+          snippet: string;
+          hasAttachments: boolean;
+        }> = [];
+
+        for await (const msg of client.fetch(range, {
+          uid: true,
+          flags: true,
+          envelope: true,
+          bodyStructure: true,
+          bodyParts: ["1"],
+        })) {
+          const flags = msg.flags ? Array.from(msg.flags) : [];
+          const fromAddr = msg.envelope?.from?.[0];
+          const toAddrs = msg.envelope?.to ?? [];
+
+          // Extract a plain-text snippet from body part "1" (first text part)
+          let snippet = "";
+          if (msg.bodyParts) {
+            const textBuf = msg.bodyParts.get("1");
+            if (textBuf) {
+              snippet = textBuf
+                .toString("utf-8")
+                .replace(/\r?\n/g, " ")
+                .replace(/\s+/g, " ")
+                .trim()
+                .slice(0, 120);
+            }
+          }
+
+          messages.push({
+            uid: msg.uid,
+            sequenceNumber: msg.seq,
+            subject: msg.envelope?.subject ?? "(no subject)",
+            from: {
+              name: fromAddr?.name ?? fromAddr?.address ?? "Unknown",
+              address: fromAddr?.address ?? "",
+            },
+            to: toAddrs.map((a) => ({
+              name: a.name ?? a.address ?? "Unknown",
+              address: a.address ?? "",
+            })),
+            date: msg.envelope?.date
+              ? msg.envelope.date.toISOString()
+              : new Date().toISOString(),
+            flags,
+            read: flags.includes("\\Seen"),
+            starred: flags.includes("\\Flagged"),
+            snippet,
+            hasAttachments: hasAttachments(msg.bodyStructure),
+          });
+        }
+
+        // Sort newest-first (highest sequence number first)
+        messages.sort((a, b) => b.sequenceNumber - a.sequenceNumber);
+
+        const nextCursor: number | null = lowerSeq > 1 ? lowerSeq : null;
+
+        return { messages, nextCursor };
       });
     }),
 });

@@ -104,7 +104,7 @@ This PRD covers:
 
 #### Tasks
 
-- [ ] Add a `listMessages` protected procedure to the `mail` router:
+- [x] Add a `listMessages` protected procedure to the `mail` router:
   - Input:
     ```ts
     {
@@ -133,7 +133,7 @@ This PRD covers:
     }
     ```
   - Returns `{ messages: [...], nextCursor: number | null }` for cursor-based pagination
-- [ ] Handle empty folders gracefully (return `{ messages: [], nextCursor: null }`)
+- [x] Handle empty folders gracefully (return `{ messages: [], nextCursor: null }`)
 
 ### Phase 4: tRPC Router — Fetch Single Message
 
