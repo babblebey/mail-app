@@ -78,8 +78,8 @@ This PRD covers:
 
 #### Tasks
 
-- [ ] Create `src/server/api/routers/mail.ts` with a `mail` router
-- [ ] Add a `listFolders` protected procedure:
+- [x] Create `src/server/api/routers/mail.ts` with a `mail` router
+- [x] Add a `listFolders` protected procedure:
   - Input: `{ accountId?: string }` (optional — falls back to the user's default account)
   - Uses `withImapClient` to connect and call `client.list()`
   - Maps the IMAP folder list to a response shape:
@@ -96,7 +96,7 @@ This PRD covers:
     }
     ```
   - Sorts folders with well-known special-use folders first (Inbox, Drafts, Sent, Spam/Junk, Trash, Archive), then remaining folders alphabetically
-- [ ] Register the `mail` router in `src/server/api/root.ts`
+- [x] Register the `mail` router in `src/server/api/root.ts`
 
 ### Phase 3: tRPC Router — List Messages in a Folder
 
