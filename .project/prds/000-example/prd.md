@@ -7,6 +7,14 @@ references:
     description: ""
 ---
 
+> **Instructions for AI Agents:**
+> - Mark each task checkbox (`- [x]`) immediately upon completion.
+> - Update the `status` field in the frontmatter to reflect the current state:
+>   - `in-progress` — when work begins on any phase.
+>   - `completed` — when all tasks and acceptance criteria are done.
+>   - `on-hold` — if work is blocked or paused.
+> - Do not skip tasks or mark them complete without implementing the work.
+
 # PRD Title
 
 ## Description
