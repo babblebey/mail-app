@@ -11,6 +11,9 @@ references:
   - type: prd
     url: .project/prds/002-route-protection-login-page/prd.md
     description: "Prior PRD — Route protection & custom login page (completed)"
+  - type: pr
+    url: https://github.com/babblebey/mail-app/pull/7
+    description: "Implementation PR — feat(mail): integrate IMAP to fetch folders and messages"
 ---
 
 > **Instructions for AI Agents:**
