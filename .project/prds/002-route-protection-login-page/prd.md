@@ -1,6 +1,6 @@
 ---
 title: "Route Protection & Custom Login Page"
-status: in-progress
+status: completed
 references:
   - type: doc
     url: .project/brief.md
@@ -94,16 +94,16 @@ This PRD covers two concerns:
 
 #### Tasks
 
-- [ ] In `src/app/page.tsx`, update the sign-in link from `/api/auth/signin` to `/login`
-- [ ] Keep the sign-out link pointing to `/api/auth/signout` (NextAuth handles sign-out internally)
+- [x] In `src/app/page.tsx`, update the sign-in link from `/api/auth/signin` to `/login`
+- [x] Keep the sign-out link pointing to `/api/auth/signout` (NextAuth handles sign-out internally)
 
 ## Acceptance Criteria
 
-- [ ] A branded two-column login page exists at `/login` using the shadcn/ui `login-02` block layout
-- [ ] The "Login with GitHub" button initiates the GitHub OAuth flow and redirects to `/dashboard` on success
-- [ ] Email/password fields are visible but non-functional (no server-side handler)
-- [ ] Visiting `/dashboard`, `/dashboard/settings`, or `/dashboard/mail/<any-id>` while unauthenticated redirects to `/login`
-- [ ] Authenticated users can access all dashboard routes without interruption
-- [ ] The NextAuth default sign-in page is no longer used; `pages.signIn` is set to `/login`
-- [ ] The home page sign-in link navigates to `/login`
-- [ ] No TypeScript, ESLint, or build errors after all changes
+- [x] A branded two-column login page exists at `/login` using the shadcn/ui `login-02` block layout
+- [x] The "Login with GitHub" button initiates the GitHub OAuth flow and redirects to `/dashboard` on success
+- [x] Email/password fields are visible but non-functional (no server-side handler)
+- [x] Visiting `/dashboard`, `/dashboard/settings`, or `/dashboard/mail/<any-id>` while unauthenticated redirects to `/login`
+- [x] Authenticated users can access all dashboard routes without interruption
+- [x] The NextAuth default sign-in page is no longer used; `pages.signIn` is set to `/login`
+- [x] The home page sign-in link navigates to `/login`
+- [x] No TypeScript, ESLint, or build errors after all changes
