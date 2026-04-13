@@ -1,6 +1,6 @@
 ---
 title: "IMAP: Fetch Folders & Messages"
-status: in-progress
+status: completed
 references:
   - type: doc
     url: .project/brief.md
@@ -238,25 +238,25 @@ This PRD covers:
 
 #### Tasks
 
-- [ ] Update `mailAccount.testConnection` in `src/server/api/routers/mail-account.ts`:
+- [x] Update `mailAccount.testConnection` in `src/server/api/routers/mail-account.ts`:
   - Use the IMAP client helper from Phase 1 to attempt a real connection with the provided credentials
   - Connect, authenticate, and immediately logout
   - Return `{ ok: true }` on success, or throw a `TRPCError` with a descriptive message on failure (bad credentials, unreachable host, TLS error, etc.)
-- [ ] Ensure the existing "Test Connection" button in the settings UI reflects real success/failure
+- [x] Ensure the existing "Test Connection" button in the settings UI reflects real success/failure
 
 ## Acceptance Criteria
 
-- [ ] `imapflow` and `mailparser` are installed and usable in the server-side codebase
-- [ ] `src/server/imap/client.ts` exists and provides a `withImapClient` helper that opens and safely closes connections
-- [ ] The `mail.listFolders` procedure returns the authenticated user's real IMAP folders, sorted with special-use folders first
-- [ ] The `mail.listMessages` procedure returns paginated message summaries (newest-first) for a given folder
-- [ ] The `mail.getMessage` procedure returns the full parsed and sanitised content of a single email
-- [ ] Flag mutations (`markAsRead`, `markAsUnread`, `toggleStar`) update flags on the IMAP server
-- [ ] The sidebar displays real folders from the user's mail account with correct icons and unread counts
-- [ ] The mail list displays real messages from the selected folder with pagination (infinite scroll or load-more)
-- [ ] The thread view renders the full message content (HTML sanitised, or plain-text fallback)
-- [ ] All HTML message bodies are sanitised server-side before being sent to the client (no raw HTML reaches the browser)
-- [ ] The `testConnection` stub is replaced with a real IMAP connection attempt
-- [ ] Loading and error states are handled in all three UI components (sidebar, list, thread)
-- [ ] No TypeScript or lint errors after all changes
-- [ ] All procedures are `protectedProcedure` and scoped to accounts owned by the current user
+- [x] `imapflow` and `mailparser` are installed and usable in the server-side codebase
+- [x] `src/server/imap/client.ts` exists and provides a `withImapClient` helper that opens and safely closes connections
+- [x] The `mail.listFolders` procedure returns the authenticated user's real IMAP folders, sorted with special-use folders first
+- [x] The `mail.listMessages` procedure returns paginated message summaries (newest-first) for a given folder
+- [x] The `mail.getMessage` procedure returns the full parsed and sanitised content of a single email
+- [x] Flag mutations (`markAsRead`, `markAsUnread`, `toggleStar`) update flags on the IMAP server
+- [x] The sidebar displays real folders from the user's mail account with correct icons and unread counts
+- [x] The mail list displays real messages from the selected folder with pagination (infinite scroll or load-more)
+- [x] The thread view renders the full message content (HTML sanitised, or plain-text fallback)
+- [x] All HTML message bodies are sanitised server-side before being sent to the client (no raw HTML reaches the browser)
+- [x] The `testConnection` stub is replaced with a real IMAP connection attempt
+- [x] Loading and error states are handled in all three UI components (sidebar, list, thread)
+- [x] No TypeScript or lint errors after all changes
+- [x] All procedures are `protectedProcedure` and scoped to accounts owned by the current user
