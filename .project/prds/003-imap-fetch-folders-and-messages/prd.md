@@ -1,6 +1,6 @@
 ---
 title: "IMAP: Fetch Folders & Messages"
-status: draft
+status: in-progress
 references:
   - type: doc
     url: .project/brief.md
@@ -57,11 +57,11 @@ This PRD covers:
 
 #### Tasks
 
-- [ ] Install `imapflow` — `pnpm add imapflow`
-- [ ] Install `@types/imapflow` or add a type declaration file if community types are unavailable
-- [ ] Install `mailparser` (for parsing raw message content into structured parts) — `pnpm add mailparser` and `pnpm add -D @types/mailparser`
-- [ ] Install an HTML sanitisation library (e.g. `sanitize-html`) — `pnpm add sanitize-html` and `pnpm add -D @types/sanitize-html`
-- [ ] Create `src/server/imap/client.ts` — a helper module that:
+- [x] Install `imapflow` — `pnpm add imapflow`
+- [x] Install `@types/imapflow` or add a type declaration file if community types are unavailable
+- [x] Install `mailparser` (for parsing raw message content into structured parts) — `pnpm add mailparser` and `pnpm add -D @types/mailparser`
+- [x] Install an HTML sanitisation library (e.g. `sanitize-html`) — `pnpm add sanitize-html` and `pnpm add -D @types/sanitize-html`
+- [x] Create `src/server/imap/client.ts` — a helper module that:
   - Accepts a `MailAccount` (or its decrypted credential subset) and returns a connected `ImapFlow` instance
   - Decrypts the stored password using `decrypt()` from `~/lib/crypto`
   - Configures TLS settings from the account's `imapTls` / `imapPort` fields
@@ -70,7 +70,7 @@ This PRD covers:
     2. Opens a connection
     3. Passes the connected client to `callback`
     4. Ensures `client.logout()` is called in a `finally` block, even on error
-- [ ] Add logging for connection open/close and errors to aid debugging
+- [x] Add logging for connection open/close and errors to aid debugging
 
 ### Phase 2: tRPC Router — Mail Folders
 
