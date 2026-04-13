@@ -47,7 +47,7 @@ export default async function MailPage({
                 <BreadcrumbSeparator className="hidden md:block" />
                 <BreadcrumbItem className="hidden md:block">
                   <BreadcrumbLink href={`/dashboard?folder=${encodeURIComponent(folder)}`}>
-                    {folder}
+                    {folder.charAt(0).toUpperCase() + folder.slice(1).toLowerCase()}
                   </BreadcrumbLink>
                 </BreadcrumbItem>
                 <BreadcrumbSeparator className="hidden md:block" />
