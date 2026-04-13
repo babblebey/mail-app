@@ -93,7 +93,7 @@ export function AppSidebar({ folder, ...props }: React.ComponentProps<typeof Sid
     if (!foldersQuery.data) return []
 
     return foldersQuery.data.map((folder) => ({
-      title: folder.name,
+      title: folder.name.charAt(0).toUpperCase() + folder.name.slice(1).toLowerCase(),
       url: `/dashboard?folder=${encodeURIComponent(folder.path)}`,
       icon: folder.specialUse
         ? (SPECIAL_USE_ICONS[folder.specialUse] ?? <FolderIcon />)
