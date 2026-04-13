@@ -72,8 +72,8 @@ This PRD covers two concerns:
 
 #### Tasks
 
-- [ ] Add `pages: { signIn: "/login" }` to `authConfig` in `src/server/auth/config.ts`
-- [ ] Verify that visiting `/api/auth/signin` now redirects to `/login`
+- [x] Add `pages: { signIn: "/login" }` to `authConfig` in `src/server/auth/config.ts`
+- [x] Verify that visiting `/api/auth/signin` now redirects to `/login`
 
 ### Phase 4: Dashboard Route Protection
 
