@@ -10,6 +10,7 @@ import {
   SidebarGroupLabel,
   SidebarMenu,
   SidebarMenuAction,
+  SidebarMenuBadge,
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarMenuSub,
@@ -26,6 +27,7 @@ export function NavMain({
     url: string
     icon: React.ReactNode
     isActive?: boolean
+    badge?: number
     items?: {
       title: string
       url: string
@@ -44,6 +46,9 @@ export function NavMain({
                   <span>{item.title}</span>
                 </a>
               </SidebarMenuButton>
+              {item.badge != null && item.badge > 0 && (
+                <SidebarMenuBadge>{item.badge}</SidebarMenuBadge>
+              )}
               {item.items?.length ? (
                 <>
                   <CollapsibleTrigger asChild>

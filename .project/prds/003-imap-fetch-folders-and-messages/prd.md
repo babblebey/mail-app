@@ -186,14 +186,14 @@ This PRD covers:
 
 #### Tasks
 
-- [ ] Update `src/components/app-sidebar.tsx`:
+- [x] Update `src/components/app-sidebar.tsx`:
   - Call `api.mail.listFolders.useQuery()` on the user's default account
   - Map the folder response into the existing `navMain` structure, preserving the icon mapping for special-use folders (Inbox → `InboxIcon`, Sent → `SendIcon`, Drafts → `FileTextIcon`, Spam → `AlertOctagonIcon`, Trash → `Trash2Icon`, Archive → `ArchiveIcon`)
   - Show folder unread count badges where `unseenMessages > 0`
   - Show a skeleton/loading state while folders are being fetched
   - Handle errors (e.g. connection failure) with a non-blocking inline error message and a retry action
-- [ ] Clicking a folder navigates to `/dashboard?folder=<path>` (or updates a query param / client-side state) so the mail list knows which folder to display
-- [ ] Default to the Inbox folder on initial load
+- [x] Clicking a folder navigates to `/dashboard?folder=<path>` (or updates a query param / client-side state) so the mail list knows which folder to display
+- [x] Default to the Inbox folder on initial load
 
 ### Phase 6: Wire UI — Mail List
 
