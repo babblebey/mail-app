@@ -8,6 +8,9 @@ references:
   - type: prd
     url: .project/prds/001-mail-account-credentials/prd.md
     description: "Prior PRD — Mail account credentials & data model"
+  - type: pull-request
+    url: https://github.com/babblebey/mail-app/pull/6
+    description: "Implementation PR — Route protection & custom login page"
 ---
 
 > **Instructions for AI Agents:**
