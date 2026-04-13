@@ -107,13 +107,13 @@ Before the app can fetch or send any email it needs to know **how to connect** t
 
 #### Tasks
 
-- [ ] Create `src/app/dashboard/settings/page.tsx` — settings page rendered inside the existing sidebar layout
-- [ ] Build an "Add Account" form component (`src/components/mail-account-form.tsx`) with fields: label, email, IMAP host/port/TLS toggle, SMTP host/port/TLS toggle, username, password
-- [ ] Add a "Test Connection" button that calls `mailAccount.testConnection` and shows success/error feedback
-- [ ] Add a "Save" button that calls `mailAccount.create` (or `mailAccount.update` when editing)
-- [ ] Display a list of connected accounts with edit and delete actions
-- [ ] Add a "Settings" link to the sidebar in `src/components/app-sidebar.tsx` that navigates to the new settings page
-- [ ] If no accounts exist, show an onboarding prompt directing the user to add one
+- [x] Create `src/app/dashboard/settings/page.tsx` — settings page rendered inside the existing sidebar layout
+- [x] Build an "Add Account" form component (`src/components/mail-account-form.tsx`) with fields: label, email, IMAP host/port/TLS toggle, SMTP host/port/TLS toggle, username, password
+- [x] Add a "Test Connection" button that calls `mailAccount.testConnection` and shows success/error feedback
+- [x] Add a "Save" button that calls `mailAccount.create` (or `mailAccount.update` when editing)
+- [x] Display a list of connected accounts with edit and delete actions
+- [x] Add a "Settings" link to the sidebar in `src/components/app-sidebar.tsx` that navigates to the new settings page
+- [x] If no accounts exist, show an onboarding prompt directing the user to add one
 
 ### Phase 5: Default Account Selection
 
