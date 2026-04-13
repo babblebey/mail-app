@@ -5,6 +5,9 @@ references:
   - type: doc
     url: .project/brief.md
     description: "Project brief — Initial Milestone scope"
+  - type: pull-request
+    url: https://github.com/babblebey/mail-app/pull/5
+    description: "Implementation PR — Mail account credentials & data model"
 ---
 
 > **Instructions for AI Agents:**
