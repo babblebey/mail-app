@@ -91,15 +91,15 @@ Before the app can fetch or send any email it needs to know **how to connect** t
 
 #### Tasks
 
-- [ ] Create `src/server/api/routers/mail-account.ts` with the following procedures:
+- [x] Create `src/server/api/routers/mail-account.ts` with the following procedures:
   - `create` — validates input with Zod, encrypts the password, inserts a `MailAccount`
   - `list` — returns all accounts for the current user (password field excluded from response)
   - `getById` — returns a single account (password excluded)
   - `update` — updates account fields; re-encrypts password if changed
   - `delete` — removes an account by ID (must belong to current user)
   - `testConnection` — accepts credentials (not yet saved), attempts an IMAP login, and returns success/failure. Uses `imapflow` (installed in a later milestone); for now stub with a placeholder that validates input shape and returns `{ ok: true }` 
-- [ ] Register the `mailAccount` router in `src/server/api/root.ts`
-- [ ] Ensure all procedures are `protectedProcedure` (require session)
+- [x] Register the `mailAccount` router in `src/server/api/root.ts`
+- [x] Ensure all procedures are `protectedProcedure` (require session)
 
 ### Phase 4: Settings UI — Account Management
 
