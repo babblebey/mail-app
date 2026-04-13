@@ -141,7 +141,7 @@ This PRD covers:
 
 #### Tasks
 
-- [ ] Add a `getMessage` protected procedure to the `mail` router:
+- [x] Add a `getMessage` protected procedure to the `mail` router:
   - Input: `{ accountId?: string, folder: string, uid: number }`
   - Opens the mailbox and fetches the full message source via `client.fetchOne()` or `client.download()`
   - Parses the raw message using `mailparser`'s `simpleParser` to extract:
@@ -173,10 +173,10 @@ This PRD covers:
     ```
   - Sanitise `htmlBody` server-side using `sanitize-html` before returning to client
   - Auto-mark the message as `\\Seen` on the server (via `client.messageFlagsAdd`) unless already read
-- [ ] Add a `markAsRead` / `markAsUnread` protected procedure:
+- [x] Add a `markAsRead` / `markAsUnread` protected procedure:
   - Input: `{ accountId?: string, folder: string, uid: number, read: boolean }`
   - Adds or removes the `\\Seen` flag on the IMAP server
-- [ ] Add a `toggleStar` protected procedure:
+- [x] Add a `toggleStar` protected procedure:
   - Input: `{ accountId?: string, folder: string, uid: number, starred: boolean }`
   - Adds or removes the `\\Flagged` flag on the IMAP server
 

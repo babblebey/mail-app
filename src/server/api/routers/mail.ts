@@ -1,5 +1,7 @@
 import { z } from "zod";
 import type { MessageStructureObject } from "imapflow";
+import { simpleParser } from "mailparser";
+import sanitizeHtml from "sanitize-html";
 
 import { createTRPCRouter, protectedProcedure } from "~/server/api/trpc";
 import { withImapClient, resolveAccountId } from "~/server/imap/client";
@@ -196,6 +198,245 @@ export const mailRouter = createTRPCRouter({
         const nextCursor: number | null = lowerSeq > 1 ? lowerSeq : null;
 
         return { messages, nextCursor };
+      });
+    }),
+
+  /**
+   * Fetches and parses a single email by UID, sanitises HTML,
+   * and auto-marks it as read on the IMAP server.
+   */
+  getMessage: protectedProcedure
+    .input(
+      z.object({
+        accountId: z.string().cuid().optional(),
+        folder: z.string().min(1),
+        uid: z.number().int().positive(),
+      }),
+    )
+    .query(async ({ ctx, input }) => {
+      const accountId = await resolveAccountId(
+        input.accountId,
+        ctx.session.user.id,
+      );
+
+      return withImapClient(accountId, ctx.session.user.id, async (client) => {
+        await client.mailboxOpen(input.folder);
+
+        // Download the full RFC822 message source by UID
+        const downloadResult = await client.download(
+          String(input.uid),
+          undefined,
+          { uid: true },
+        );
+
+        // Collect the stream into a buffer
+        const chunks: Buffer[] = [];
+        for await (const chunk of downloadResult.content) {
+          chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+        }
+        const rawSource = Buffer.concat(chunks);
+
+        // Parse with mailparser
+        const parsed = await simpleParser(rawSource);
+
+        // Fetch flags for this message
+        const flagMsg = await client.fetchOne(
+          String(input.uid),
+          { uid: true, flags: true },
+          { uid: true },
+        );
+        const flags = flagMsg && flagMsg.flags ? Array.from(flagMsg.flags) : [];
+        const isRead = flags.includes("\\Seen");
+
+        // Auto-mark as \Seen if not already read
+        if (!isRead) {
+          await client.messageFlagsAdd(
+            String(input.uid),
+            ["\\Seen"],
+            { uid: true },
+          );
+          flags.push("\\Seen");
+        }
+
+        // Helper to normalise mailparser address objects
+        const normaliseAddresses = (
+          addr:
+            | import("mailparser").AddressObject
+            | import("mailparser").AddressObject[]
+            | undefined,
+        ) => {
+          if (!addr) return [];
+          const list = Array.isArray(addr) ? addr : [addr];
+          return list.flatMap((a) =>
+            a.value.map((v) => ({
+              name: v.name ?? v.address ?? "Unknown",
+              address: v.address ?? "",
+            })),
+          );
+        };
+
+        const fromAddrs = normaliseAddresses(parsed.from);
+        const toAddrs = normaliseAddresses(parsed.to);
+        const ccAddrs = normaliseAddresses(parsed.cc);
+        const bccAddrs = normaliseAddresses(parsed.bcc);
+        const replyToAddrs = normaliseAddresses(parsed.replyTo);
+
+        // Sanitise HTML body
+        const htmlBody = parsed.html
+          ? sanitizeHtml(parsed.html, {
+              allowedTags: sanitizeHtml.defaults.allowedTags.concat([
+                "img",
+                "style",
+                "span",
+                "div",
+                "table",
+                "thead",
+                "tbody",
+                "tr",
+                "td",
+                "th",
+                "center",
+                "hr",
+              ]),
+              allowedAttributes: {
+                ...sanitizeHtml.defaults.allowedAttributes,
+                img: ["src", "alt", "width", "height", "style"],
+                td: ["style", "align", "valign", "width", "colspan", "rowspan"],
+                th: ["style", "align", "valign", "width", "colspan", "rowspan"],
+                table: ["style", "width", "cellpadding", "cellspacing", "border"],
+                div: ["style", "class"],
+                span: ["style", "class"],
+                a: ["href", "target", "rel", "style"],
+                tr: ["style"],
+                center: ["style"],
+                hr: ["style"],
+              },
+              allowedSchemes: ["http", "https", "mailto", "cid"],
+              transformTags: {
+                a: (tagName, attribs) => ({
+                  tagName,
+                  attribs: {
+                    ...attribs,
+                    target: "_blank",
+                    rel: "noopener noreferrer",
+                  },
+                }),
+              },
+            })
+          : null;
+
+        // Map attachments
+        const attachments = (parsed.attachments ?? []).map((att) => ({
+          filename: att.filename ?? "unnamed",
+          contentType: att.contentType,
+          size: att.size,
+          cid: att.cid ?? undefined,
+        }));
+
+        // Normalise references to string[]
+        const references = parsed.references
+          ? Array.isArray(parsed.references)
+            ? parsed.references
+            : [parsed.references]
+          : undefined;
+
+        return {
+          uid: input.uid,
+          messageId: parsed.messageId ?? "",
+          subject: parsed.subject ?? "(no subject)",
+          from: fromAddrs[0] ?? { name: "Unknown", address: "" },
+          to: toAddrs,
+          cc: ccAddrs,
+          bcc: bccAddrs,
+          replyTo: replyToAddrs,
+          date: parsed.date ? parsed.date.toISOString() : new Date().toISOString(),
+          flags,
+          read: true, // We just marked it as read
+          starred: flags.includes("\\Flagged"),
+          textBody: parsed.text ?? null,
+          htmlBody,
+          attachments,
+          inReplyTo: parsed.inReplyTo,
+          references,
+        };
+      });
+    }),
+
+  /**
+   * Marks a message as read or unread by adding/removing the \Seen flag.
+   */
+  markAsRead: protectedProcedure
+    .input(
+      z.object({
+        accountId: z.string().cuid().optional(),
+        folder: z.string().min(1),
+        uid: z.number().int().positive(),
+        read: z.boolean(),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const accountId = await resolveAccountId(
+        input.accountId,
+        ctx.session.user.id,
+      );
+
+      return withImapClient(accountId, ctx.session.user.id, async (client) => {
+        await client.mailboxOpen(input.folder);
+
+        if (input.read) {
+          await client.messageFlagsAdd(
+            String(input.uid),
+            ["\\Seen"],
+            { uid: true },
+          );
+        } else {
+          await client.messageFlagsRemove(
+            String(input.uid),
+            ["\\Seen"],
+            { uid: true },
+          );
+        }
+
+        return { ok: true };
+      });
+    }),
+
+  /**
+   * Toggles the starred/flagged state by adding/removing the \Flagged flag.
+   */
+  toggleStar: protectedProcedure
+    .input(
+      z.object({
+        accountId: z.string().cuid().optional(),
+        folder: z.string().min(1),
+        uid: z.number().int().positive(),
+        starred: z.boolean(),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const accountId = await resolveAccountId(
+        input.accountId,
+        ctx.session.user.id,
+      );
+
+      return withImapClient(accountId, ctx.session.user.id, async (client) => {
+        await client.mailboxOpen(input.folder);
+
+        if (input.starred) {
+          await client.messageFlagsAdd(
+            String(input.uid),
+            ["\\Flagged"],
+            { uid: true },
+          );
+        } else {
+          await client.messageFlagsRemove(
+            String(input.uid),
+            ["\\Flagged"],
+            { uid: true },
+          );
+        }
+
+        return { ok: true };
       });
     }),
 });
