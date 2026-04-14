@@ -1,6 +1,6 @@
 ---
 title: "Junk Folder: Context-Aware Display by Email Origin"
-status: draft
+status: completed
 references:
   - type: doc
     url: .project/brief.md
@@ -109,19 +109,19 @@ The existing `classifyTrashEmail` function already implements this logic. It is 
 
 #### Tasks
 
-- [ ] Confirm that the existing `aria-label` logic keys off `displayMode` (not `isTrashFolder`) — since it already does, Junk rows will inherit origin-aware labels automatically with no code changes needed
-- [ ] Verify by inspecting: `"drafts"` → `"Select draft to/with no recipient"`, `"sent"` → `"Select mail to ..."`, `"inbox"` → `"Select mail from ..."`
+- [x] Confirm that the existing `aria-label` logic keys off `displayMode` (not `isTrashFolder`) — since it already does, Junk rows will inherit origin-aware labels automatically with no code changes needed
+- [x] Verify by inspecting: `"drafts"` → `"Select draft to/with no recipient"`, `"sent"` → `"Select mail to ..."`, `"inbox"` → `"Select mail from ..."`
 
 ## Acceptance Criteria
 
-- [ ] Messages in the Junk folder that have the `\\Draft` flag display with Drafts-style rendering (recipient names with ", Draft" suffix, grouped avatars or pen icon, hidden empty snippet)
-- [ ] Messages in the Junk folder where `from.address` matches any of the user's mail account emails (and no `\\Draft` flag) display with Sent-style rendering (recipient names with "To: " prefix, grouped avatars)
-- [ ] Messages in the Junk folder that match neither condition display with Inbox-style rendering (sender avatar and sender name)
-- [ ] Each message row in the Junk folder displays an `AlertOctagonIcon` (matching the sidebar Junk icon), positioned between the unread indicator and the avatar
-- [ ] Drafts with no recipients in Junk display the pen icon avatar and "No recipient, Draft" label
-- [ ] Drafts with no body content in Junk display no snippet text
-- [ ] Checkbox aria-labels in Junk reflect the classified origin of each message
-- [ ] The `classifyTrashEmail` function has been renamed to `classifyMixedFolderEmail` and both Trash and Junk code paths use the renamed function
-- [ ] Messages in the Inbox, Sent, Drafts, Trash, and all other non-Junk folders continue to display exactly as before (no visual changes)
-- [ ] Classification correctly handles multiple mail accounts (sent detection compares against all account emails)
-- [ ] No TypeScript or lint errors after all changes
+- [x] Messages in the Junk folder that have the `\\Draft` flag display with Drafts-style rendering (recipient names with ", Draft" suffix, grouped avatars or pen icon, hidden empty snippet)
+- [x] Messages in the Junk folder where `from.address` matches any of the user's mail account emails (and no `\\Draft` flag) display with Sent-style rendering (recipient names with "To: " prefix, grouped avatars)
+- [x] Messages in the Junk folder that match neither condition display with Inbox-style rendering (sender avatar and sender name)
+- [x] Each message row in the Junk folder displays an `AlertOctagonIcon` (matching the sidebar Junk icon), positioned between the unread indicator and the avatar
+- [x] Drafts with no recipients in Junk display the pen icon avatar and "No recipient, Draft" label
+- [x] Drafts with no body content in Junk display no snippet text
+- [x] Checkbox aria-labels in Junk reflect the classified origin of each message
+- [x] The `classifyTrashEmail` function has been renamed to `classifyMixedFolderEmail` and both Trash and Junk code paths use the renamed function
+- [x] Messages in the Inbox, Sent, Drafts, Trash, and all other non-Junk folders continue to display exactly as before (no visual changes)
+- [x] Classification correctly handles multiple mail accounts (sent detection compares against all account emails)
+- [x] No TypeScript or lint errors after all changes
