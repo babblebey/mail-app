@@ -320,7 +320,7 @@ export function MailList({ folder }: { folder: string }) {
       <div className="flex-1 overflow-y-auto">
         {messages.map((mail) => {
           const mailId = String(mail.uid)
-          const displayMode: "inbox" | "sent" | "drafts" = isTrashFolder(folder)
+          const displayMode: "inbox" | "sent" | "drafts" = isTrashFolder(folder) || isJunkFolder(folder)
             ? classifyMixedFolderEmail(mail, userEmails)
             : isDraftsFolder(folder)
               ? "drafts"

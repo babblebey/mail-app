@@ -91,7 +91,7 @@ The existing `classifyTrashEmail` function already implements this logic. It is 
 
 #### Tasks
 
-- [ ] Update the `displayMode` ternary in the `MailList` component to call `classifyMixedFolderEmail(mail, userEmails)` when `isJunkFolder(folder)`, giving Junk the same priority as Trash (before the `isDraftsFolder` / `isSentFolder` / fallback chain)
+- [x] Update the `displayMode` ternary in the `MailList` component to call `classifyMixedFolderEmail(mail, userEmails)` when `isJunkFolder(folder)`, giving Junk the same priority as Trash (before the `isDraftsFolder` / `isSentFolder` / fallback chain)
 
 ### Phase 4: Junk Folder Row Icon
 
