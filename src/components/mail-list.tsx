@@ -69,7 +69,7 @@ function getRecipientLabel(
   to: { name: string; address: string }[],
   cc: { name: string; address: string }[],
 ): string {
-  return [...to, ...cc].map(getDisplayName).join(", ")
+  return `To: ${[...to, ...cc].map(getDisplayName).join(", ")}`
 }
 
 export function MailList({ folder }: { folder: string }) {
@@ -265,7 +265,11 @@ export function MailList({ folder }: { folder: string }) {
               <Checkbox
                 checked={selected.has(mailId)}
                 onCheckedChange={() => toggleSelect(mailId)}
-                aria-label={`Select mail from ${mail.from.name}`}
+                aria-label={
+                  isSentFolder(folder) && [...mail.to, ...mail.cc].length > 0
+                    ? `Select mail to ${getRecipientLabel(mail.to, mail.cc)}`
+                    : `Select mail from ${mail.from.name}`
+                }
                 className="shrink-0"
               />
 
@@ -311,7 +315,9 @@ export function MailList({ folder }: { folder: string }) {
                         !mail.read ? "font-semibold text-foreground" : "text-foreground",
                       )}
                     >
-                      {mail.from.name}
+                      {isSentFolder(folder) && [...mail.to, ...mail.cc].length > 0
+                        ? getRecipientLabel(mail.to, mail.cc)
+                        : mail.from.name}
                     </span>
                     {mail.starred && (
                       <StarIcon className="size-3.5 shrink-0 fill-yellow-400 text-yellow-400" />

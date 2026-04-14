@@ -1,6 +1,6 @@
 ---
 title: "Sent Folder: Show Recipients with Grouped Avatars"
-status: draft
+status: completed
 references:
   - type: doc
     url: .project/brief.md
@@ -85,16 +85,16 @@ This PRD covers:
 
 #### Tasks
 
-- [ ] In the message row name section of `src/components/mail-list.tsx`:
+- [x] In the message row name section of `src/components/mail-list.tsx`:
   - When `isSentFolder(folder)` and recipients exist: display `getRecipientLabel(mail.to, mail.cc)` instead of `mail.from.name`
   - When not a Sent folder: keep existing `mail.from.name` display (no changes)
-- [ ] Update the checkbox `aria-label` to reference recipients (e.g. `"Select mail to John, Jane"`) when in the Sent folder
+- [x] Update the checkbox `aria-label` to reference recipients (e.g. `"Select mail to John, Jane"`) when in the Sent folder
 
 ## Acceptance Criteria
 
-- [ ] The `listMessages` API response includes a `cc` field typed as `{ name: string; address: string }[]`
-- [ ] Messages in the Sent folder display recipient names (first name or email local part) instead of the sender name
-- [ ] Messages in the Sent folder display grouped avatars (`AvatarGroup`) with recipient initials — max 2 visible, `+N` overflow for additional recipients
-- [ ] Messages in the Inbox and all other non-Sent folders continue to display sender name and single sender avatar (no visual changes)
-- [ ] Messages with no `to` or `cc` recipients gracefully fall back to sender display
-- [ ] No TypeScript or lint errors after all changes
+- [x] The `listMessages` API response includes a `cc` field typed as `{ name: string; address: string }[]`
+- [x] Messages in the Sent folder display recipient names (first name or email local part) instead of the sender name
+- [x] Messages in the Sent folder display grouped avatars (`AvatarGroup`) with recipient initials — max 2 visible, `+N` overflow for additional recipients
+- [x] Messages in the Inbox and all other non-Sent folders continue to display sender name and single sender avatar (no visual changes)
+- [x] Messages with no `to` or `cc` recipients gracefully fall back to sender display
+- [x] No TypeScript or lint errors after all changes
