@@ -1,6 +1,6 @@
 ---
 title: "Trash Folder: Context-Aware Display by Email Origin"
-status: in-progress
+status: completed
 references:
   - type: doc
     url: .project/brief.md
@@ -115,7 +115,7 @@ Each message in the Trash folder is classified into one of three origin categori
 
 #### Tasks
 
-- [ ] Update checkbox `aria-label` generation to use `displayMode`:
+- [x] Update checkbox `aria-label` generation to use `displayMode`:
   - `"inbox"` → `"Select mail from {senderName}"`
   - `"sent"` → `"Select mail to {recipientLabel}"`
   - `"drafts"` with recipients → `"Select draft to {recipientLabel}"`
@@ -123,12 +123,12 @@ Each message in the Trash folder is classified into one of three origin categori
 
 ## Acceptance Criteria
 
-- [ ] Messages in the Trash folder that have the `\\Draft` flag display with Drafts-style rendering (recipient names with ", Draft" suffix, grouped avatars or pen icon, hidden empty snippet)
-- [ ] Messages in the Trash folder where `from.address` matches any of the user's mail account emails (and no `\\Draft` flag) display with Sent-style rendering (recipient names with "To: " prefix, grouped avatars)
-- [ ] Messages in the Trash folder that match neither condition display with Inbox-style rendering (sender avatar and sender name)
-- [ ] Drafts with no recipients in Trash display the pen icon avatar and "No recipient, Draft" label
-- [ ] Drafts with no body content in Trash display no snippet text
-- [ ] Checkbox aria-labels in Trash reflect the classified origin of each message
-- [ ] Messages in the Inbox, Sent, Drafts, and all other non-Trash folders continue to display exactly as before (no visual changes)
-- [ ] Classification correctly handles multiple mail accounts (sent detection compares against all account emails)
-- [ ] No TypeScript or lint errors after all changes
+- [x] Messages in the Trash folder that have the `\\Draft` flag display with Drafts-style rendering (recipient names with ", Draft" suffix, grouped avatars or pen icon, hidden empty snippet)
+- [x] Messages in the Trash folder where `from.address` matches any of the user's mail account emails (and no `\\Draft` flag) display with Sent-style rendering (recipient names with "To: " prefix, grouped avatars)
+- [x] Messages in the Trash folder that match neither condition display with Inbox-style rendering (sender avatar and sender name)
+- [x] Drafts with no recipients in Trash display the pen icon avatar and "No recipient, Draft" label
+- [x] Drafts with no body content in Trash display no snippet text
+- [x] Checkbox aria-labels in Trash reflect the classified origin of each message
+- [x] Messages in the Inbox, Sent, Drafts, and all other non-Trash folders continue to display exactly as before (no visual changes)
+- [x] Classification correctly handles multiple mail accounts (sent detection compares against all account emails)
+- [x] No TypeScript or lint errors after all changes

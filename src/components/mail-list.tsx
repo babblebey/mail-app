@@ -337,11 +337,11 @@ export function MailList({ folder }: { folder: string }) {
                 checked={selected.has(mailId)}
                 onCheckedChange={() => toggleSelect(mailId)}
                 aria-label={
-                  isDraftsFolder(folder)
-                    ? [...mail.to, ...mail.cc, ...mail.bcc].filter(isRealRecipient).length > 0
-                      ? `Select draft to ${[...mail.to, ...mail.cc, ...mail.bcc].filter(isRealRecipient).map(getRecipientName).join(", ")}`
+                  displayMode === "drafts"
+                    ? realRecipients.length > 0
+                      ? `Select draft to ${realRecipients.map(getRecipientName).join(", ")}`
                       : "Select draft with no recipient"
-                    : isSentFolder(folder) && [...mail.to, ...mail.cc, ...mail.bcc].length > 0
+                    : displayMode === "sent" && allRecipients.length > 0
                       ? `Select mail to ${getRecipientLabel(mail.to, mail.cc, mail.bcc)}`
                       : `Select mail from ${getSenderName(mail.from)}`
                 }
