@@ -106,6 +106,31 @@ function getDraftRecipientLabel(
   return allRecipients.map(getRecipientName).join(", ")
 }
 
+function classifyTrashEmail(
+  mail: {
+    flags: string[]
+    from: { name: string; address: string }
+    to: { name: string; address: string }[]
+    cc: { name: string; address: string }[]
+    bcc: { name: string; address: string }[]
+  },
+  userEmails: string[],
+): "inbox" | "sent" | "drafts" {
+  if (mail.flags.includes("\\Draft")) {
+    return "drafts"
+  }
+  const fromLower = mail.from.address.toLowerCase()
+  if (userEmails.includes(fromLower)) {
+    const hasRealRecipients =
+      [...mail.to, ...mail.cc, ...mail.bcc].filter(isRealRecipient).length > 0
+    if (!hasRealRecipients) {
+      return "drafts"
+    }
+    return "sent"
+  }
+  return "inbox"
+}
+
 export function MailList({ folder }: { folder: string }) {
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [composerOpen, setComposerOpen] = useState(false)

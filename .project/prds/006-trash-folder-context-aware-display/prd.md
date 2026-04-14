@@ -80,11 +80,11 @@ Each message in the Trash folder is classified into one of three origin categori
 
 #### Tasks
 
-- [ ] Add `classifyTrashEmail(mail, userEmails: string[]): "inbox" | "sent" | "drafts"` helper in `src/components/mail-list.tsx`:
+- [x] Add `classifyTrashEmail(mail, userEmails: string[]): "inbox" | "sent" | "drafts"` helper in `src/components/mail-list.tsx`:
   - If `mail.flags` includes `"\\Draft"` → return `"drafts"`
   - Else if `mail.from.address.toLowerCase()` is found in `userEmails` and no `\\Draft` flag → return `"sent"`
   - Else → return `"inbox"`
-- [ ] Add draft-flag-stripped fallback: if `from` matches user email AND the combined `to` + `cc` + `bcc` list (after `isRealRecipient()` filtering) is empty → return `"drafts"` (covers servers that strip `\\Draft` on move)
+- [x] Add draft-flag-stripped fallback: if `from` matches user email AND the combined `to` + `cc` + `bcc` list (after `isRealRecipient()` filtering) is empty → return `"drafts"` (covers servers that strip `\\Draft` on move)
 
 ### Phase 3: Refactor Display Rendering to Support Per-Message Mode
 
