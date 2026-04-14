@@ -84,6 +84,11 @@ function isDraftsFolder(folder: string): boolean {
   return folder.toLowerCase().includes("draft")
 }
 
+function isTrashFolder(folder: string): boolean {
+  const lower = folder.toLowerCase()
+  return lower.includes("trash") || lower.includes("deleted")
+}
+
 function isRealRecipient(contact: { name: string; address: string }): boolean {
   const addr = contact.address.toLowerCase()
   return !addr.startsWith("undisclosed-recipients")
@@ -105,6 +110,9 @@ export function MailList({ folder }: { folder: string }) {
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [composerOpen, setComposerOpen] = useState(false)
   const loadMoreRef = useRef<HTMLDivElement>(null)
+
+  const { data: accounts } = api.mailAccount.list.useQuery()
+  const userEmails = (accounts ?? []).map((a) => a.email.toLowerCase())
 
   const {
     data,

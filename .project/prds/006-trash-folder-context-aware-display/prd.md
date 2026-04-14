@@ -1,6 +1,6 @@
 ---
 title: "Trash Folder: Context-Aware Display by Email Origin"
-status: draft
+status: in-progress
 references:
   - type: doc
     url: .project/brief.md
@@ -70,9 +70,9 @@ Each message in the Trash folder is classified into one of three origin categori
 
 #### Tasks
 
-- [ ] Add `isTrashFolder(folder: string): boolean` helper in `src/components/mail-list.tsx` — returns `true` when `folder.toLowerCase()` contains `"trash"` or `"deleted"` (to cover Outlook's `Deleted Items`)
-- [ ] Add `api.mailAccount.list.useQuery()` call in the `MailList` component to fetch the user's configured mail accounts
-- [ ] Extract the list of user email addresses from the accounts query result (e.g. `accounts.map(a => a.email.toLowerCase())`) for use in classification
+- [x] Add `isTrashFolder(folder: string): boolean` helper in `src/components/mail-list.tsx` — returns `true` when `folder.toLowerCase()` contains `"trash"` or `"deleted"` (to cover Outlook's `Deleted Items`)
+- [x] Add `api.mailAccount.list.useQuery()` call in the `MailList` component to fetch the user's configured mail accounts
+- [x] Extract the list of user email addresses from the accounts query result (e.g. `accounts.map(a => a.email.toLowerCase())`) for use in classification
 
 ### Phase 2: Email Origin Classification
 
