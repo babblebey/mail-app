@@ -65,6 +65,13 @@ function getDisplayName(contact: { name: string; address: string }): string {
   return contact.address.split("@")[0] ?? contact.address
 }
 
+function getSenderName(contact: { name: string; address: string }): string {
+  if (contact.name.trim()) {
+    return contact.name.trim()
+  }
+  return contact.address.split("@")[0] ?? contact.address
+}
+
 function getRecipientLabel(
   to: { name: string; address: string }[],
   cc: { name: string; address: string }[],
@@ -269,7 +276,7 @@ export function MailList({ folder }: { folder: string }) {
                 aria-label={
                   isSentFolder(folder) && [...mail.to, ...mail.cc, ...mail.bcc].length > 0
                     ? `Select mail to ${getRecipientLabel(mail.to, mail.cc, mail.bcc)}`
-                    : `Select mail from ${mail.from.name}`
+                    : `Select mail from ${getSenderName(mail.from)}`
                 }
                 className="shrink-0"
               />
@@ -301,7 +308,7 @@ export function MailList({ folder }: { folder: string }) {
               ) : (
                 <Avatar className="size-9 shrink-0">
                   <AvatarFallback className="text-sm font-semibold">
-                    {getInitials(mail.from.name)}
+                    {getInitials(getSenderName(mail.from))}
                   </AvatarFallback>
                 </Avatar>
               )}
@@ -318,7 +325,7 @@ export function MailList({ folder }: { folder: string }) {
                     >
                       {isSentFolder(folder) && [...mail.to, ...mail.cc, ...mail.bcc].length > 0
                         ? getRecipientLabel(mail.to, mail.cc, mail.bcc)
-                        : mail.from.name}
+                        : getSenderName(mail.from)}
                     </span>
                     {mail.starred && (
                       <StarIcon className="size-3.5 shrink-0 fill-yellow-400 text-yellow-400" />
