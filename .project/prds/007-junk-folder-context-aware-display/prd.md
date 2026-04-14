@@ -99,9 +99,9 @@ The existing `classifyTrashEmail` function already implements this logic. It is 
 
 #### Tasks
 
-- [ ] Import `AlertOctagonIcon` from `lucide-react` in `src/components/mail-list.tsx` (not currently imported)
-- [ ] Add an `AlertOctagonIcon` rendering block alongside the existing `Trash2Icon` conditional — render when `isJunkFolder(folder)` is true, using the same styling as the Trash icon (`size-4 shrink-0 text-muted-foreground`)
-- [ ] Non-Junk folders are unaffected (icon only renders when `isJunkFolder(folder)` is true)
+- [x] Import `AlertOctagonIcon` from `lucide-react` in `src/components/mail-list.tsx` (not currently imported)
+- [x] Add an `AlertOctagonIcon` rendering block alongside the existing `Trash2Icon` conditional — render when `isJunkFolder(folder)` is true, using the same styling as the Trash icon (`size-4 shrink-0 text-muted-foreground`)
+- [x] Non-Junk folders are unaffected (icon only renders when `isJunkFolder(folder)` is true)
 
 ### Phase 5: Accessible Labels for Junk
 

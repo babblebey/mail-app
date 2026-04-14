@@ -3,6 +3,7 @@
 import { useState, useCallback, useRef, useEffect } from "react"
 import Link from "next/link"
 import {
+  AlertOctagonIcon,
   ArchiveIcon,
   FolderIcon,
   Trash2Icon,
@@ -363,6 +364,11 @@ export function MailList({ folder }: { folder: string }) {
               {/* Trash indicator */}
               {isTrashFolder(folder) && (
                 <Trash2Icon className="size-4 shrink-0 text-muted-foreground" />
+              )}
+
+              {/* Junk indicator */}
+              {isJunkFolder(folder) && (
+                <AlertOctagonIcon className="size-4 shrink-0 text-muted-foreground" />
               )}
 
               {/* Avatar */}
