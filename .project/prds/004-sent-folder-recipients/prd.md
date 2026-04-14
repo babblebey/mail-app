@@ -53,9 +53,9 @@ This PRD covers:
 
 #### Tasks
 
-- [ ] Add `cc` field to the messages type in `src/server/api/routers/mail.ts` `listMessages` procedure, typed as `{ name: string; address: string }[]`
-- [ ] Extract `cc` from `msg.envelope.cc` (same pattern as existing `to` extraction from `msg.envelope.to`)
-- [ ] Include `cc` in the `messages.push()` call
+- [x] Add `cc` field to the messages type in `src/server/api/routers/mail.ts` `listMessages` procedure, typed as `{ name: string; address: string }[]`
+- [x] Extract `cc` from `msg.envelope.cc` (same pattern as existing `to` extraction from `msg.envelope.to`)
+- [x] Include `cc` in the `messages.push()` call
 
 ### Phase 2: Frontend — Sent Folder Detection & Display Helpers
 
