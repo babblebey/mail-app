@@ -387,9 +387,11 @@ export function MailList({ folder }: { folder: string }) {
                   >
                     {mail.subject}
                   </span>
-                  <span className="min-w-0 truncate text-sm text-muted-foreground">
-                    - {mail.snippet}
-                  </span>
+                  {!(isDraftsFolder(folder) && !mail.snippet?.trim()) && (
+                    <span className="min-w-0 truncate text-sm text-muted-foreground">
+                      - {mail.snippet}
+                    </span>
+                  )}
                 </div>
 
                 {/* Date on desktop */}

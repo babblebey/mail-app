@@ -1,6 +1,6 @@
 ---
 title: "Drafts Folder: Show Recipients with Draft Suffix"
-status: in-progress
+status: completed
 references:
   - type: doc
     url: .project/brief.md
@@ -37,6 +37,7 @@ This PRD covers:
 - **", Draft" suffix instead of prefix**: The Sent folder uses a "To: " prefix. For Drafts, a ", Draft" suffix creates a distinct visual pattern — e.g. `"Alice, Bob, Draft"` — making it immediately clear the message is unsent without conflating it with Sent folder entries.
 - **"No recipient" state**: Drafts can exist before any recipient is entered. These display a pen icon avatar (reusing the already-imported `PenSquareIcon`) and a `"No recipient, Draft"` label to communicate the incomplete state.
 - **Empty body / no snippet**: Drafts may have no body content yet. When `snippet` is empty or whitespace, the `"- snippet"` span is hidden entirely rather than showing a meaningless separator.
+- **HTML snippet stripping**: IMAP body part "1" can be an HTML part rather than plain text — especially for drafts created by webmail clients. The server now runs the raw body part through `sanitizeHtml` with `allowedTags: []` to strip all HTML tags before producing the snippet. This prevents raw HTML markup from leaking into the mail list UI and ensures empty HTML shells produce an empty snippet.
 - **`(no subject)` handling**: The server already returns `"(no subject)"` for messages with empty subjects — no client-side change needed.
 - **Reuse of Sent folder avatar pattern**: The `AvatarGroup` / `AvatarGroupCount` pattern from the Sent folder implementation is reused for drafts with recipients, keeping the UI consistent.
 - **`undisclosed-recipients` filtering**: Some IMAP servers (notably Gmail) populate drafts that have no real recipients with a synthetic `undisclosed-recipients` address. The client filters these out via `isRealRecipient()` so they are not mistakenly rendered as a real contact — the draft correctly falls through to the "No recipient" state instead.
@@ -87,16 +88,16 @@ This PRD covers:
 
 #### Tasks
 
-- [ ] In the message row content section of `src/components/mail-list.tsx`:
+- [x] In the message row content section of `src/components/mail-list.tsx`:
   - When `isDraftsFolder(folder)` and `mail.snippet` is empty or whitespace-only: do not render the `"- {snippet}"` span.
   - For all other cases (non-Drafts folders, or Drafts with a non-empty snippet): keep existing snippet display (no changes).
 
 ## Acceptance Criteria
 
-- [ ] Messages in the Drafts folder display recipient names (first name or email local part) with a trailing ", Draft" suffix instead of the sender name
-- [ ] Messages in the Drafts folder with recipients display grouped avatars (`AvatarGroup`) with recipient initials — max 2 visible, `+N` overflow for additional recipients
-- [ ] Messages in the Drafts folder with no recipients display a pen icon avatar and "No recipient, Draft" label
-- [ ] Messages in the Drafts folder with no body content display no snippet text (no `"- "` separator)
-- [ ] Messages in the Drafts folder with no subject continue to show `"(no subject)"` as provided by the server
-- [ ] Messages in the Inbox, Sent, and all other non-Drafts folders continue to display as before (no visual changes)
-- [ ] No TypeScript or lint errors after all changes
+- [x] Messages in the Drafts folder display recipient names (first name or email local part) with a trailing ", Draft" suffix instead of the sender name
+- [x] Messages in the Drafts folder with recipients display grouped avatars (`AvatarGroup`) with recipient initials — max 2 visible, `+N` overflow for additional recipients
+- [x] Messages in the Drafts folder with no recipients display a pen icon avatar and "No recipient, Draft" label
+- [x] Messages in the Drafts folder with no body content display no snippet text (no `"- "` separator)
+- [x] Messages in the Drafts folder with no subject continue to show `"(no subject)"` as provided by the server
+- [x] Messages in the Inbox, Sent, and all other non-Drafts folders continue to display as before (no visual changes)
+- [x] No TypeScript or lint errors after all changes
