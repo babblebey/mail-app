@@ -84,12 +84,17 @@ function isDraftsFolder(folder: string): boolean {
   return folder.toLowerCase().includes("draft")
 }
 
+function isRealRecipient(contact: { name: string; address: string }): boolean {
+  const addr = contact.address.toLowerCase()
+  return !addr.startsWith("undisclosed-recipients")
+}
+
 function getDraftRecipientLabel(
   to: { name: string; address: string }[],
   cc: { name: string; address: string }[],
   bcc: { name: string; address: string }[],
 ): string {
-  const allRecipients = [...to, ...cc, ...bcc]
+  const allRecipients = [...to, ...cc, ...bcc].filter(isRealRecipient)
   if (allRecipients.length === 0) {
     return "No recipient, Draft"
   }
@@ -291,8 +296,8 @@ export function MailList({ folder }: { folder: string }) {
                 onCheckedChange={() => toggleSelect(mailId)}
                 aria-label={
                   isDraftsFolder(folder)
-                    ? [...mail.to, ...mail.cc, ...mail.bcc].length > 0
-                      ? `Select draft to ${[...mail.to, ...mail.cc, ...mail.bcc].map(getRecipientName).join(", ")}`
+                    ? [...mail.to, ...mail.cc, ...mail.bcc].filter(isRealRecipient).length > 0
+                      ? `Select draft to ${[...mail.to, ...mail.cc, ...mail.bcc].filter(isRealRecipient).map(getRecipientName).join(", ")}`
                       : "Select draft with no recipient"
                     : isSentFolder(folder) && [...mail.to, ...mail.cc, ...mail.bcc].length > 0
                       ? `Select mail to ${getRecipientLabel(mail.to, mail.cc, mail.bcc)}`
@@ -310,18 +315,27 @@ export function MailList({ folder }: { folder: string }) {
 
               {/* Avatar */}
               {(isSentFolder(folder) || isDraftsFolder(folder)) &&
-              [...mail.to, ...mail.cc, ...mail.bcc].length > 0 ? (
+              (isDraftsFolder(folder)
+                ? [...mail.to, ...mail.cc, ...mail.bcc].filter(isRealRecipient).length > 0
+                : [...mail.to, ...mail.cc, ...mail.bcc].length > 0) ? (
                 <AvatarGroup className="shrink-0">
-                  {[...mail.to, ...mail.cc, ...mail.bcc].slice(0, 2).map((contact, i) => (
+                  {(isDraftsFolder(folder)
+                    ? [...mail.to, ...mail.cc, ...mail.bcc].filter(isRealRecipient)
+                    : [...mail.to, ...mail.cc, ...mail.bcc]
+                  ).slice(0, 2).map((contact, i) => (
                     <Avatar key={i} size="default">
                       <AvatarFallback className="text-sm font-semibold">
                         {getInitials(getRecipientName(contact))}
                       </AvatarFallback>
                     </Avatar>
                   ))}
-                  {[...mail.to, ...mail.cc, ...mail.bcc].length > 2 && (
+                  {(isDraftsFolder(folder)
+                    ? [...mail.to, ...mail.cc, ...mail.bcc].filter(isRealRecipient).length
+                    : [...mail.to, ...mail.cc, ...mail.bcc].length) > 2 && (
                     <AvatarGroupCount className="text-sm">
-                      +{[...mail.to, ...mail.cc, ...mail.bcc].length - 2}
+                      +{(isDraftsFolder(folder)
+                        ? [...mail.to, ...mail.cc, ...mail.bcc].filter(isRealRecipient).length
+                        : [...mail.to, ...mail.cc, ...mail.bcc].length) - 2}
                     </AvatarGroupCount>
                   )}
                 </AvatarGroup>

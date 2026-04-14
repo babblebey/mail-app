@@ -39,6 +39,7 @@ This PRD covers:
 - **Empty body / no snippet**: Drafts may have no body content yet. When `snippet` is empty or whitespace, the `"- snippet"` span is hidden entirely rather than showing a meaningless separator.
 - **`(no subject)` handling**: The server already returns `"(no subject)"` for messages with empty subjects — no client-side change needed.
 - **Reuse of Sent folder avatar pattern**: The `AvatarGroup` / `AvatarGroupCount` pattern from the Sent folder implementation is reused for drafts with recipients, keeping the UI consistent.
+- **`undisclosed-recipients` filtering**: Some IMAP servers (notably Gmail) populate drafts that have no real recipients with a synthetic `undisclosed-recipients` address. The client filters these out via `isRealRecipient()` so they are not mistakenly rendered as a real contact — the draft correctly falls through to the "No recipient" state instead.
 
 ### User Stories
 
