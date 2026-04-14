@@ -17,7 +17,12 @@ import {
 } from "lucide-react"
 
 import { cn } from "~/lib/utils"
-import { Avatar, AvatarFallback } from "~/components/ui/avatar"
+import {
+  Avatar,
+  AvatarFallback,
+  AvatarGroup,
+  AvatarGroupCount,
+} from "~/components/ui/avatar"
 import { Button } from "~/components/ui/button"
 import { Checkbox } from "~/components/ui/checkbox"
 import { Skeleton } from "~/components/ui/skeleton"
@@ -272,11 +277,29 @@ export function MailList({ folder }: { folder: string }) {
               </div>
 
               {/* Avatar */}
-              <Avatar className="size-9 shrink-0 rounded-lg">
-                <AvatarFallback className="text-xs font-semibold text-white rounded-lg bg-muted">
-                  {getInitials(mail.from.name)}
-                </AvatarFallback>
-              </Avatar>
+              {isSentFolder(folder) &&
+              [...mail.to, ...mail.cc].length > 0 ? (
+                <AvatarGroup className="shrink-0">
+                  {[...mail.to, ...mail.cc].slice(0, 2).map((contact, i) => (
+                    <Avatar key={i} size="default">
+                      <AvatarFallback className="text-sm font-semibold">
+                        {getInitials(getDisplayName(contact))}
+                      </AvatarFallback>
+                    </Avatar>
+                  ))}
+                  {[...mail.to, ...mail.cc].length > 2 && (
+                    <AvatarGroupCount className="text-sm">
+                      +{[...mail.to, ...mail.cc].length - 2}
+                    </AvatarGroupCount>
+                  )}
+                </AvatarGroup>
+              ) : (
+                <Avatar className="size-9 shrink-0 rounded-lg">
+                  <AvatarFallback className="text-sm font-semibold text-white rounded-lg bg-muted">
+                    {getInitials(mail.from.name)}
+                  </AvatarFallback>
+                </Avatar>
+              )}
 
               {/* Content */}
               <div className="flex min-w-0 flex-1 flex-col gap-0.5 md:flex-row md:items-center md:gap-3">

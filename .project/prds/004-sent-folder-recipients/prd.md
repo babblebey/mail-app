@@ -73,11 +73,11 @@ This PRD covers:
 
 #### Tasks
 
-- [ ] Import `AvatarGroup` and `AvatarGroupCount` from `~/components/ui/avatar`
-- [ ] In the message row avatar section of `src/components/mail-list.tsx`:
+- [x] Import `AvatarGroup` and `AvatarGroupCount` from `~/components/ui/avatar`
+- [x] In the message row avatar section of `src/components/mail-list.tsx`:
   - When `isSentFolder(folder)`: render an `AvatarGroup` containing up to 2 `Avatar` components (one per recipient from the combined `to` + `cc` list) with `size="sm"`, each showing initials from `getDisplayName()`. If there are more than 2 recipients, append an `AvatarGroupCount` showing `+N` for the remaining count.
   - When not a Sent folder: keep the existing single `Avatar` with sender initials (no changes)
-- [ ] If the combined recipients list is empty, fall back to the existing sender avatar display
+- [x] If the combined recipients list is empty, fall back to the existing sender avatar display
 
 ### Phase 4: Frontend — Recipient Name Display
 
