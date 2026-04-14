@@ -8,6 +8,9 @@ references:
   - type: prd
     url: .project/prds/003-imap-fetch-folders-and-messages/prd.md
     description: "Prior PRD — IMAP fetch folders & messages (completed)"
+  - type: pull-request
+    url: https://github.com/babblebey/mail-app/pull/8
+    description: "Implementation PR — feat(mail): display recipients with grouped avatars in sent folder"
 ---
 
 > **Instructions for AI Agents:**
