@@ -106,7 +106,7 @@ function getDraftRecipientLabel(
   return allRecipients.map(getRecipientName).join(", ")
 }
 
-function classifyTrashEmail(
+function classifyMixedFolderEmail(
   mail: {
     flags: string[]
     from: { name: string; address: string }
@@ -316,7 +316,7 @@ export function MailList({ folder }: { folder: string }) {
         {messages.map((mail) => {
           const mailId = String(mail.uid)
           const displayMode: "inbox" | "sent" | "drafts" = isTrashFolder(folder)
-            ? classifyTrashEmail(mail, userEmails)
+            ? classifyMixedFolderEmail(mail, userEmails)
             : isDraftsFolder(folder)
               ? "drafts"
               : isSentFolder(folder)

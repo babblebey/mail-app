@@ -74,7 +74,7 @@ The existing `classifyTrashEmail` function already implements this logic. It is 
 
 #### Tasks
 
-- [ ] Rename `classifyTrashEmail` to `classifyMixedFolderEmail` in `src/components/mail-list.tsx` — update the function declaration and the call site in the `displayMode` ternary (where `isTrashFolder(folder)` calls the function)
+- [x] Rename `classifyTrashEmail` to `classifyMixedFolderEmail` in `src/components/mail-list.tsx` — update the function declaration and the call site in the `displayMode` ternary (where `isTrashFolder(folder)` calls the function)
 
 ### Phase 2: Junk Folder Detection
 
