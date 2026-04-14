@@ -64,7 +64,7 @@ This PRD covers:
 
 #### Tasks
 
-- [ ] In the message row avatar section of `src/components/mail-list.tsx`, add a Drafts folder branch:
+- [x] In the message row avatar section of `src/components/mail-list.tsx`, add a Drafts folder branch:
   - When `isDraftsFolder(folder)` and recipients exist: render an `AvatarGroup` containing up to 2 `Avatar` components (one per recipient from the combined `to` + `cc` + `bcc` list), each showing initials from `getRecipientName()`. If there are more than 2 recipients, append an `AvatarGroupCount` showing `+N` for the remaining count.
   - When `isDraftsFolder(folder)` and no recipients exist: render a single `Avatar` containing a `PenSquareIcon` as the fallback, communicating "draft in progress with no recipient yet".
   - When not a Drafts or Sent folder: keep the existing single `Avatar` with sender initials (no changes).

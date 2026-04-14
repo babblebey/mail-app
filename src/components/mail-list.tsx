@@ -305,7 +305,7 @@ export function MailList({ folder }: { folder: string }) {
               </div>
 
               {/* Avatar */}
-              {isSentFolder(folder) &&
+              {(isSentFolder(folder) || isDraftsFolder(folder)) &&
               [...mail.to, ...mail.cc, ...mail.bcc].length > 0 ? (
                 <AvatarGroup className="shrink-0">
                   {[...mail.to, ...mail.cc, ...mail.bcc].slice(0, 2).map((contact, i) => (
@@ -321,6 +321,12 @@ export function MailList({ folder }: { folder: string }) {
                     </AvatarGroupCount>
                   )}
                 </AvatarGroup>
+              ) : isDraftsFolder(folder) ? (
+                <Avatar className="size-9 shrink-0">
+                  <AvatarFallback className="text-sm font-semibold">
+                    <PenSquareIcon className="size-4" />
+                  </AvatarFallback>
+                </Avatar>
               ) : (
                 <Avatar className="size-9 shrink-0">
                   <AvatarFallback className="text-sm font-semibold">
