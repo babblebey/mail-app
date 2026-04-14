@@ -122,8 +122,8 @@ function MessageView({
     <div>
       {/* Message header */}
       <div className="flex items-start gap-4 px-4 py-5">
-        <Avatar className="size-10 shrink-0 rounded-lg">
-          <AvatarFallback className="text-sm font-semibold text-white rounded-lg bg-muted">
+        <Avatar className="size-10 shrink-0 rounded-full">
+          <AvatarFallback className="text-sm font-semibold text-white rounded-full bg-muted">
             {getInitials(message.from.name)}
           </AvatarFallback>
         </Avatar>
@@ -233,7 +233,7 @@ export function MailThreadView({ uid, folder }: { uid: number; folder: string })
         <div className="flex-1 overflow-y-auto p-6">
           <Skeleton className="mb-6 h-7 w-2/3" />
           <div className="flex items-start gap-4">
-            <Skeleton className="size-10 shrink-0 rounded-lg" />
+            <Skeleton className="size-10 shrink-0 rounded" />
             <div className="flex-1 space-y-2">
               <Skeleton className="h-4 w-40" />
               <Skeleton className="h-3 w-28" />

@@ -58,9 +58,16 @@ function isSentFolder(folder: string): boolean {
   return folder.toLowerCase().includes("sent")
 }
 
-function getDisplayName(contact: { name: string; address: string }): string {
+function getRecipientName(contact: { name: string; address: string }): string {
   if (contact.name.trim()) {
     return contact.name.trim().split(/\s+/)[0]!
+  }
+  return contact.address.split("@")[0] ?? contact.address
+}
+
+function getSenderName(contact: { name: string; address: string }): string {
+  if (contact.name.trim()) {
+    return contact.name.trim()
   }
   return contact.address.split("@")[0] ?? contact.address
 }
@@ -70,7 +77,7 @@ function getRecipientLabel(
   cc: { name: string; address: string }[],
   bcc: { name: string; address: string }[],
 ): string {
-  return `To: ${[...to, ...cc, ...bcc].map(getDisplayName).join(", ")}`
+  return `To: ${[...to, ...cc, ...bcc].map(getRecipientName).join(", ")}`
 }
 
 export function MailList({ folder }: { folder: string }) {
@@ -154,7 +161,7 @@ export function MailList({ folder }: { folder: string }) {
             <div key={i} className="flex items-center gap-3 border-b px-4 py-3">
               <Skeleton className="size-5 shrink-0 rounded" />
               <Skeleton className="size-2 shrink-0 rounded-full" />
-              <Skeleton className="size-9 shrink-0 rounded-lg" />
+              <Skeleton className="size-9 shrink-0 rounded-full" />
               <div className="flex flex-1 flex-col gap-1">
                 <Skeleton className="h-4 w-32" />
                 <Skeleton className="h-4 w-full" />
@@ -269,7 +276,7 @@ export function MailList({ folder }: { folder: string }) {
                 aria-label={
                   isSentFolder(folder) && [...mail.to, ...mail.cc, ...mail.bcc].length > 0
                     ? `Select mail to ${getRecipientLabel(mail.to, mail.cc, mail.bcc)}`
-                    : `Select mail from ${mail.from.name}`
+                    : `Select mail from ${getSenderName(mail.from)}`
                 }
                 className="shrink-0"
               />
@@ -288,7 +295,7 @@ export function MailList({ folder }: { folder: string }) {
                   {[...mail.to, ...mail.cc, ...mail.bcc].slice(0, 2).map((contact, i) => (
                     <Avatar key={i} size="default">
                       <AvatarFallback className="text-sm font-semibold">
-                        {getInitials(getDisplayName(contact))}
+                        {getInitials(getRecipientName(contact))}
                       </AvatarFallback>
                     </Avatar>
                   ))}
@@ -299,9 +306,9 @@ export function MailList({ folder }: { folder: string }) {
                   )}
                 </AvatarGroup>
               ) : (
-                <Avatar className="size-9 shrink-0 rounded-lg">
-                  <AvatarFallback className="text-sm font-semibold text-white rounded-lg bg-muted">
-                    {getInitials(mail.from.name)}
+                <Avatar className="size-9 shrink-0">
+                  <AvatarFallback className="text-sm font-semibold">
+                    {getInitials(getSenderName(mail.from))}
                   </AvatarFallback>
                 </Avatar>
               )}
@@ -318,7 +325,7 @@ export function MailList({ folder }: { folder: string }) {
                     >
                       {isSentFolder(folder) && [...mail.to, ...mail.cc, ...mail.bcc].length > 0
                         ? getRecipientLabel(mail.to, mail.cc, mail.bcc)
-                        : mail.from.name}
+                        : getSenderName(mail.from)}
                     </span>
                     {mail.starred && (
                       <StarIcon className="size-3.5 shrink-0 fill-yellow-400 text-yellow-400" />
