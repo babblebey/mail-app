@@ -3,6 +3,7 @@
 import { useState, useCallback, useRef, useEffect } from "react"
 import Link from "next/link"
 import {
+  AlertOctagonIcon,
   ArchiveIcon,
   FolderIcon,
   Trash2Icon,
@@ -89,6 +90,11 @@ function isTrashFolder(folder: string): boolean {
   return lower.includes("trash") || lower.includes("deleted")
 }
 
+function isJunkFolder(folder: string): boolean {
+  const lower = folder.toLowerCase()
+  return lower.includes("junk") || lower.includes("spam")
+}
+
 function isRealRecipient(contact: { name: string; address: string }): boolean {
   const addr = contact.address.toLowerCase()
   return !addr.startsWith("undisclosed-recipients")
@@ -106,7 +112,7 @@ function getDraftRecipientLabel(
   return allRecipients.map(getRecipientName).join(", ")
 }
 
-function classifyTrashEmail(
+function classifyMixedFolderEmail(
   mail: {
     flags: string[]
     from: { name: string; address: string }
@@ -315,8 +321,8 @@ export function MailList({ folder }: { folder: string }) {
       <div className="flex-1 overflow-y-auto">
         {messages.map((mail) => {
           const mailId = String(mail.uid)
-          const displayMode: "inbox" | "sent" | "drafts" = isTrashFolder(folder)
-            ? classifyTrashEmail(mail, userEmails)
+          const displayMode: "inbox" | "sent" | "drafts" = isTrashFolder(folder) || isJunkFolder(folder)
+            ? classifyMixedFolderEmail(mail, userEmails)
             : isDraftsFolder(folder)
               ? "drafts"
               : isSentFolder(folder)
@@ -358,6 +364,11 @@ export function MailList({ folder }: { folder: string }) {
               {/* Trash indicator */}
               {isTrashFolder(folder) && (
                 <Trash2Icon className="size-4 shrink-0 text-muted-foreground" />
+              )}
+
+              {/* Junk indicator */}
+              {isJunkFolder(folder) && (
+                <AlertOctagonIcon className="size-4 shrink-0 text-muted-foreground" />
               )}
 
               {/* Avatar */}
