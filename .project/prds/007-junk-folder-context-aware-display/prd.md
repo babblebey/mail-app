@@ -82,8 +82,8 @@ The existing `classifyTrashEmail` function already implements this logic. It is 
 
 #### Tasks
 
-- [ ] Add `isJunkFolder(folder: string): boolean` helper in `src/components/mail-list.tsx` — returns `true` when `folder.toLowerCase()` contains `"junk"` or `"spam"` (covers Gmail's "Spam", Outlook's "Junk Email", Apple Mail "Junk", generic "Junk"/"Spam")
-- [ ] Position the helper alongside the existing folder-detection functions (`isSentFolder`, `isDraftsFolder`, `isTrashFolder`)
+- [x] Add `isJunkFolder(folder: string): boolean` helper in `src/components/mail-list.tsx` — returns `true` when `folder.toLowerCase()` contains `"junk"` or `"spam"` (covers Gmail's "Spam", Outlook's "Junk Email", Apple Mail "Junk", generic "Junk"/"Spam")
+- [x] Position the helper alongside the existing folder-detection functions (`isSentFolder`, `isDraftsFolder`, `isTrashFolder`)
 
 ### Phase 3: Extend `displayMode` to Cover Junk Folder
 

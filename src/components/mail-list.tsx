@@ -89,6 +89,11 @@ function isTrashFolder(folder: string): boolean {
   return lower.includes("trash") || lower.includes("deleted")
 }
 
+function isJunkFolder(folder: string): boolean {
+  const lower = folder.toLowerCase()
+  return lower.includes("junk") || lower.includes("spam")
+}
+
 function isRealRecipient(contact: { name: string; address: string }): boolean {
   const addr = contact.address.toLowerCase()
   return !addr.startsWith("undisclosed-recipients")
