@@ -84,6 +84,11 @@ function isDraftsFolder(folder: string): boolean {
   return folder.toLowerCase().includes("draft")
 }
 
+function isTrashFolder(folder: string): boolean {
+  const lower = folder.toLowerCase()
+  return lower.includes("trash") || lower.includes("deleted")
+}
+
 function isRealRecipient(contact: { name: string; address: string }): boolean {
   const addr = contact.address.toLowerCase()
   return !addr.startsWith("undisclosed-recipients")
@@ -101,10 +106,38 @@ function getDraftRecipientLabel(
   return allRecipients.map(getRecipientName).join(", ")
 }
 
+function classifyTrashEmail(
+  mail: {
+    flags: string[]
+    from: { name: string; address: string }
+    to: { name: string; address: string }[]
+    cc: { name: string; address: string }[]
+    bcc: { name: string; address: string }[]
+  },
+  userEmails: string[],
+): "inbox" | "sent" | "drafts" {
+  if (mail.flags.includes("\\Draft")) {
+    return "drafts"
+  }
+  const fromLower = mail.from.address.toLowerCase()
+  if (userEmails.includes(fromLower)) {
+    const hasRealRecipients =
+      [...mail.to, ...mail.cc, ...mail.bcc].filter(isRealRecipient).length > 0
+    if (!hasRealRecipients) {
+      return "drafts"
+    }
+    return "sent"
+  }
+  return "inbox"
+}
+
 export function MailList({ folder }: { folder: string }) {
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [composerOpen, setComposerOpen] = useState(false)
   const loadMoreRef = useRef<HTMLDivElement>(null)
+
+  const { data: accounts } = api.mailAccount.list.useQuery()
+  const userEmails = (accounts ?? []).map((a) => a.email.toLowerCase())
 
   const {
     data,
@@ -282,6 +315,15 @@ export function MailList({ folder }: { folder: string }) {
       <div className="flex-1 overflow-y-auto">
         {messages.map((mail) => {
           const mailId = String(mail.uid)
+          const displayMode: "inbox" | "sent" | "drafts" = isTrashFolder(folder)
+            ? classifyTrashEmail(mail, userEmails)
+            : isDraftsFolder(folder)
+              ? "drafts"
+              : isSentFolder(folder)
+                ? "sent"
+                : "inbox"
+          const realRecipients = [...mail.to, ...mail.cc, ...mail.bcc].filter(isRealRecipient)
+          const allRecipients = [...mail.to, ...mail.cc, ...mail.bcc]
           return (
             <Link
               key={mailId}
@@ -295,11 +337,11 @@ export function MailList({ folder }: { folder: string }) {
                 checked={selected.has(mailId)}
                 onCheckedChange={() => toggleSelect(mailId)}
                 aria-label={
-                  isDraftsFolder(folder)
-                    ? [...mail.to, ...mail.cc, ...mail.bcc].filter(isRealRecipient).length > 0
-                      ? `Select draft to ${[...mail.to, ...mail.cc, ...mail.bcc].filter(isRealRecipient).map(getRecipientName).join(", ")}`
+                  displayMode === "drafts"
+                    ? realRecipients.length > 0
+                      ? `Select draft to ${realRecipients.map(getRecipientName).join(", ")}`
                       : "Select draft with no recipient"
-                    : isSentFolder(folder) && [...mail.to, ...mail.cc, ...mail.bcc].length > 0
+                    : displayMode === "sent" && allRecipients.length > 0
                       ? `Select mail to ${getRecipientLabel(mail.to, mail.cc, mail.bcc)}`
                       : `Select mail from ${getSenderName(mail.from)}`
                 }
@@ -313,38 +355,50 @@ export function MailList({ folder }: { folder: string }) {
                 )}
               </div>
 
+              {/* Trash indicator */}
+              {isTrashFolder(folder) && (
+                <Trash2Icon className="size-4 shrink-0 text-muted-foreground" />
+              )}
+
               {/* Avatar */}
-              {(isSentFolder(folder) || isDraftsFolder(folder)) &&
-              (isDraftsFolder(folder)
-                ? [...mail.to, ...mail.cc, ...mail.bcc].filter(isRealRecipient).length > 0
-                : [...mail.to, ...mail.cc, ...mail.bcc].length > 0) ? (
+              {displayMode === "drafts" ? (
+                realRecipients.length > 0 ? (
+                  <AvatarGroup className="shrink-0">
+                    {realRecipients.slice(0, 2).map((contact, i) => (
+                      <Avatar key={i} size="default">
+                        <AvatarFallback className="text-sm font-semibold">
+                          {getInitials(getRecipientName(contact))}
+                        </AvatarFallback>
+                      </Avatar>
+                    ))}
+                    {realRecipients.length > 2 && (
+                      <AvatarGroupCount className="text-sm">
+                        +{realRecipients.length - 2}
+                      </AvatarGroupCount>
+                    )}
+                  </AvatarGroup>
+                ) : (
+                  <Avatar className="size-9 shrink-0">
+                    <AvatarFallback className="text-sm font-semibold">
+                      <PenSquareIcon className="size-4" />
+                    </AvatarFallback>
+                  </Avatar>
+                )
+              ) : displayMode === "sent" && allRecipients.length > 0 ? (
                 <AvatarGroup className="shrink-0">
-                  {(isDraftsFolder(folder)
-                    ? [...mail.to, ...mail.cc, ...mail.bcc].filter(isRealRecipient)
-                    : [...mail.to, ...mail.cc, ...mail.bcc]
-                  ).slice(0, 2).map((contact, i) => (
+                  {allRecipients.slice(0, 2).map((contact, i) => (
                     <Avatar key={i} size="default">
                       <AvatarFallback className="text-sm font-semibold">
                         {getInitials(getRecipientName(contact))}
                       </AvatarFallback>
                     </Avatar>
                   ))}
-                  {(isDraftsFolder(folder)
-                    ? [...mail.to, ...mail.cc, ...mail.bcc].filter(isRealRecipient).length
-                    : [...mail.to, ...mail.cc, ...mail.bcc].length) > 2 && (
+                  {allRecipients.length > 2 && (
                     <AvatarGroupCount className="text-sm">
-                      +{(isDraftsFolder(folder)
-                        ? [...mail.to, ...mail.cc, ...mail.bcc].filter(isRealRecipient).length
-                        : [...mail.to, ...mail.cc, ...mail.bcc].length) - 2}
+                      +{allRecipients.length - 2}
                     </AvatarGroupCount>
                   )}
                 </AvatarGroup>
-              ) : isDraftsFolder(folder) ? (
-                <Avatar className="size-9 shrink-0">
-                  <AvatarFallback className="text-sm font-semibold">
-                    <PenSquareIcon className="size-4" />
-                  </AvatarFallback>
-                </Avatar>
               ) : (
                 <Avatar className="size-9 shrink-0">
                   <AvatarFallback className="text-sm font-semibold">
@@ -357,7 +411,7 @@ export function MailList({ folder }: { folder: string }) {
               <div className="flex min-w-0 flex-1 flex-col gap-0.5 md:flex-row md:items-center md:gap-3">
                 <div className="flex min-w-0 items-center justify-between gap-2 md:w-44 md:shrink-0">
                   <div className="flex min-w-0 items-center gap-2">
-                    {isDraftsFolder(folder) ? (
+                    {displayMode === "drafts" ? (
                       <span className={cn(
                         "flex min-w-0 items-baseline gap-0 text-sm",
                         !mail.read ? "font-semibold" : "",
@@ -377,7 +431,7 @@ export function MailList({ folder }: { folder: string }) {
                           !mail.read ? "font-semibold text-foreground" : "text-foreground",
                         )}
                       >
-                        {isSentFolder(folder) && [...mail.to, ...mail.cc, ...mail.bcc].length > 0
+                        {displayMode === "sent" && allRecipients.length > 0
                           ? getRecipientLabel(mail.to, mail.cc, mail.bcc)
                           : getSenderName(mail.from)}
                       </span>
@@ -400,7 +454,7 @@ export function MailList({ folder }: { folder: string }) {
                   >
                     {mail.subject}
                   </span>
-                  {!(isDraftsFolder(folder) && !mail.snippet?.trim()) && (
+                  {!(displayMode === "drafts" && !mail.snippet?.trim()) && (
                     <span className="min-w-0 truncate text-sm text-muted-foreground">
                       - {mail.snippet}
                     </span>
