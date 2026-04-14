@@ -58,7 +58,7 @@ function isSentFolder(folder: string): boolean {
   return folder.toLowerCase().includes("sent")
 }
 
-function getDisplayName(contact: { name: string; address: string }): string {
+function getRecipientName(contact: { name: string; address: string }): string {
   if (contact.name.trim()) {
     return contact.name.trim().split(/\s+/)[0]!
   }
@@ -77,7 +77,7 @@ function getRecipientLabel(
   cc: { name: string; address: string }[],
   bcc: { name: string; address: string }[],
 ): string {
-  return `To: ${[...to, ...cc, ...bcc].map(getDisplayName).join(", ")}`
+  return `To: ${[...to, ...cc, ...bcc].map(getRecipientName).join(", ")}`
 }
 
 export function MailList({ folder }: { folder: string }) {
@@ -295,7 +295,7 @@ export function MailList({ folder }: { folder: string }) {
                   {[...mail.to, ...mail.cc, ...mail.bcc].slice(0, 2).map((contact, i) => (
                     <Avatar key={i} size="default">
                       <AvatarFallback className="text-sm font-semibold">
-                        {getInitials(getDisplayName(contact))}
+                        {getInitials(getRecipientName(contact))}
                       </AvatarFallback>
                     </Avatar>
                   ))}
