@@ -1,6 +1,6 @@
 ---
 title: "Drafts Folder: Show Recipients with Draft Suffix"
-status: draft
+status: in-progress
 references:
   - type: doc
     url: .project/brief.md
@@ -55,8 +55,8 @@ This PRD covers:
 
 #### Tasks
 
-- [ ] Add `isDraftsFolder(folder: string): boolean` helper in `src/components/mail-list.tsx` — returns `true` when `folder.toLowerCase()` contains `"draft"`
-- [ ] Add `getDraftRecipientLabel(to, cc, bcc): string` helper — combines `to`, `cc`, and `bcc` arrays, maps each to `getRecipientName()`, joins with `", "`, and appends `", Draft"`. Returns just `"Draft"` when there are no recipients.
+- [x] Add `isDraftsFolder(folder: string): boolean` helper in `src/components/mail-list.tsx` — returns `true` when `folder.toLowerCase()` contains `"draft"`
+- [x] Add `getDraftRecipientLabel(to, cc, bcc): string` helper — combines `to`, `cc`, and `bcc` arrays, maps each to `getRecipientName()`, joins with `", "`, and appends `", Draft"`. Returns just `"Draft"` when there are no recipients.
 
 ### Phase 2: Grouped Recipient Avatars for Drafts
 

@@ -80,6 +80,22 @@ function getRecipientLabel(
   return `To: ${[...to, ...cc, ...bcc].map(getRecipientName).join(", ")}`
 }
 
+function isDraftsFolder(folder: string): boolean {
+  return folder.toLowerCase().includes("draft")
+}
+
+function getDraftRecipientLabel(
+  to: { name: string; address: string }[],
+  cc: { name: string; address: string }[],
+  bcc: { name: string; address: string }[],
+): string {
+  const allRecipients = [...to, ...cc, ...bcc]
+  if (allRecipients.length === 0) {
+    return "No recipient, Draft"
+  }
+  return `${allRecipients.map(getRecipientName).join(", ")}, Draft`
+}
+
 export function MailList({ folder }: { folder: string }) {
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [composerOpen, setComposerOpen] = useState(false)
