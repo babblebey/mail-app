@@ -11,6 +11,9 @@ references:
   - type: prd
     url: .project/prds/005-drafts-folder-recipients/prd.md
     description: "Prior PRD — Drafts folder recipient display (completed)"
+  - type: pr
+    url: https://github.com/babblebey/mail-app/pull/11
+    description: "Implementation PR — Trash folder context-aware display"
 ---
 
 > **Instructions for AI Agents:**
