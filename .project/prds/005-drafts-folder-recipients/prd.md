@@ -75,10 +75,10 @@ This PRD covers:
 
 #### Tasks
 
-- [ ] In the message row name section of `src/components/mail-list.tsx`:
+- [x] In the message row name section of `src/components/mail-list.tsx`:
   - When `isDraftsFolder(folder)`: display `getDraftRecipientLabel(mail.to, mail.cc, mail.bcc)` — e.g. `"Alice, Bob, Draft"` or `"No recipient, Draft"` when there are no recipients.
   - When not a Drafts folder: keep existing display logic (no changes).
-- [ ] Update the checkbox `aria-label` to reference drafts — e.g. `"Select draft to Alice, Bob"` when recipients exist, or `"Select draft with no recipient"` when none exist.
+- [x] Update the checkbox `aria-label` to reference drafts — e.g. `"Select draft to Alice, Bob"` when recipients exist, or `"Select draft with no recipient"` when none exist.
 
 ### Phase 4: Conditional Snippet Display
 

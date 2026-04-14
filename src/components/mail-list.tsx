@@ -290,9 +290,13 @@ export function MailList({ folder }: { folder: string }) {
                 checked={selected.has(mailId)}
                 onCheckedChange={() => toggleSelect(mailId)}
                 aria-label={
-                  isSentFolder(folder) && [...mail.to, ...mail.cc, ...mail.bcc].length > 0
-                    ? `Select mail to ${getRecipientLabel(mail.to, mail.cc, mail.bcc)}`
-                    : `Select mail from ${getSenderName(mail.from)}`
+                  isDraftsFolder(folder)
+                    ? [...mail.to, ...mail.cc, ...mail.bcc].length > 0
+                      ? `Select draft to ${[...mail.to, ...mail.cc, ...mail.bcc].map(getRecipientName).join(", ")}`
+                      : "Select draft with no recipient"
+                    : isSentFolder(folder) && [...mail.to, ...mail.cc, ...mail.bcc].length > 0
+                      ? `Select mail to ${getRecipientLabel(mail.to, mail.cc, mail.bcc)}`
+                      : `Select mail from ${getSenderName(mail.from)}`
                 }
                 className="shrink-0"
               />
@@ -345,9 +349,11 @@ export function MailList({ folder }: { folder: string }) {
                         !mail.read ? "font-semibold text-foreground" : "text-foreground",
                       )}
                     >
-                      {isSentFolder(folder) && [...mail.to, ...mail.cc, ...mail.bcc].length > 0
-                        ? getRecipientLabel(mail.to, mail.cc, mail.bcc)
-                        : getSenderName(mail.from)}
+                      {isDraftsFolder(folder)
+                        ? getDraftRecipientLabel(mail.to, mail.cc, mail.bcc)
+                        : isSentFolder(folder) && [...mail.to, ...mail.cc, ...mail.bcc].length > 0
+                          ? getRecipientLabel(mail.to, mail.cc, mail.bcc)
+                          : getSenderName(mail.from)}
                     </span>
                     {mail.starred && (
                       <StarIcon className="size-3.5 shrink-0 fill-yellow-400 text-yellow-400" />
