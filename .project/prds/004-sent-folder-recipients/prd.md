@@ -63,9 +63,9 @@ This PRD covers:
 
 #### Tasks
 
-- [ ] Add `isSentFolder(folder: string): boolean` helper in `src/components/mail-list.tsx` — returns `true` when `folder.toLowerCase()` contains `"sent"`
-- [ ] Add `getDisplayName(contact: { name: string; address: string }): string` helper — returns the first word of `name` if the contact has a non-empty name, otherwise returns the local part of `address` (before `@`)
-- [ ] Add `getRecipientLabel(to, cc): string` helper — combines `to` and `cc` arrays, maps each to `getDisplayName()`, and joins with `", "`
+- [x] Add `isSentFolder(folder: string): boolean` helper in `src/components/mail-list.tsx` — returns `true` when `folder.toLowerCase()` contains `"sent"`
+- [x] Add `getDisplayName(contact: { name: string; address: string }): string` helper — returns the first word of `name` if the contact has a non-empty name, otherwise returns the local part of `address` (before `@`)
+- [x] Add `getRecipientLabel(to, cc): string` helper — combines `to` and `cc` arrays, maps each to `getDisplayName()`, and joins with `", "`
 
 ### Phase 3: Frontend — Grouped Recipient Avatars
 

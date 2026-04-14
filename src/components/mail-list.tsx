@@ -49,6 +49,24 @@ function formatDate(isoDate: string) {
   })
 }
 
+function isSentFolder(folder: string): boolean {
+  return folder.toLowerCase().includes("sent")
+}
+
+function getDisplayName(contact: { name: string; address: string }): string {
+  if (contact.name.trim()) {
+    return contact.name.trim().split(/\s+/)[0]!
+  }
+  return contact.address.split("@")[0] ?? contact.address
+}
+
+function getRecipientLabel(
+  to: { name: string; address: string }[],
+  cc: { name: string; address: string }[],
+): string {
+  return [...to, ...cc].map(getDisplayName).join(", ")
+}
+
 export function MailList({ folder }: { folder: string }) {
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [composerOpen, setComposerOpen] = useState(false)
