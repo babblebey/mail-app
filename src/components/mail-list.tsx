@@ -80,6 +80,27 @@ function getRecipientLabel(
   return `To: ${[...to, ...cc, ...bcc].map(getRecipientName).join(", ")}`
 }
 
+function isDraftsFolder(folder: string): boolean {
+  return folder.toLowerCase().includes("draft")
+}
+
+function isRealRecipient(contact: { name: string; address: string }): boolean {
+  const addr = contact.address.toLowerCase()
+  return !addr.startsWith("undisclosed-recipients")
+}
+
+function getDraftRecipientLabel(
+  to: { name: string; address: string }[],
+  cc: { name: string; address: string }[],
+  bcc: { name: string; address: string }[],
+): string | null {
+  const allRecipients = [...to, ...cc, ...bcc].filter(isRealRecipient)
+  if (allRecipients.length === 0) {
+    return null
+  }
+  return allRecipients.map(getRecipientName).join(", ")
+}
+
 export function MailList({ folder }: { folder: string }) {
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [composerOpen, setComposerOpen] = useState(false)
@@ -274,9 +295,13 @@ export function MailList({ folder }: { folder: string }) {
                 checked={selected.has(mailId)}
                 onCheckedChange={() => toggleSelect(mailId)}
                 aria-label={
-                  isSentFolder(folder) && [...mail.to, ...mail.cc, ...mail.bcc].length > 0
-                    ? `Select mail to ${getRecipientLabel(mail.to, mail.cc, mail.bcc)}`
-                    : `Select mail from ${getSenderName(mail.from)}`
+                  isDraftsFolder(folder)
+                    ? [...mail.to, ...mail.cc, ...mail.bcc].filter(isRealRecipient).length > 0
+                      ? `Select draft to ${[...mail.to, ...mail.cc, ...mail.bcc].filter(isRealRecipient).map(getRecipientName).join(", ")}`
+                      : "Select draft with no recipient"
+                    : isSentFolder(folder) && [...mail.to, ...mail.cc, ...mail.bcc].length > 0
+                      ? `Select mail to ${getRecipientLabel(mail.to, mail.cc, mail.bcc)}`
+                      : `Select mail from ${getSenderName(mail.from)}`
                 }
                 className="shrink-0"
               />
@@ -289,22 +314,37 @@ export function MailList({ folder }: { folder: string }) {
               </div>
 
               {/* Avatar */}
-              {isSentFolder(folder) &&
-              [...mail.to, ...mail.cc, ...mail.bcc].length > 0 ? (
+              {(isSentFolder(folder) || isDraftsFolder(folder)) &&
+              (isDraftsFolder(folder)
+                ? [...mail.to, ...mail.cc, ...mail.bcc].filter(isRealRecipient).length > 0
+                : [...mail.to, ...mail.cc, ...mail.bcc].length > 0) ? (
                 <AvatarGroup className="shrink-0">
-                  {[...mail.to, ...mail.cc, ...mail.bcc].slice(0, 2).map((contact, i) => (
+                  {(isDraftsFolder(folder)
+                    ? [...mail.to, ...mail.cc, ...mail.bcc].filter(isRealRecipient)
+                    : [...mail.to, ...mail.cc, ...mail.bcc]
+                  ).slice(0, 2).map((contact, i) => (
                     <Avatar key={i} size="default">
                       <AvatarFallback className="text-sm font-semibold">
                         {getInitials(getRecipientName(contact))}
                       </AvatarFallback>
                     </Avatar>
                   ))}
-                  {[...mail.to, ...mail.cc, ...mail.bcc].length > 2 && (
+                  {(isDraftsFolder(folder)
+                    ? [...mail.to, ...mail.cc, ...mail.bcc].filter(isRealRecipient).length
+                    : [...mail.to, ...mail.cc, ...mail.bcc].length) > 2 && (
                     <AvatarGroupCount className="text-sm">
-                      +{[...mail.to, ...mail.cc, ...mail.bcc].length - 2}
+                      +{(isDraftsFolder(folder)
+                        ? [...mail.to, ...mail.cc, ...mail.bcc].filter(isRealRecipient).length
+                        : [...mail.to, ...mail.cc, ...mail.bcc].length) - 2}
                     </AvatarGroupCount>
                   )}
                 </AvatarGroup>
+              ) : isDraftsFolder(folder) ? (
+                <Avatar className="size-9 shrink-0">
+                  <AvatarFallback className="text-sm font-semibold">
+                    <PenSquareIcon className="size-4" />
+                  </AvatarFallback>
+                </Avatar>
               ) : (
                 <Avatar className="size-9 shrink-0">
                   <AvatarFallback className="text-sm font-semibold">
@@ -317,16 +357,31 @@ export function MailList({ folder }: { folder: string }) {
               <div className="flex min-w-0 flex-1 flex-col gap-0.5 md:flex-row md:items-center md:gap-3">
                 <div className="flex min-w-0 items-center justify-between gap-2 md:w-44 md:shrink-0">
                   <div className="flex min-w-0 items-center gap-2">
-                    <span
-                      className={cn(
-                        "truncate text-sm",
-                        !mail.read ? "font-semibold text-foreground" : "text-foreground",
-                      )}
-                    >
-                      {isSentFolder(folder) && [...mail.to, ...mail.cc, ...mail.bcc].length > 0
-                        ? getRecipientLabel(mail.to, mail.cc, mail.bcc)
-                        : getSenderName(mail.from)}
-                    </span>
+                    {isDraftsFolder(folder) ? (
+                      <span className={cn(
+                        "flex min-w-0 items-baseline gap-0 text-sm",
+                        !mail.read ? "font-semibold" : "",
+                      )}>
+                        <span className="truncate text-foreground">
+                          {getDraftRecipientLabel(mail.to, mail.cc, mail.bcc) ?? "No recipient"}
+                        </span>
+                        <span className="shrink-0">
+                          ,{" "}
+                          <span className="text-destructive">Draft</span>
+                        </span>
+                      </span>
+                    ) : (
+                      <span
+                        className={cn(
+                          "truncate text-sm",
+                          !mail.read ? "font-semibold text-foreground" : "text-foreground",
+                        )}
+                      >
+                        {isSentFolder(folder) && [...mail.to, ...mail.cc, ...mail.bcc].length > 0
+                          ? getRecipientLabel(mail.to, mail.cc, mail.bcc)
+                          : getSenderName(mail.from)}
+                      </span>
+                    )}
                     {mail.starred && (
                       <StarIcon className="size-3.5 shrink-0 fill-yellow-400 text-yellow-400" />
                     )}
@@ -345,9 +400,11 @@ export function MailList({ folder }: { folder: string }) {
                   >
                     {mail.subject}
                   </span>
-                  <span className="min-w-0 truncate text-sm text-muted-foreground">
-                    - {mail.snippet}
-                  </span>
+                  {!(isDraftsFolder(folder) && !mail.snippet?.trim()) && (
+                    <span className="min-w-0 truncate text-sm text-muted-foreground">
+                      - {mail.snippet}
+                    </span>
+                  )}
                 </div>
 
                 {/* Date on desktop */}

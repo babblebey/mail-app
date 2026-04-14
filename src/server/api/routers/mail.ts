@@ -164,8 +164,10 @@ export const mailRouter = createTRPCRouter({
           if (msg.bodyParts) {
             const textBuf = msg.bodyParts.get("1");
             if (textBuf) {
-              snippet = textBuf
-                .toString("utf-8")
+              snippet = sanitizeHtml(textBuf.toString("utf-8"), {
+                  allowedTags: [],
+                  allowedAttributes: {},
+                })
                 .replace(/\r?\n/g, " ")
                 .replace(/\s+/g, " ")
                 .trim()
