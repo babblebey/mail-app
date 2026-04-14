@@ -121,6 +121,17 @@ Each message in the Trash folder is classified into one of three origin categori
   - `"drafts"` with recipients → `"Select draft to {recipientLabel}"`
   - `"drafts"` with no recipients → `"Select draft with no recipient"`
 
+### Phase 5: Trash Folder Visual Indicator
+
+**Goal:** Add a per-row trash icon as a visual cue that the user is viewing deleted emails.
+
+#### Tasks
+
+- [x] Add a `Trash2Icon` on each message row in the Trash folder, positioned between the unread indicator and the avatar
+- [x] The trash icon does not replace the unread dot — both display independently so unread state is preserved for trashed messages
+- [x] The icon uses a subtle muted style (`text-muted-foreground/60`) to avoid competing with message content
+- [x] Non-Trash folders are unaffected (icon only renders when `isTrashFolder(folder)` is true)
+
 ## Acceptance Criteria
 
 - [x] Messages in the Trash folder that have the `\\Draft` flag display with Drafts-style rendering (recipient names with ", Draft" suffix, grouped avatars or pen icon, hidden empty snippet)

@@ -355,6 +355,11 @@ export function MailList({ folder }: { folder: string }) {
                 )}
               </div>
 
+              {/* Trash indicator */}
+              {isTrashFolder(folder) && (
+                <Trash2Icon className="size-4 shrink-0 text-muted-foreground" />
+              )}
+
               {/* Avatar */}
               {displayMode === "drafts" ? (
                 realRecipients.length > 0 ? (
