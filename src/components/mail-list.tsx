@@ -93,12 +93,12 @@ function getDraftRecipientLabel(
   to: { name: string; address: string }[],
   cc: { name: string; address: string }[],
   bcc: { name: string; address: string }[],
-): string {
+): string | null {
   const allRecipients = [...to, ...cc, ...bcc].filter(isRealRecipient)
   if (allRecipients.length === 0) {
-    return "No recipient, Draft"
+    return null
   }
-  return `${allRecipients.map(getRecipientName).join(", ")}, Draft`
+  return allRecipients.map(getRecipientName).join(", ")
 }
 
 export function MailList({ folder }: { folder: string }) {
@@ -357,18 +357,31 @@ export function MailList({ folder }: { folder: string }) {
               <div className="flex min-w-0 flex-1 flex-col gap-0.5 md:flex-row md:items-center md:gap-3">
                 <div className="flex min-w-0 items-center justify-between gap-2 md:w-44 md:shrink-0">
                   <div className="flex min-w-0 items-center gap-2">
-                    <span
-                      className={cn(
-                        "truncate text-sm",
-                        !mail.read ? "font-semibold text-foreground" : "text-foreground",
-                      )}
-                    >
-                      {isDraftsFolder(folder)
-                        ? getDraftRecipientLabel(mail.to, mail.cc, mail.bcc)
-                        : isSentFolder(folder) && [...mail.to, ...mail.cc, ...mail.bcc].length > 0
+                    {isDraftsFolder(folder) ? (
+                      <span className={cn(
+                        "flex min-w-0 items-baseline gap-0 text-sm",
+                        !mail.read ? "font-semibold" : "",
+                      )}>
+                        <span className="truncate text-foreground">
+                          {getDraftRecipientLabel(mail.to, mail.cc, mail.bcc) ?? "No recipient"}
+                        </span>
+                        <span className="shrink-0">
+                          ,{" "}
+                          <span className="text-destructive">Draft</span>
+                        </span>
+                      </span>
+                    ) : (
+                      <span
+                        className={cn(
+                          "truncate text-sm",
+                          !mail.read ? "font-semibold text-foreground" : "text-foreground",
+                        )}
+                      >
+                        {isSentFolder(folder) && [...mail.to, ...mail.cc, ...mail.bcc].length > 0
                           ? getRecipientLabel(mail.to, mail.cc, mail.bcc)
                           : getSenderName(mail.from)}
-                    </span>
+                      </span>
+                    )}
                     {mail.starred && (
                       <StarIcon className="size-3.5 shrink-0 fill-yellow-400 text-yellow-400" />
                     )}
