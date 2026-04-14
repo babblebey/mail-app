@@ -154,7 +154,7 @@ export function MailList({ folder }: { folder: string }) {
             <div key={i} className="flex items-center gap-3 border-b px-4 py-3">
               <Skeleton className="size-5 shrink-0 rounded" />
               <Skeleton className="size-2 shrink-0 rounded-full" />
-              <Skeleton className="size-9 shrink-0 rounded-lg" />
+              <Skeleton className="size-9 shrink-0 rounded-full" />
               <div className="flex flex-1 flex-col gap-1">
                 <Skeleton className="h-4 w-32" />
                 <Skeleton className="h-4 w-full" />
@@ -299,8 +299,8 @@ export function MailList({ folder }: { folder: string }) {
                   )}
                 </AvatarGroup>
               ) : (
-                <Avatar className="size-9 shrink-0 rounded-lg">
-                  <AvatarFallback className="text-sm font-semibold text-white rounded-lg bg-muted">
+                <Avatar className="size-9 shrink-0">
+                  <AvatarFallback className="text-sm font-semibold">
                     {getInitials(mail.from.name)}
                   </AvatarFallback>
                 </Avatar>
