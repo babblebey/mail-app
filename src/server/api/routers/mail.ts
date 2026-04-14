@@ -137,6 +137,7 @@ export const mailRouter = createTRPCRouter({
           from: { name: string; address: string };
           to: { name: string; address: string }[];
           cc: { name: string; address: string }[];
+          bcc: { name: string; address: string }[];
           date: string;
           flags: string[];
           read: boolean;
@@ -156,6 +157,7 @@ export const mailRouter = createTRPCRouter({
           const fromAddr = msg.envelope?.from?.[0];
           const toAddrs = msg.envelope?.to ?? [];
           const ccAddrs = msg.envelope?.cc ?? [];
+          const bccAddrs = msg.envelope?.bcc ?? [];
 
           // Extract a plain-text snippet from body part "1" (first text part)
           let snippet = "";
@@ -184,6 +186,10 @@ export const mailRouter = createTRPCRouter({
               address: a.address ?? "",
             })),
             cc: ccAddrs.map((a) => ({
+              name: a.name ?? a.address ?? "Unknown",
+              address: a.address ?? "",
+            })),
+            bcc: bccAddrs.map((a) => ({
               name: a.name ?? a.address ?? "Unknown",
               address: a.address ?? "",
             })),

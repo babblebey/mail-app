@@ -68,8 +68,9 @@ function getDisplayName(contact: { name: string; address: string }): string {
 function getRecipientLabel(
   to: { name: string; address: string }[],
   cc: { name: string; address: string }[],
+  bcc: { name: string; address: string }[],
 ): string {
-  return `To: ${[...to, ...cc].map(getDisplayName).join(", ")}`
+  return `To: ${[...to, ...cc, ...bcc].map(getDisplayName).join(", ")}`
 }
 
 export function MailList({ folder }: { folder: string }) {
@@ -266,8 +267,8 @@ export function MailList({ folder }: { folder: string }) {
                 checked={selected.has(mailId)}
                 onCheckedChange={() => toggleSelect(mailId)}
                 aria-label={
-                  isSentFolder(folder) && [...mail.to, ...mail.cc].length > 0
-                    ? `Select mail to ${getRecipientLabel(mail.to, mail.cc)}`
+                  isSentFolder(folder) && [...mail.to, ...mail.cc, ...mail.bcc].length > 0
+                    ? `Select mail to ${getRecipientLabel(mail.to, mail.cc, mail.bcc)}`
                     : `Select mail from ${mail.from.name}`
                 }
                 className="shrink-0"
@@ -282,18 +283,18 @@ export function MailList({ folder }: { folder: string }) {
 
               {/* Avatar */}
               {isSentFolder(folder) &&
-              [...mail.to, ...mail.cc].length > 0 ? (
+              [...mail.to, ...mail.cc, ...mail.bcc].length > 0 ? (
                 <AvatarGroup className="shrink-0">
-                  {[...mail.to, ...mail.cc].slice(0, 2).map((contact, i) => (
+                  {[...mail.to, ...mail.cc, ...mail.bcc].slice(0, 2).map((contact, i) => (
                     <Avatar key={i} size="default">
                       <AvatarFallback className="text-sm font-semibold">
                         {getInitials(getDisplayName(contact))}
                       </AvatarFallback>
                     </Avatar>
                   ))}
-                  {[...mail.to, ...mail.cc].length > 2 && (
+                  {[...mail.to, ...mail.cc, ...mail.bcc].length > 2 && (
                     <AvatarGroupCount className="text-sm">
-                      +{[...mail.to, ...mail.cc].length - 2}
+                      +{[...mail.to, ...mail.cc, ...mail.bcc].length - 2}
                     </AvatarGroupCount>
                   )}
                 </AvatarGroup>
@@ -315,8 +316,8 @@ export function MailList({ folder }: { folder: string }) {
                         !mail.read ? "font-semibold text-foreground" : "text-foreground",
                       )}
                     >
-                      {isSentFolder(folder) && [...mail.to, ...mail.cc].length > 0
-                        ? getRecipientLabel(mail.to, mail.cc)
+                      {isSentFolder(folder) && [...mail.to, ...mail.cc, ...mail.bcc].length > 0
+                        ? getRecipientLabel(mail.to, mail.cc, mail.bcc)
                         : mail.from.name}
                     </span>
                     {mail.starred && (
