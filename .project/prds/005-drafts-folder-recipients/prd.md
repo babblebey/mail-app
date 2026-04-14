@@ -8,6 +8,9 @@ references:
   - type: prd
     url: .project/prds/004-sent-folder-recipients/prd.md
     description: "Prior PRD — Sent folder recipient display (completed)"
+  - type: pull-request
+    url: https://github.com/babblebey/mail-app/pull/10
+    description: "Implementation PR — feat(mail): implement draft folder-specific mail list display style"
 ---
 
 > **Instructions for AI Agents:**
