@@ -92,20 +92,20 @@ Each message in the Trash folder is classified into one of three origin categori
 
 #### Tasks
 
-- [ ] Determine the `displayMode` for each message row:
+- [x] Determine the `displayMode` for each message row:
   - If `isTrashFolder(folder)`: call `classifyTrashEmail(mail, userEmails)` to get the mode per message
   - If `isDraftsFolder(folder)`: mode is `"drafts"` for all messages
   - If `isSentFolder(folder)`: mode is `"sent"` for all messages
   - Otherwise: mode is `"inbox"` for all messages
-- [ ] Refactor the **avatar section** to render based on `displayMode` instead of folder checks:
+- [x] Refactor the **avatar section** to render based on `displayMode` instead of folder checks:
   - `"inbox"` → single `Avatar` with sender initials
   - `"sent"` → `AvatarGroup` with recipient initials (max 2 + overflow count)
   - `"drafts"` → `AvatarGroup` with recipient initials if recipients exist; `PenSquareIcon` avatar if none
-- [ ] Refactor the **name/label section** to render based on `displayMode`:
+- [x] Refactor the **name/label section** to render based on `displayMode`:
   - `"inbox"` → `getSenderName(mail.from)`
   - `"sent"` → `getRecipientLabel(to, cc, bcc)`
   - `"drafts"` → `getDraftRecipientLabel(to, cc, bcc)` with red ", Draft" suffix; `"No recipient, Draft"` if none
-- [ ] Refactor the **snippet section** to respect `displayMode`:
+- [x] Refactor the **snippet section** to respect `displayMode`:
   - `"drafts"` with empty/whitespace snippet → hide the snippet span
   - All other modes → show snippet as normal
 

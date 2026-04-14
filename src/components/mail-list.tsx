@@ -315,6 +315,15 @@ export function MailList({ folder }: { folder: string }) {
       <div className="flex-1 overflow-y-auto">
         {messages.map((mail) => {
           const mailId = String(mail.uid)
+          const displayMode: "inbox" | "sent" | "drafts" = isTrashFolder(folder)
+            ? classifyTrashEmail(mail, userEmails)
+            : isDraftsFolder(folder)
+              ? "drafts"
+              : isSentFolder(folder)
+                ? "sent"
+                : "inbox"
+          const realRecipients = [...mail.to, ...mail.cc, ...mail.bcc].filter(isRealRecipient)
+          const allRecipients = [...mail.to, ...mail.cc, ...mail.bcc]
           return (
             <Link
               key={mailId}
@@ -347,37 +356,44 @@ export function MailList({ folder }: { folder: string }) {
               </div>
 
               {/* Avatar */}
-              {(isSentFolder(folder) || isDraftsFolder(folder)) &&
-              (isDraftsFolder(folder)
-                ? [...mail.to, ...mail.cc, ...mail.bcc].filter(isRealRecipient).length > 0
-                : [...mail.to, ...mail.cc, ...mail.bcc].length > 0) ? (
+              {displayMode === "drafts" ? (
+                realRecipients.length > 0 ? (
+                  <AvatarGroup className="shrink-0">
+                    {realRecipients.slice(0, 2).map((contact, i) => (
+                      <Avatar key={i} size="default">
+                        <AvatarFallback className="text-sm font-semibold">
+                          {getInitials(getRecipientName(contact))}
+                        </AvatarFallback>
+                      </Avatar>
+                    ))}
+                    {realRecipients.length > 2 && (
+                      <AvatarGroupCount className="text-sm">
+                        +{realRecipients.length - 2}
+                      </AvatarGroupCount>
+                    )}
+                  </AvatarGroup>
+                ) : (
+                  <Avatar className="size-9 shrink-0">
+                    <AvatarFallback className="text-sm font-semibold">
+                      <PenSquareIcon className="size-4" />
+                    </AvatarFallback>
+                  </Avatar>
+                )
+              ) : displayMode === "sent" && allRecipients.length > 0 ? (
                 <AvatarGroup className="shrink-0">
-                  {(isDraftsFolder(folder)
-                    ? [...mail.to, ...mail.cc, ...mail.bcc].filter(isRealRecipient)
-                    : [...mail.to, ...mail.cc, ...mail.bcc]
-                  ).slice(0, 2).map((contact, i) => (
+                  {allRecipients.slice(0, 2).map((contact, i) => (
                     <Avatar key={i} size="default">
                       <AvatarFallback className="text-sm font-semibold">
                         {getInitials(getRecipientName(contact))}
                       </AvatarFallback>
                     </Avatar>
                   ))}
-                  {(isDraftsFolder(folder)
-                    ? [...mail.to, ...mail.cc, ...mail.bcc].filter(isRealRecipient).length
-                    : [...mail.to, ...mail.cc, ...mail.bcc].length) > 2 && (
+                  {allRecipients.length > 2 && (
                     <AvatarGroupCount className="text-sm">
-                      +{(isDraftsFolder(folder)
-                        ? [...mail.to, ...mail.cc, ...mail.bcc].filter(isRealRecipient).length
-                        : [...mail.to, ...mail.cc, ...mail.bcc].length) - 2}
+                      +{allRecipients.length - 2}
                     </AvatarGroupCount>
                   )}
                 </AvatarGroup>
-              ) : isDraftsFolder(folder) ? (
-                <Avatar className="size-9 shrink-0">
-                  <AvatarFallback className="text-sm font-semibold">
-                    <PenSquareIcon className="size-4" />
-                  </AvatarFallback>
-                </Avatar>
               ) : (
                 <Avatar className="size-9 shrink-0">
                   <AvatarFallback className="text-sm font-semibold">
@@ -390,7 +406,7 @@ export function MailList({ folder }: { folder: string }) {
               <div className="flex min-w-0 flex-1 flex-col gap-0.5 md:flex-row md:items-center md:gap-3">
                 <div className="flex min-w-0 items-center justify-between gap-2 md:w-44 md:shrink-0">
                   <div className="flex min-w-0 items-center gap-2">
-                    {isDraftsFolder(folder) ? (
+                    {displayMode === "drafts" ? (
                       <span className={cn(
                         "flex min-w-0 items-baseline gap-0 text-sm",
                         !mail.read ? "font-semibold" : "",
@@ -410,7 +426,7 @@ export function MailList({ folder }: { folder: string }) {
                           !mail.read ? "font-semibold text-foreground" : "text-foreground",
                         )}
                       >
-                        {isSentFolder(folder) && [...mail.to, ...mail.cc, ...mail.bcc].length > 0
+                        {displayMode === "sent" && allRecipients.length > 0
                           ? getRecipientLabel(mail.to, mail.cc, mail.bcc)
                           : getSenderName(mail.from)}
                       </span>
@@ -433,7 +449,7 @@ export function MailList({ folder }: { folder: string }) {
                   >
                     {mail.subject}
                   </span>
-                  {!(isDraftsFolder(folder) && !mail.snippet?.trim()) && (
+                  {!(displayMode === "drafts" && !mail.snippet?.trim()) && (
                     <span className="min-w-0 truncate text-sm text-muted-foreground">
                       - {mail.snippet}
                     </span>
