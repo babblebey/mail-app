@@ -17,7 +17,12 @@ import {
 } from "lucide-react"
 
 import { cn } from "~/lib/utils"
-import { Avatar, AvatarFallback } from "~/components/ui/avatar"
+import {
+  Avatar,
+  AvatarFallback,
+  AvatarGroup,
+  AvatarGroupCount,
+} from "~/components/ui/avatar"
 import { Button } from "~/components/ui/button"
 import { Checkbox } from "~/components/ui/checkbox"
 import { Skeleton } from "~/components/ui/skeleton"
@@ -47,6 +52,25 @@ function formatDate(isoDate: string) {
     month: "short",
     day: "numeric",
   })
+}
+
+function isSentFolder(folder: string): boolean {
+  return folder.toLowerCase().includes("sent")
+}
+
+function getDisplayName(contact: { name: string; address: string }): string {
+  if (contact.name.trim()) {
+    return contact.name.trim().split(/\s+/)[0]!
+  }
+  return contact.address.split("@")[0] ?? contact.address
+}
+
+function getRecipientLabel(
+  to: { name: string; address: string }[],
+  cc: { name: string; address: string }[],
+  bcc: { name: string; address: string }[],
+): string {
+  return `To: ${[...to, ...cc, ...bcc].map(getDisplayName).join(", ")}`
 }
 
 export function MailList({ folder }: { folder: string }) {
@@ -242,7 +266,11 @@ export function MailList({ folder }: { folder: string }) {
               <Checkbox
                 checked={selected.has(mailId)}
                 onCheckedChange={() => toggleSelect(mailId)}
-                aria-label={`Select mail from ${mail.from.name}`}
+                aria-label={
+                  isSentFolder(folder) && [...mail.to, ...mail.cc, ...mail.bcc].length > 0
+                    ? `Select mail to ${getRecipientLabel(mail.to, mail.cc, mail.bcc)}`
+                    : `Select mail from ${mail.from.name}`
+                }
                 className="shrink-0"
               />
 
@@ -254,11 +282,29 @@ export function MailList({ folder }: { folder: string }) {
               </div>
 
               {/* Avatar */}
-              <Avatar className="size-9 shrink-0 rounded-lg">
-                <AvatarFallback className="text-xs font-semibold text-white rounded-lg bg-muted">
-                  {getInitials(mail.from.name)}
-                </AvatarFallback>
-              </Avatar>
+              {isSentFolder(folder) &&
+              [...mail.to, ...mail.cc, ...mail.bcc].length > 0 ? (
+                <AvatarGroup className="shrink-0">
+                  {[...mail.to, ...mail.cc, ...mail.bcc].slice(0, 2).map((contact, i) => (
+                    <Avatar key={i} size="default">
+                      <AvatarFallback className="text-sm font-semibold">
+                        {getInitials(getDisplayName(contact))}
+                      </AvatarFallback>
+                    </Avatar>
+                  ))}
+                  {[...mail.to, ...mail.cc, ...mail.bcc].length > 2 && (
+                    <AvatarGroupCount className="text-sm">
+                      +{[...mail.to, ...mail.cc, ...mail.bcc].length - 2}
+                    </AvatarGroupCount>
+                  )}
+                </AvatarGroup>
+              ) : (
+                <Avatar className="size-9 shrink-0 rounded-lg">
+                  <AvatarFallback className="text-sm font-semibold text-white rounded-lg bg-muted">
+                    {getInitials(mail.from.name)}
+                  </AvatarFallback>
+                </Avatar>
+              )}
 
               {/* Content */}
               <div className="flex min-w-0 flex-1 flex-col gap-0.5 md:flex-row md:items-center md:gap-3">
@@ -270,7 +316,9 @@ export function MailList({ folder }: { folder: string }) {
                         !mail.read ? "font-semibold text-foreground" : "text-foreground",
                       )}
                     >
-                      {mail.from.name}
+                      {isSentFolder(folder) && [...mail.to, ...mail.cc, ...mail.bcc].length > 0
+                        ? getRecipientLabel(mail.to, mail.cc, mail.bcc)
+                        : mail.from.name}
                     </span>
                     {mail.starred && (
                       <StarIcon className="size-3.5 shrink-0 fill-yellow-400 text-yellow-400" />
