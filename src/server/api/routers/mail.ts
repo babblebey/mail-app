@@ -286,7 +286,6 @@ export const mailRouter = createTRPCRouter({
           ? sanitizeHtml(parsed.html, {
               allowedTags: sanitizeHtml.defaults.allowedTags.concat([
                 "img",
-                "style",
                 "span",
                 "div",
                 "table",
