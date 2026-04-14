@@ -11,6 +11,9 @@ references:
   - type: pull-request
     url: https://github.com/babblebey/mail-app/pull/10
     description: "Implementation PR — feat(mail): implement draft folder-specific mail list display style"
+  - type: pull-request
+    url: https://github.com/babblebey/mail-app/pull/12
+    description: "Implementation PR — Junk folder context-aware display by email origin"
 ---
 
 > **Instructions for AI Agents:**
