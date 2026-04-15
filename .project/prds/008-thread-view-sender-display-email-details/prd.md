@@ -1,6 +1,6 @@
 ---
 title: "Thread View: Sender Display & Email Details Popover"
-status: not-started
+status: in-progress
 references:
   - type: doc
     url: .project/brief.md
@@ -66,10 +66,10 @@ This PRD covers:
 
 #### Tasks
 
-- [ ] In `src/components/mail-thread.tsx`, update the `getInitials()` call for the sender avatar to handle an empty name by deriving initials from the email local part (first two characters of the portion before `@`, uppercased)
-- [ ] Update the sender name display (`message.from.name` on the `text-sm font-semibold` div) to show `message.from.address` when `message.from.name` is empty
-- [ ] When `message.from.name` is present, append the email address after the name in angle brackets — render `<email>` in a `text-muted-foreground` span immediately following the name: `"Full Name <email@example.com>"`
-- [ ] When `message.from.name` is absent, display only `message.from.address` as the primary text (no angle bracket suffix)
+- [x] In `src/components/mail-thread.tsx`, update the `getInitials()` call for the sender avatar to handle an empty name by deriving initials from the email local part (first two characters of the portion before `@`, uppercased)
+- [x] Update the sender name display (`message.from.name` on the `text-sm font-semibold` div) to show `message.from.address` when `message.from.name` is empty
+- [x] When `message.from.name` is present, append the email address after the name in angle brackets — render `<email>` in a `text-muted-foreground` span immediately following the name: `"Full Name <email@example.com>"`
+- [x] When `message.from.name` is absent, display only `message.from.address` as the primary text (no angle bracket suffix)
 
 ### Phase 3: Email Details Popover
 

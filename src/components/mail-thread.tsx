@@ -44,13 +44,17 @@ import {
 } from "~/components/ui/dropdown-menu"
 import { api } from "~/trpc/react"
 
-function getInitials(name: string) {
-  return name
-    .split(" ")
-    .map((n) => n[0])
-    .join("")
-    .slice(0, 2)
-    .toUpperCase()
+function getInitials(name: string, email?: string) {
+  if (name) {
+    return name
+      .split(" ")
+      .map((n) => n[0])
+      .join("")
+      .slice(0, 2)
+      .toUpperCase()
+  }
+  const localPart = email?.split("@")[0] ?? ""
+  return localPart.slice(0, 2).toUpperCase()
 }
 
 function formatDate(isoDate: string) {
@@ -124,14 +128,19 @@ function MessageView({
       <div className="flex items-start gap-4 px-4 py-5">
         <Avatar className="size-10 shrink-0 rounded-full">
           <AvatarFallback className="text-sm font-semibold text-white rounded-full bg-muted">
-            {getInitials(message.from.name)}
+            {getInitials(message.from.name, message.from.address)}
           </AvatarFallback>
         </Avatar>
         <div className="flex min-w-0 flex-1 flex-col gap-0.5">
           <div className="flex items-center justify-between">
             <div className="space-y-1">
               <div className="text-sm font-semibold text-foreground">
-                {message.from.name}
+                {message.from.name || message.from.address}
+                {message.from.name && (
+                  <span className="font-normal text-xs text-muted-foreground">
+                    {" <"}{message.from.address}{">"}
+                  </span>
+                )}
               </div>
               <div className="flex items-center gap-1 text-xs text-muted-foreground">
                 <span>to {recipients || "unknown"}</span>
