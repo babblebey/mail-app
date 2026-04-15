@@ -44,6 +44,7 @@ New batch backend mutations are required to support these operations efficiently
 - **Write Message button always visible**: The compose button remains in the toolbar regardless of selection state, anchored to the right side.
 - **Toast feedback and undo support are out of scope**: These are planned as future enhancements. Batch operations silently succeed and rely on the list refresh to communicate the result.
 - **Move To submenu follows the thread view pattern**: The "Move To" action uses a `DropdownMenuSub` with a `DropdownMenuSubContent` listing all folders except the current one, identical to the pattern established in PRD 010.
+- **Checkbox click isolation inside Link rows**: Each mail list row is a `<Link>` (anchor) element. The per-row checkbox is wrapped in a `<div>` that calls `e.preventDefault()` and `e.stopPropagation()` on click to prevent the anchor from intercepting the click and navigating to the mail view. Without this, clicking the checkbox would trigger navigation instead of toggling selection.
 
 ### User Stories
 

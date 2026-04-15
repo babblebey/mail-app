@@ -429,20 +429,22 @@ export function MailList({ folder }: { folder: string }) {
                 selected.has(mailId) && "bg-muted/50",
               )}
             >
-              <Checkbox
-                checked={selected.has(mailId)}
-                onCheckedChange={() => toggleSelect(mailId)}
-                aria-label={
-                  displayMode === "drafts"
-                    ? realRecipients.length > 0
-                      ? `Select draft to ${realRecipients.map(getRecipientName).join(", ")}`
-                      : "Select draft with no recipient"
-                    : displayMode === "sent" && allRecipients.length > 0
-                      ? `Select mail to ${getRecipientLabel(mail.to, mail.cc, mail.bcc)}`
-                      : `Select mail from ${getSenderName(mail.from)}`
-                }
-                className="shrink-0"
-              />
+              <div onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}>
+                <Checkbox
+                  checked={selected.has(mailId)}
+                  onCheckedChange={() => toggleSelect(mailId)}
+                  aria-label={
+                    displayMode === "drafts"
+                      ? realRecipients.length > 0
+                        ? `Select draft to ${realRecipients.map(getRecipientName).join(", ")}`
+                        : "Select draft with no recipient"
+                      : displayMode === "sent" && allRecipients.length > 0
+                        ? `Select mail to ${getRecipientLabel(mail.to, mail.cc, mail.bcc)}`
+                        : `Select mail from ${getSenderName(mail.from)}`
+                  }
+                  className="shrink-0"
+                />
+              </div>
 
               {/* Unread indicator */}
               <div className="flex w-2 shrink-0 justify-center">
