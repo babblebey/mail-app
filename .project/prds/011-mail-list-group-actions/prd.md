@@ -93,13 +93,13 @@ New batch backend mutations are required to support these operations efficiently
 
 #### Tasks
 
-- [ ] In `src/components/mail-list.tsx`, import `DropdownMenuSub`, `DropdownMenuSubContent`, `DropdownMenuSubTrigger`, `DropdownMenuSeparator` from `~/components/ui/dropdown-menu`
-- [ ] In `src/components/mail-list.tsx`, import `MailIcon`, `MailOpenIcon`, `AlertOctagonIcon`, `FolderInputIcon` from `lucide-react` (add only those not already imported)
-- [ ] In `src/components/mail-list.tsx`, add a `useQuery` call for `api.mail.listFolders.useQuery({})` to resolve folder paths — derive `trashFolder` (where `specialUse === "\\Trash"`), `junkFolder` (where `specialUse === "\\Junk"`), and the full folder list from the query result
-- [ ] In `src/components/mail-list.tsx`, add `api.useUtils()` to get the tRPC utils for cache invalidation
-- [ ] In `src/components/mail-list.tsx`, add a `batchMarkAsRead` mutation via `api.mail.batchMarkAsRead.useMutation()` with an `onSuccess` callback that invalidates `mail.listMessages`, clears the selection via `setSelected(new Set())`, and invalidates `mail.listFolders` (to update unread counts in the sidebar)
-- [ ] In `src/components/mail-list.tsx`, add a `batchMoveMessages` mutation via `api.mail.batchMoveMessages.useMutation()` with an `onSuccess` callback that invalidates `mail.listMessages`, clears the selection, and invalidates `mail.listFolders`
-- [ ] Replace the current static toolbar buttons (`Archive`, `Folder`, `Delete`, `MoreHorizontalIcon`) with a conditional block based on `selected.size > 0`:
+- [x] In `src/components/mail-list.tsx`, import `DropdownMenuSub`, `DropdownMenuSubContent`, `DropdownMenuSubTrigger`, `DropdownMenuSeparator` from `~/components/ui/dropdown-menu`
+- [x] In `src/components/mail-list.tsx`, import `MailIcon`, `MailOpenIcon`, `AlertOctagonIcon`, `FolderInputIcon` from `lucide-react` (add only those not already imported)
+- [x] In `src/components/mail-list.tsx`, add a `useQuery` call for `api.mail.listFolders.useQuery({})` to resolve folder paths — derive `trashFolder` (where `specialUse === "\\Trash"`), `junkFolder` (where `specialUse === "\\Junk"`), and the full folder list from the query result
+- [x] In `src/components/mail-list.tsx`, add `api.useUtils()` to get the tRPC utils for cache invalidation
+- [x] In `src/components/mail-list.tsx`, add a `batchMarkAsRead` mutation via `api.mail.batchMarkAsRead.useMutation()` with an `onSuccess` callback that invalidates `mail.listMessages`, clears the selection via `setSelected(new Set())`, and invalidates `mail.listFolders` (to update unread counts in the sidebar)
+- [x] In `src/components/mail-list.tsx`, add a `batchMoveMessages` mutation via `api.mail.batchMoveMessages.useMutation()` with an `onSuccess` callback that invalidates `mail.listMessages`, clears the selection, and invalidates `mail.listFolders`
+- [x] Replace the current static toolbar buttons (`Archive`, `Folder`, `Delete`, `MoreHorizontalIcon`) with a conditional block based on `selected.size > 0`:
   - **When `selected.size === 0`** (no selection): render a single **Refresh** button — icon: `RefreshCwIcon`, label: `"Refresh"`, variant: `"ghost"`, size: `"sm"`, `onClick` calls `void refetch()`
   - **When `selected.size > 0`** (selection active): render the following action buttons in order:
     1. **Delete** — icon: `Trash2Icon`, label: `"Delete"`, variant: `"ghost"`, size: `"sm"`, `onClick` calls `batchMoveMessages.mutate({ folder, uids: selectedUids, destinationFolder: trashFolder })` — guarded by checking `trashFolder` is defined
@@ -107,7 +107,7 @@ New batch backend mutations are required to support these operations efficiently
     3. **Mark as Read** — icon: `MailOpenIcon`, label: `"Mark as read"`, variant: `"ghost"`, size: `"sm"`, `onClick` calls `batchMarkAsRead.mutate({ folder, uids: selectedUids, read: true })`
     4. **Mark as Unread** — icon: `MailIcon`, label: `"Mark as unread"`, variant: `"ghost"`, size: `"sm"`, `onClick` calls `batchMarkAsRead.mutate({ folder, uids: selectedUids, read: false })`
     5. **Move To** — rendered as a `DropdownMenu` with a trigger button (icon: `FolderInputIcon`, label: `"Move to"`, variant: `"ghost"`, size: `"sm"`) and a `DropdownMenuContent` listing all folders (except the current `folder`) as `DropdownMenuItem` entries — each `onClick` calls `batchMoveMessages.mutate({ folder, uids: selectedUids, destinationFolder: f.path })`
-- [ ] Derive `selectedUids` as `Array.from(selected).map(Number)` — the selection set stores UIDs as strings; the batch mutations expect numbers
+- [x] Derive `selectedUids` as `Array.from(selected).map(Number)` — the selection set stores UIDs as strings; the batch mutations expect numbers
 
 ### Phase 4: Toolbar in Empty and Loading States
 
