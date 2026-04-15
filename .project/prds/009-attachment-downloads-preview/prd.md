@@ -1,6 +1,6 @@
 ---
 title: "Attachment Downloads, List Indicator & Inline Preview"
-status: not-started
+status: completed
 references:
   - type: doc
     url: .project/brief.md
@@ -123,18 +123,18 @@ This PRD covers:
 
 ## Acceptance Criteria
 
-- [ ] Messages with attachments show a paperclip icon in the mail list; messages without attachments do not
-- [ ] The paperclip icon uses consistent styling with other metadata icons in the mail list row
-- [ ] Clicking a non-previewable attachment chip in the thread view downloads the file with the correct filename and content type
-- [ ] Clicking a previewable image attachment opens a Dialog showing the rendered image
-- [ ] Clicking a previewable PDF attachment opens a Dialog showing the embedded PDF
-- [ ] The preview Dialog displays the attachment filename in its header
-- [ ] The preview Dialog includes a download button that saves the file
-- [ ] The preview Dialog dismisses on outside click or Escape keypress
-- [ ] Previewable attachment chips also have a visible download icon button for direct download without opening the preview
-- [ ] The `/api/attachments` route returns `401` for unauthenticated requests
-- [ ] The `/api/attachments` route returns `400` for missing or invalid query parameters
-- [ ] The `/api/attachments` route returns `404` when the attachment index is out of bounds
-- [ ] The `/api/attachments` response includes correct `Content-Type`, `Content-Disposition`, and `Content-Length` headers
-- [ ] No TypeScript or lint errors after all changes
-- [ ] No visual regressions in the mail list or thread view for messages without attachments
+- [x] Messages with attachments show a paperclip icon in the mail list; messages without attachments do not
+- [x] The paperclip icon uses consistent styling with other metadata icons in the mail list row
+- [x] Clicking a non-previewable attachment chip in the thread view downloads the file with the correct filename and content type
+- [x] Clicking a previewable image attachment opens a Dialog showing the rendered image
+- [x] Clicking a previewable PDF attachment opens a Dialog showing the embedded PDF
+- [x] The preview Dialog displays the attachment filename in its header
+- [x] The preview Dialog includes a download button that saves the file
+- [x] The preview Dialog dismisses on outside click or Escape keypress
+- [x] Previewable attachment chips also have a visible download icon button for direct download without opening the preview
+- [x] The `/api/attachments` route returns `401` for unauthenticated requests
+- [x] The `/api/attachments` route returns `400` for missing or invalid query parameters
+- [x] The `/api/attachments` route returns `404` when the attachment index is out of bounds
+- [x] The `/api/attachments` response includes correct `Content-Type`, `Content-Disposition`, and `Content-Length` headers
+- [x] No TypeScript or lint errors after all changes
+- [x] No visual regressions in the mail list or thread view for messages without attachments
