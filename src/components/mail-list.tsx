@@ -390,7 +390,7 @@ export function MailList({ folder }: { folder: string }) {
                     ?.filter((f) => f.path !== folder)
                     .map((f) => (
                       <DropdownMenuItem key={f.path} onClick={() => batchMoveMessages.mutate({ folder, uids: selectedUids, destinationFolder: f.path })}>
-                        {f.name}
+                        {f.name === "INBOX" ? "Inbox" : f.name}
                       </DropdownMenuItem>
                     ))}
                 </DropdownMenuContent>
