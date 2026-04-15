@@ -60,7 +60,7 @@ This PRD covers:
 
 #### Tasks
 
-- [ ] Run `pnpm dlx shadcn@latest add dialog` to generate `src/components/ui/dialog.tsx` with the project's `radix-luma` style preset
+- [x] Run `pnpm dlx shadcn@latest add dialog` to generate `src/components/ui/dialog.tsx` with the project's `radix-luma` style preset
 
 ### Phase 2: Attachment Indicator in Mail List
 
@@ -97,13 +97,13 @@ This PRD covers:
 
 #### Tasks
 
-- [ ] In `src/components/mail-thread.tsx`, import `Dialog`, `DialogContent`, `DialogHeader`, `DialogTitle` from `~/components/ui/dialog` and `DownloadIcon` from `lucide-react`
-- [ ] Add a `isPreviewable(contentType: string): boolean` helper that returns `true` for image types (`image/png`, `image/jpeg`, `image/gif`, `image/webp`, `image/svg+xml`) and `application/pdf`
-- [ ] Add a `getAttachmentUrl(folder: string, uid: number, index: number, preview?: boolean): string` helper that builds the `/api/attachments?folder=...&uid=...&index=...&preview=1` URL
-- [ ] Update the attachment `.map()` to include the iteration index
-- [ ] For **non-previewable** attachments: wrap the chip in an `<a>` tag with `href` pointing to the download URL and a `download` attribute set to the filename
-- [ ] For **previewable** attachments: make the chip a clickable button that sets preview state; also render a small `<a>` download icon button (with `DownloadIcon`) linking to the download URL so users can download without previewing
-- [ ] Add a `previewAttachment` state to `MessageView` — `{ index: number; filename: string; contentType: string; url: string } | null`
+- [x] In `src/components/mail-thread.tsx`, import `Dialog`, `DialogContent`, `DialogHeader`, `DialogTitle` from `~/components/ui/dialog` and `DownloadIcon` from `lucide-react`
+- [x] Add a `isPreviewable(contentType: string): boolean` helper that returns `true` for image types (`image/png`, `image/jpeg`, `image/gif`, `image/webp`, `image/svg+xml`) and `application/pdf`
+- [x] Add a `getAttachmentUrl(folder: string, uid: number, index: number, preview?: boolean): string` helper that builds the `/api/attachments?folder=...&uid=...&index=...&preview=1` URL
+- [x] Update the attachment `.map()` to include the iteration index
+- [x] For **non-previewable** attachments: wrap the chip in an `<a>` tag with `href` pointing to the download URL and a `download` attribute set to the filename
+- [x] For **previewable** attachments: make the chip a clickable button that sets preview state; also render a small `<a>` download icon button (with `DownloadIcon`) linking to the download URL so users can download without previewing
+- [x] Add a `previewAttachment` state to `MessageView` — `{ index: number; filename: string; contentType: string; url: string } | null`
 
 ### Phase 5: Attachment Preview Dialog
 
@@ -111,12 +111,12 @@ This PRD covers:
 
 #### Tasks
 
-- [ ] In `MessageView`, render a `Dialog` controlled by `previewAttachment` state (`open` when state is non-null, `onOpenChange` clears it)
-- [ ] In the `DialogHeader`, display the attachment filename via `DialogTitle`
-- [ ] In the `DialogContent` body:
+- [x] In `MessageView`, render a `Dialog` controlled by `previewAttachment` state (`open` when state is non-null, `onOpenChange` clears it)
+- [x] In the `DialogHeader`, display the attachment filename via `DialogTitle`
+- [x] In the `DialogContent` body:
   - When the content type starts with `image/`: render an `<img>` tag with `src` set to the preview URL (`preview=1`), `alt` set to the filename, and responsive sizing (`max-h-[70vh] w-auto object-contain`)
   - When the content type is `application/pdf`: render an `<iframe>` with `src` set to the preview URL, sized to fill the dialog (`w-full h-[70vh]`)
-- [ ] Include a download `<a>` link (styled as a Button) in the dialog that points to the non-preview download URL with a `download` attribute
+- [x] Include a download `<a>` link (styled as a Button) in the dialog that points to the non-preview download URL with a `download` attribute
 
 ## Acceptance Criteria
 
