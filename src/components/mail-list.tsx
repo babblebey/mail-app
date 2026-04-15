@@ -358,7 +358,7 @@ export function MailList({ folder }: { folder: string }) {
             </Button>
           ) : (
             <>
-              {junkFolder && (
+              {junkFolder && !isDraftsFolder(folder) && !isTrashFolder(folder) && (
                 <Button variant="ghost" size="sm" className="gap-1.5 text-muted-foreground" onClick={() => batchMoveMessages.mutate({ folder, uids: selectedUids, destinationFolder: junkFolder })}>
                   <AlertOctagonIcon className="size-4" />
                   Report spam
