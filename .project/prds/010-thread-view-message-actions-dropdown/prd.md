@@ -1,6 +1,6 @@
 ---
 title: "Thread View: Message Actions Dropdown Menu"
-status: pending
+status: in-progress
 references:
   - type: doc
     url: .project/brief.md
@@ -63,7 +63,7 @@ This PRD adds a `DropdownMenu` to that button with five actions: Reply (static),
 
 #### Tasks
 
-- [ ] In `src/server/api/routers/mail.ts`, add a `moveMessage` mutation to the `mailRouter` with the following specification:
+- [x] In `src/server/api/routers/mail.ts`, add a `moveMessage` mutation to the `mailRouter` with the following specification:
   - **Input schema**: `{ accountId: z.string().cuid().optional(), folder: z.string().min(1), uid: z.number().int().positive(), destinationFolder: z.string().min(1) }`
   - **Implementation**: call `resolveAccountId`, then `withImapClient` → `client.mailboxOpen(input.folder)` → `client.messageMove(String(input.uid), input.destinationFolder, { uid: true })`
   - **Return**: `{ ok: true }`

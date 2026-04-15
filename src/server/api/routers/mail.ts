@@ -452,4 +452,34 @@ export const mailRouter = createTRPCRouter({
         return { ok: true };
       });
     }),
+
+  /**
+   * Moves a message from one IMAP folder to another (e.g. Trash, Junk).
+   */
+  moveMessage: protectedProcedure
+    .input(
+      z.object({
+        accountId: z.string().cuid().optional(),
+        folder: z.string().min(1),
+        uid: z.number().int().positive(),
+        destinationFolder: z.string().min(1),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const accountId = await resolveAccountId(
+        input.accountId,
+        ctx.session.user.id,
+      );
+
+      return withImapClient(accountId, ctx.session.user.id, async (client) => {
+        await client.mailboxOpen(input.folder);
+        await client.messageMove(
+          String(input.uid),
+          input.destinationFolder,
+          { uid: true },
+        );
+
+        return { ok: true };
+      });
+    }),
 });
