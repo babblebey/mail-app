@@ -27,6 +27,12 @@ import {
 } from "~/components/ui/avatar"
 import { Button } from "~/components/ui/button"
 import { Checkbox } from "~/components/ui/checkbox"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "~/components/ui/dropdown-menu"
 import { Skeleton } from "~/components/ui/skeleton"
 import { MailComposer } from "~/components/mail-composer"
 import { api } from "~/trpc/react"
@@ -287,9 +293,27 @@ export function MailList({ folder }: { folder: string }) {
             onCheckedChange={toggleSelectAll}
             aria-label="Select all"
           />
-          <Button variant="ghost" size="icon-xs">
-            <ChevronDownIcon className="size-3.5" />
-          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon-xs">
+                <ChevronDownIcon className="size-3.5" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start">
+              <DropdownMenuItem onClick={() => setSelected(new Set(messages.map((m) => String(m.uid))))}>
+                All
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setSelected(new Set())}>
+                None
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setSelected(new Set(messages.filter((m) => m.read).map((m) => String(m.uid))))}>
+                Read
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setSelected(new Set(messages.filter((m) => !m.read).map((m) => String(m.uid))))}>
+                Unread
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
 
         <div className="flex items-center gap-1">

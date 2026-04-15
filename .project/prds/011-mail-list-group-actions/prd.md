@@ -79,9 +79,9 @@ New batch backend mutations are required to support these operations efficiently
 
 #### Tasks
 
-- [ ] In `src/components/mail-list.tsx`, import `DropdownMenu`, `DropdownMenuContent`, `DropdownMenuItem`, `DropdownMenuTrigger` from `~/components/ui/dropdown-menu`
-- [ ] Replace the bare `<Button variant="ghost" size="icon-xs">` wrapping the `ChevronDownIcon` with a `DropdownMenu` + `DropdownMenuTrigger asChild` + `DropdownMenuContent` structure
-- [ ] Add four `DropdownMenuItem` entries inside the `DropdownMenuContent`:
+- [x] In `src/components/mail-list.tsx`, import `DropdownMenu`, `DropdownMenuContent`, `DropdownMenuItem`, `DropdownMenuTrigger` from `~/components/ui/dropdown-menu`
+- [x] Replace the bare `<Button variant="ghost" size="icon-xs">` wrapping the `ChevronDownIcon` with a `DropdownMenu` + `DropdownMenuTrigger asChild` + `DropdownMenuContent` structure
+- [x] Add four `DropdownMenuItem` entries inside the `DropdownMenuContent`:
   1. **All** — `onClick` calls `setSelected(new Set(messages.map((m) => String(m.uid))))`
   2. **None** — `onClick` calls `setSelected(new Set())`
   3. **Read** — `onClick` calls `setSelected(new Set(messages.filter((m) => m.read).map((m) => String(m.uid))))`
