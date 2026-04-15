@@ -77,16 +77,16 @@ This PRD covers:
 
 #### Tasks
 
-- [ ] Create `src/app/api/attachments/route.ts` as a Next.js route handler (GET)
-- [ ] Accept query parameters: `folder` (string), `uid` (number), `index` (attachment array index, number), `accountId` (optional string), and `preview` (optional `"1"`)
-- [ ] Validate authentication via `auth()` from `~/server/auth` — return a `401` JSON response if the session is missing
-- [ ] Validate and parse query parameters with Zod — return a `400` JSON response with error details on invalid input
-- [ ] Use `withImapClient` and `resolveAccountId` from `~/server/imap/client` to connect to the user's IMAP server
-- [ ] Open the specified folder via `client.mailboxOpen(folder)`
-- [ ] Download the full message via `client.download(uid.toString(), undefined, { uid: true })` and collect the stream into a `Buffer`
-- [ ] Parse the raw message with `simpleParser` from `mailparser`
-- [ ] Retrieve the attachment at `parsed.attachments[index]` — return a `404` JSON response if the index is out of bounds or attachments are empty
-- [ ] Return a `Response` with the attachment's `content` buffer, setting headers:
+- [x] Create `src/app/api/attachments/route.ts` as a Next.js route handler (GET)
+- [x] Accept query parameters: `folder` (string), `uid` (number), `index` (attachment array index, number), `accountId` (optional string), and `preview` (optional `"1"`)
+- [x] Validate authentication via `auth()` from `~/server/auth` — return a `401` JSON response if the session is missing
+- [x] Validate and parse query parameters with Zod — return a `400` JSON response with error details on invalid input
+- [x] Use `withImapClient` and `resolveAccountId` from `~/server/imap/client` to connect to the user's IMAP server
+- [x] Open the specified folder via `client.mailboxOpen(folder)`
+- [x] Download the full message via `client.download(uid.toString(), undefined, { uid: true })` and collect the stream into a `Buffer`
+- [x] Parse the raw message with `simpleParser` from `mailparser`
+- [x] Retrieve the attachment at `parsed.attachments[index]` — return a `404` JSON response if the index is out of bounds or attachments are empty
+- [x] Return a `Response` with the attachment's `content` buffer, setting headers:
   - `Content-Type` — from `attachment.contentType`
   - `Content-Length` — from `attachment.size`
   - `Content-Disposition` — `inline; filename="..."` when `preview=1`, otherwise `attachment; filename="..."`
