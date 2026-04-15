@@ -75,13 +75,13 @@ This PRD adds a `DropdownMenu` to that button with five actions: Reply (static),
 
 #### Tasks
 
-- [ ] In `src/components/mail-thread.tsx`, import `DropdownMenuSeparator` from `~/components/ui/dropdown-menu` (the other DropdownMenu primitives are already imported)
-- [ ] In `src/components/mail-thread.tsx`, import `useRouter` from `next/navigation` in the `MailThreadView` component for post-action navigation
-- [ ] In `src/components/mail-thread.tsx`, import `MailIcon`, `MailOpenIcon`, `Trash2Icon`, `AlertOctagonIcon` from `lucide-react` for the dropdown menu item icons (add only those not already imported; `Trash2Icon` is already imported)
-- [ ] In the `MailThreadView` component, add a `useQuery` call for `api.mail.listFolders.useQuery({})` to resolve dynamic Trash and Junk folder paths — derive `trashFolder` (folder where `specialUse === "\\Trash"`) and `junkFolder` (folder where `specialUse === "\\Junk"`) from the query result, falling back to `undefined` if not found
-- [ ] In the `MailThreadView` component, add a `markAsRead` mutation via `api.mail.markAsRead.useMutation()` with an `onSuccess` callback that invalidates the `getMessage` query and the `listMessages` query
-- [ ] In the `MailThreadView` component, add a `moveMessage` mutation via `api.mail.moveMessage.useMutation()` with an `onSuccess` callback that invalidates the `getMessage` and `listMessages` queries and navigates the user back to the mail list via `router.push(backHref)`
-- [ ] Pass the following new props from `MailThreadView` to the `MessageItem` component: `onMarkAsRead` (callback), `onDelete` (callback), `onReportSpam` (callback), `isTrashFolder` (boolean), `isJunkFolder` (boolean), plus any loading states needed for disabling items during mutation
+- [x] In `src/components/mail-thread.tsx`, import `DropdownMenuSeparator` from `~/components/ui/dropdown-menu` (the other DropdownMenu primitives are already imported)
+- [x] In `src/components/mail-thread.tsx`, import `useRouter` from `next/navigation` in the `MailThreadView` component for post-action navigation
+- [x] In `src/components/mail-thread.tsx`, import `MailIcon`, `MailOpenIcon`, `Trash2Icon`, `AlertOctagonIcon` from `lucide-react` for the dropdown menu item icons (add only those not already imported; `Trash2Icon` is already imported)
+- [x] In the `MailThreadView` component, add a `useQuery` call for `api.mail.listFolders.useQuery({})` to resolve dynamic Trash and Junk folder paths — derive `trashFolder` (folder where `specialUse === "\\Trash"`) and `junkFolder` (folder where `specialUse === "\\Junk"`) from the query result, falling back to `undefined` if not found
+- [x] In the `MailThreadView` component, add a `markAsRead` mutation via `api.mail.markAsRead.useMutation()` with an `onSuccess` callback that invalidates the `getMessage` query and the `listMessages` query
+- [x] In the `MailThreadView` component, add a `moveMessage` mutation via `api.mail.moveMessage.useMutation()` with an `onSuccess` callback that invalidates the `getMessage` and `listMessages` queries and navigates the user back to the mail list via `router.push(backHref)`
+- [x] Pass the following new props from `MailThreadView` to the `MessageItem` component: `onMarkAsRead` (callback), `onDelete` (callback), `onReportSpam` (callback), `isTrashFolder` (boolean), `isJunkFolder` (boolean), plus any loading states needed for disabling items during mutation
 
 ### Phase 3: Dropdown Menu in MessageItem
 
