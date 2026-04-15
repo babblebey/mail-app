@@ -29,8 +29,13 @@ import {
   FileIcon,
   DownloadIcon,
   Loader2Icon,
+  MailIcon,
+  MailOpenIcon,
+  AlertOctagonIcon,
+  FolderInputIcon,
 } from "lucide-react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 
 import { Avatar, AvatarFallback } from "~/components/ui/avatar"
 import { Badge } from "~/components/ui/badge"
@@ -48,6 +53,10 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from "~/components/ui/dropdown-menu"
 import {
@@ -134,6 +143,7 @@ type MessageData = {
   to: { name: string; address: string }[]
   cc: { name: string; address: string }[]
   date: string
+  read: boolean
   textBody: string | null
   htmlBody: string | null
   attachments: { filename: string; contentType: string; size: number; cid?: string }[]
@@ -164,10 +174,26 @@ function MessageView({
   message,
   folder,
   onReply,
+  onForward,
+  onMarkAsRead,
+  onDelete,
+  onReportSpam,
+  onMoveTo,
+  folders,
+  isTrashFolder,
+  isJunkFolder,
 }: {
   message: MessageData
   folder: string
   onReply?: () => void
+  onForward?: () => void
+  onMarkAsRead?: () => void
+  onDelete?: () => void
+  onReportSpam?: () => void
+  onMoveTo?: (destinationFolder: string) => void
+  folders?: { path: string; name: string; specialUse?: string }[]
+  isTrashFolder?: boolean
+  isJunkFolder?: boolean
 }) {
   const [previewAttachment, setPreviewAttachment] = useState<{
     index: number
@@ -271,9 +297,74 @@ function MessageView({
                 <Button variant="ghost" size="default" onClick={onReply}>
                   <ReplyIcon className="size-5" />
                 </Button>
-                <Button variant="ghost" size="default">
-                  <MoreHorizontalIcon className="size-5" />
-                </Button>
+                <DropdownMenu modal={false}>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="default">
+                      <MoreHorizontalIcon className="size-5" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem onClick={onReply}>
+                      <ReplyIcon className="size-4" />
+                      Reply
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={onForward}>
+                      <ForwardIcon className="size-4" />
+                      Forward
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={onMarkAsRead}>
+                      {message.read ? (
+                        <>
+                          <MailIcon className="size-4" />
+                          Mark as unread
+                        </>
+                      ) : (
+                        <>
+                          <MailOpenIcon className="size-4" />
+                          Mark as read
+                        </>
+                      )}
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    {folders && folders.length > 0 && onMoveTo && (
+                      <>
+                        <DropdownMenuSub>
+                          <DropdownMenuSubTrigger>
+                            <FolderInputIcon className="size-4" />
+                            Move to
+                          </DropdownMenuSubTrigger>
+                          <DropdownMenuSubContent>
+                            {folders
+                              .filter((f) => f.path !== folder)
+                              .map((f) => (
+                                <DropdownMenuItem
+                                  key={f.path}
+                                  onClick={() => onMoveTo(f.path)}
+                                >
+                                  <FolderIcon className="size-4" />
+                                  {f.name.charAt(0).toUpperCase() + f.name.slice(1).toLowerCase()}
+                                </DropdownMenuItem>
+                              ))}
+                          </DropdownMenuSubContent>
+                        </DropdownMenuSub> 
+                        <DropdownMenuSeparator /> 
+                      </>
+                    )}
+                    {!isTrashFolder && (
+                      <DropdownMenuItem variant="destructive" onClick={onDelete}>
+                        <Trash2Icon className="size-4" />
+                        Delete
+                      </DropdownMenuItem>
+                    )}
+                    {!isTrashFolder && !isJunkFolder && (
+                      <DropdownMenuItem onClick={onReportSpam}>
+                        <AlertOctagonIcon className="size-4" />
+                        Report spam
+                      </DropdownMenuItem>
+                    )}
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </div>
             </div>
           </div>
@@ -421,9 +512,37 @@ function MessageView({
 }
 
 export function MailThreadView({ uid, folder }: { uid: number; folder: string }) {
+  const router = useRouter()
+  const utils = api.useUtils()
+
   const { data: message, isLoading, isError, error, refetch } = api.mail.getMessage.useQuery(
     { folder, uid },
   )
+
+  const { data: folders } = api.mail.listFolders.useQuery({})
+  const trashFolder = folders?.find((f) => f.specialUse === "\\Trash")?.path
+  const junkFolder = folders?.find((f) => f.specialUse === "\\Junk")?.path
+
+  const isTrashFolder = folder.toLowerCase().includes("trash")
+  const isJunkFolder = folder.toLowerCase().includes("junk") || folder.toLowerCase().includes("spam")
+
+  const markAsReadMutation = api.mail.markAsRead.useMutation({
+    onSuccess: (_data, variables) => {
+      void utils.mail.getMessage.invalidate({ folder, uid })
+      void utils.mail.listMessages.invalidate()
+      if (!variables.read) {
+        router.push(backHref)
+      }
+    },
+  })
+
+  const moveMessageMutation = api.mail.moveMessage.useMutation({
+    onSuccess: () => {
+      void utils.mail.getMessage.invalidate()
+      void utils.mail.listMessages.invalidate()
+      router.push(backHref)
+    },
+  })
 
   const [replyAction, setReplyAction] = useState<"reply" | "reply-all" | "forward" | null>(null)
   const [composerMode, setComposerMode] = useState<"inline" | "popout">("inline")
@@ -568,6 +687,22 @@ export function MailThreadView({ uid, folder }: { uid: number; folder: string })
             message={message}
             folder={folder}
             onReply={() => openInlineComposer("reply")}
+            onForward={() => openInlineComposer("forward")}
+            onMarkAsRead={() =>
+              markAsReadMutation.mutate({ folder, uid: message.uid, read: !message.read })
+            }
+            onDelete={() => {
+              if (trashFolder) moveMessageMutation.mutate({ folder, uid: message.uid, destinationFolder: trashFolder })
+            }}
+            onReportSpam={() => {
+              if (junkFolder) moveMessageMutation.mutate({ folder, uid: message.uid, destinationFolder: junkFolder })
+            }}
+            onMoveTo={(destinationFolder) => {
+              moveMessageMutation.mutate({ folder, uid: message.uid, destinationFolder })
+            }}
+            folders={folders}
+            isTrashFolder={isTrashFolder}
+            isJunkFolder={isJunkFolder}
           />
 
           {/* Reply actions */}
