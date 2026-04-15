@@ -1,6 +1,6 @@
 ---
 title: "Thread View: Sender Display & Email Details Popover"
-status: in-progress
+status: completed
 references:
   - type: doc
     url: .project/brief.md
@@ -58,7 +58,7 @@ This PRD covers:
 
 #### Tasks
 
-- [ ] Run `npx shadcn@latest add popover` to generate `src/components/ui/popover.tsx` with the project's `radix-luma` style preset
+- [x] Run `npx shadcn@latest add popover` to generate `src/components/ui/popover.tsx` with the project's `radix-luma` style preset
 
 ### Phase 2: Sender Display — Always Show Sender & Email Address
 
@@ -77,25 +77,25 @@ This PRD covers:
 
 #### Tasks
 
-- [ ] Import `Popover`, `PopoverTrigger`, and `PopoverContent` from `~/components/ui/popover` in `src/components/mail-thread.tsx`
-- [ ] Wrap the existing `ChevronDownIcon` (in the recipients line) inside a `Popover` + `PopoverTrigger` button — the button should be styled as `variant="ghost"` with compact sizing to match the existing inline appearance
-- [ ] Build the `PopoverContent` with a two-column CSS grid layout (`grid-cols-[auto_1fr]`) containing:
+- [x] Import `Popover`, `PopoverTrigger`, and `PopoverContent` from `~/components/ui/popover` in `src/components/mail-thread.tsx`
+- [x] Wrap the existing `ChevronDownIcon` (in the recipients line) inside a `Popover` + `PopoverTrigger` button — the button should be styled as `variant="ghost"` with compact sizing to match the existing inline appearance
+- [x] Build the `PopoverContent` with a two-column CSS grid layout (`grid-cols-[auto_1fr]`) containing:
   - **from:** — sender name and email address
   - **to:** — comma-separated list of recipient names and email addresses
   - **cc:** — comma-separated list of CC names and email addresses (row hidden when `message.cc` is empty)
   - **subject:** — the message subject line
   - **date:** — fully formatted date-time string (e.g. `"Apr 14, 2026, 6:07 PM"`)
-- [ ] Style labels (`from:`, `to:`, etc.) in `text-muted-foreground text-xs` right-aligned; style values in `text-xs text-foreground`
-- [ ] Add a `formatDetailDate()` helper for the popover date — format: `"Mon DD, YYYY, H:MM AM/PM"` — more detailed than the header's `formatDate()`
+- [x] Style labels (`from:`, `to:`, etc.) in `text-muted-foreground text-xs` right-aligned; style values in `text-xs text-foreground`
+- [x] Add a `formatDetailDate()` helper for the popover date — format: `"Mon DD, YYYY, H:MM AM/PM"` — more detailed than the header's `formatDate()`
 
 ## Acceptance Criteria
 
-- [ ] The sender line in `MessageView` always displays a visible identifier — the sender's name when available, or their email address when the name is empty
-- [ ] When the sender has a display name, the email address is shown inline after it in angle brackets with `text-muted-foreground` styling — e.g. `"Olabode Lawal-Shittabey <babblebey@gmail.com>"`
-- [ ] When the sender has no display name, only the email address is shown (no redundant angle brackets)
-- [ ] The avatar displays initials derived from the email local part when the sender name is empty
-- [ ] Clicking the chevron icon next to the recipients line opens a Popover with from, to, cc, subject, and date fields
-- [ ] The CC row in the popover is hidden when the message has no CC recipients
-- [ ] The popover dismisses on outside click or Escape keypress
-- [ ] No TypeScript or lint errors after all changes
-- [ ] No visual regressions in messages where the sender name is present and populated
+- [x] The sender line in `MessageView` always displays a visible identifier — the sender's name when available, or their email address when the name is empty
+- [x] When the sender has a display name, the email address is shown inline after it in angle brackets with `text-muted-foreground` styling — e.g. `"Olabode Lawal-Shittabey <babblebey@gmail.com>"`
+- [x] When the sender has no display name, only the email address is shown (no redundant angle brackets)
+- [x] The avatar displays initials derived from the email local part when the sender name is empty
+- [x] Clicking the chevron icon next to the recipients line opens a Popover with from, to, cc, subject, and date fields
+- [x] The CC row in the popover is hidden when the message has no CC recipients
+- [x] The popover dismisses on outside click or Escape keypress
+- [x] No TypeScript or lint errors after all changes
+- [x] No visual regressions in messages where the sender name is present and populated

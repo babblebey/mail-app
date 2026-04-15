@@ -42,6 +42,11 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "~/components/ui/dropdown-menu"
+import {
+  Popover,
+  PopoverTrigger,
+  PopoverContent,
+} from "~/components/ui/popover"
 import { api } from "~/trpc/react"
 
 function getInitials(name: string, email?: string) {
@@ -63,6 +68,17 @@ function formatDate(isoDate: string) {
     weekday: "short",
     month: "short",
     day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  })
+}
+
+function formatDetailDate(isoDate: string) {
+  const d = new Date(isoDate)
+  return d.toLocaleDateString(undefined, {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
     hour: "numeric",
     minute: "2-digit",
   })
@@ -144,7 +160,43 @@ function MessageView({
               </div>
               <div className="flex items-center gap-1 text-xs text-muted-foreground">
                 <span>to {recipients || "unknown"}</span>
-                <ChevronDownIcon className="size-3" />
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="ghost" className="size-5 p-0 cursor-pointer">
+                      <ChevronDownIcon className="size-3" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent align="start" className="w-auto max-w-md p-3">
+                    <div className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1.5">
+                      <span className="text-right text-sm text-muted-foreground">from:</span>
+                      <span className="text-sm font-semibold text-foreground">
+                        {message.from.name
+                          ? `${message.from.name} <${message.from.address}>`
+                          : message.from.address}
+                      </span>
+                      <span className="text-right text-sm text-muted-foreground">to:</span>
+                      <span className="text-sm text-foreground">
+                        {message.to
+                          .map((a) => (a.name ? `${a.name} <${a.address}>` : a.address))
+                          .join(", ")}
+                      </span>
+                      {message.cc.length > 0 && (
+                        <>
+                          <span className="text-right text-sm text-muted-foreground">cc:</span>
+                          <span className="text-sm text-foreground">
+                            {message.cc
+                              .map((a) => (a.name ? `${a.name} <${a.address}>` : a.address))
+                              .join(", ")}
+                          </span>
+                        </>
+                      )}
+                      <span className="text-right text-sm text-muted-foreground">subject:</span>
+                      <span className="text-sm text-foreground">{message.subject}</span>
+                      <span className="text-right text-sm text-muted-foreground">date:</span>
+                      <span className="text-sm text-foreground">{formatDetailDate(message.date)}</span>
+                    </div>
+                  </PopoverContent>
+                </Popover>
               </div>
             </div>
             <div className="flex items-center gap-3">
