@@ -43,6 +43,7 @@ This PRD covers:
 - **Popover content as a two-column grid**: The metadata is rendered as label–value pairs in a CSS grid (`grid-cols-[auto_1fr]`). Labels (`from:`, `to:`, `cc:`, `subject:`, `date:`) are right-aligned in `text-muted-foreground`; values are left-aligned in normal text. This mirrors the Gmail detail panel layout shown in the reference screenshot.
 - **Conditional CC row**: The `cc:` row in the popover is only rendered when `message.cc` is non-empty, avoiding a blank or confusing row.
 - **Detailed date format in popover**: The popover date uses a more detailed format than the header — e.g. `"Apr 14, 2026, 6:07 PM"` — giving users full timestamp context without cluttering the always-visible header.
+- **Grouped recipient labels in header**: The recipients line groups all `to` addresses together and all `cc` addresses together under a single `cc:` label — e.g. `"to Alice, Bob, cc: Charlie, Dave"` — rather than prefixing each CC recipient individually. This keeps the line concise and matches standard email client conventions.
 
 ### User Stories
 

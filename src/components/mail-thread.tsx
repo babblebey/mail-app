@@ -133,10 +133,11 @@ function MessageView({
   folder: string
   onReply?: () => void
 }) {
-  const recipients = [
-    ...message.to.map((a) => a.name || a.address),
-    ...message.cc.map((a) => `cc: ${a.name || a.address}`),
-  ].join(", ")
+  const toList = message.to.map((a) => a.name || a.address).join(", ")
+  const ccList = message.cc.map((a) => a.name || a.address).join(", ")
+  const recipients = ccList
+    ? `${toList}, cc: ${ccList}`
+    : toList
 
   return (
     <div>
