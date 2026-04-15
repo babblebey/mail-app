@@ -176,6 +176,7 @@ function MessageView({
     url: string
   } | null>(null)
   const [downloadingIndex, setDownloadingIndex] = useState<number | null>(null)
+  const [previewLoaded, setPreviewLoaded] = useState(false)
 
   const handleDownload = useCallback(async (url: string, filename: string, index: number) => {
     setDownloadingIndex(index)
@@ -298,14 +299,15 @@ function MessageView({
                   <div key={i} className="flex items-center gap-0">
                     <button
                       type="button"
-                      onClick={() =>
+                      onClick={() => {
+                        setPreviewLoaded(false)
                         setPreviewAttachment({
                           index: i,
                           filename: att.filename,
                           contentType: att.contentType,
                           url: previewUrl,
                         })
-                      }
+                      }}
                       className="flex cursor-pointer items-center gap-2 rounded-l-lg border px-3 py-2 text-sm transition-colors hover:bg-muted/50"
                     >
                       <FileIcon className="size-4 shrink-0 text-muted-foreground" />
@@ -357,27 +359,41 @@ function MessageView({
       {/* Attachment Preview Dialog */}
       <Dialog
         open={previewAttachment !== null}
-        onOpenChange={(open) => { if (!open) setPreviewAttachment(null) }}
+        onOpenChange={(open) => {
+          if (!open) {
+            setPreviewAttachment(null)
+            setPreviewLoaded(false)
+          }
+        }}
       >
-        <DialogContent className="sm:max-w-3xl">
+        <DialogContent className="sm:max-w-3xl h-[calc(100vh-4rem)] flex flex-col">
           <DialogHeader>
             <DialogTitle>{previewAttachment?.filename}</DialogTitle>
           </DialogHeader>
-          {previewAttachment?.contentType.startsWith("image/") && (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={previewAttachment.url}
-              alt={previewAttachment.filename}
-              className="max-h-[70vh] w-auto object-contain"
-            />
-          )}
-          {previewAttachment?.contentType === "application/pdf" && (
-            <iframe
-              src={previewAttachment.url}
-              title={previewAttachment.filename}
-              className="h-[70vh] w-full"
-            />
-          )}
+          <div className="relative flex flex-1 items-center justify-center min-h-0">
+            {!previewLoaded && (
+              <div className="absolute inset-0 flex items-center justify-center">
+                <Loader2Icon className="size-8 animate-spin text-muted-foreground" />
+              </div>
+            )}
+            {previewAttachment?.contentType.startsWith("image/") && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={previewAttachment.url}
+                alt={previewAttachment.filename}
+                className={`max-h-full w-auto object-contain transition-opacity ${previewLoaded ? "opacity-100" : "opacity-0"}`}
+                onLoad={() => setPreviewLoaded(true)}
+              />
+            )}
+            {previewAttachment?.contentType === "application/pdf" && (
+              <iframe
+                src={previewAttachment.url}
+                title={previewAttachment.filename}
+                className={`h-full w-full transition-opacity ${previewLoaded ? "opacity-100" : "opacity-0"}`}
+                onLoad={() => setPreviewLoaded(true)}
+              />
+            )}
+          </div>
           <div className="flex justify-end">
             <Button
               variant="outline"

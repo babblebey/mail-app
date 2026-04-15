@@ -45,6 +45,8 @@ This PRD covers:
 - **Download button on previewable chips**: Previewable attachment chips open a preview Dialog on click, but also include a small download icon button so users can download without opening the preview first.
 - **Re-downloading full message for attachment content**: The API route uses the same `client.download(uid)` → `simpleParser` pattern as `getMessage`. While this re-downloads the full RFC822 message, it is the simplest approach given ImapFlow's API. A future optimization could cache parsed messages or use selective MIME part fetching.
 - **Download loading indicator via fetch + blob**: Instead of native `<a>` download links, attachment downloads use `fetch` to retrieve the file as a blob, then programmatically trigger a download. This enables tracking a `downloadingIndex` state that swaps the icon to an animated spinner and disables the button during the download. The loading indicator applies to non-previewable chip clicks, the download icon on previewable chips, and the Download button in the preview Dialog.
+- **Preview loading spinner**: The preview Dialog tracks a `previewLoaded` state that starts as `false` when a preview opens and flips to `true` on the image/iframe `onLoad` event. While loading, a centered `Loader2Icon` spinner is shown and the content is hidden via `opacity-0`. Once loaded, the content fades in with a CSS opacity transition.
+- **Full-screen preview Dialog**: The preview Dialog uses `h-[calc(100vh-4rem)]` for near-full-screen height with a flex column layout. The content area fills the remaining space via `flex-1 min-h-0`, ensuring images and PDFs are displayed as large as possible regardless of their intrinsic dimensions.
 
 ### User Stories
 
