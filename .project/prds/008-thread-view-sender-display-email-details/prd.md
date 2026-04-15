@@ -8,6 +8,9 @@ references:
   - type: prd
     url: .project/prds/005-drafts-folder-recipients/prd.md
     description: "Prior PRD — Drafts folder recipient display (completed)"
+  - type: pr
+    url: https://github.com/babblebey/mail-app/pull/13
+    description: "Implementation PR — Thread view sender display & email details popover"
 ---
 
 > **Instructions for AI Agents:**
