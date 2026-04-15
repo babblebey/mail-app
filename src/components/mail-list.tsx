@@ -15,6 +15,7 @@ import {
   RefreshCwIcon,
   InboxIcon,
   Loader2Icon,
+  PaperclipIcon,
 } from "lucide-react"
 
 import { cn } from "~/lib/utils"
@@ -419,7 +420,7 @@ export function MailList({ folder }: { folder: string }) {
               )}
 
               {/* Content */}
-              <div className="flex min-w-0 flex-1 flex-col gap-0.5 md:flex-row md:items-center md:gap-3">
+              <div className="flex min-w-0 flex-1 flex-col gap-0.5 md:flex-row md:items-center md:gap-6">
                 <div className="flex min-w-0 items-center justify-between gap-2 md:w-44 md:shrink-0">
                   <div className="flex min-w-0 items-center gap-2">
                     {displayMode === "drafts" ? (
@@ -471,6 +472,13 @@ export function MailList({ folder }: { folder: string }) {
                     </span>
                   )}
                 </div>
+
+                {/* Attachments */}
+                <span className="size-5 shrink-0 flex items-center">
+                  {mail.hasAttachments && (
+                    <PaperclipIcon className="size-4 shrink-0 text-muted-foreground" />
+                  )}
+                </span>
 
                 {/* Date on desktop */}
                 <span className="hidden shrink-0 text-xs text-muted-foreground md:block">

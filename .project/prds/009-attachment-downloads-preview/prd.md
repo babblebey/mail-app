@@ -68,8 +68,8 @@ This PRD covers:
 
 #### Tasks
 
-- [ ] In `src/components/mail-list.tsx`, import `PaperclipIcon` from `lucide-react`
-- [ ] In the message row name/metadata section, add a `<PaperclipIcon>` next to the starred icon when `mail.hasAttachments` is `true` — styled as `size-3.5 shrink-0 text-muted-foreground` to match existing icon conventions
+- [x] In `src/components/mail-list.tsx`, import `PaperclipIcon` from `lucide-react`
+- [x] In the message row name/metadata section, add a `<PaperclipIcon>` next to the date section when `mail.hasAttachments` is `true` — styled as `size-3.5 shrink-0 text-muted-foreground` to match existing icon conventions
 
 ### Phase 3: Attachment Download API Route
 
