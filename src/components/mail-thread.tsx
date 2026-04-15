@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useRef } from "react"
+import { useState, useRef, useCallback } from "react"
 import {
   ArrowLeftIcon,
   ArchiveIcon,
@@ -27,6 +27,8 @@ import {
   AlertCircleIcon,
   RefreshCwIcon,
   FileIcon,
+  DownloadIcon,
+  Loader2Icon,
 } from "lucide-react"
 import Link from "next/link"
 
@@ -36,6 +38,12 @@ import { Button } from "~/components/ui/button"
 import { Separator } from "~/components/ui/separator"
 import { Skeleton } from "~/components/ui/skeleton"
 import { MailComposer } from "~/components/mail-composer"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "~/components/ui/dialog"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -90,6 +98,34 @@ function formatSize(bytes: number) {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
 }
 
+const PREVIEWABLE_TYPES = new Set([
+  "image/png",
+  "image/jpeg",
+  "image/gif",
+  "image/webp",
+  "image/svg+xml",
+  "application/pdf",
+])
+
+function isPreviewable(contentType: string): boolean {
+  return PREVIEWABLE_TYPES.has(contentType)
+}
+
+function getAttachmentUrl(
+  folder: string,
+  uid: number,
+  index: number,
+  preview?: boolean,
+): string {
+  const params = new URLSearchParams({
+    folder,
+    uid: String(uid),
+    index: String(index),
+  })
+  if (preview) params.set("preview", "1")
+  return `/api/attachments?${params.toString()}`
+}
+
 type MessageData = {
   uid: number
   messageId: string
@@ -133,6 +169,33 @@ function MessageView({
   folder: string
   onReply?: () => void
 }) {
+  const [previewAttachment, setPreviewAttachment] = useState<{
+    index: number
+    filename: string
+    contentType: string
+    url: string
+  } | null>(null)
+  const [downloadingIndex, setDownloadingIndex] = useState<number | null>(null)
+  const [previewLoaded, setPreviewLoaded] = useState(false)
+
+  const handleDownload = useCallback(async (url: string, filename: string, index: number) => {
+    setDownloadingIndex(index)
+    try {
+      const res = await fetch(url)
+      const blob = await res.blob()
+      const blobUrl = URL.createObjectURL(blob)
+      const a = document.createElement("a")
+      a.href = blobUrl
+      a.download = filename
+      document.body.appendChild(a)
+      a.click()
+      a.remove()
+      URL.revokeObjectURL(blobUrl)
+    } finally {
+      setDownloadingIndex(null)
+    }
+  }, [])
+
   const toList = message.to.map((a) => a.name || a.address).join(", ")
   const ccList = message.cc.map((a) => a.name || a.address).join(", ")
   const recipients = ccList
@@ -226,21 +289,133 @@ function MessageView({
       {message.attachments.length > 0 && (
         <div className="px-4 pb-4 pl-18">
           <div className="flex flex-wrap gap-2">
-            {message.attachments.map((att, i) => (
-              <div
-                key={i}
-                className="flex items-center gap-2 rounded-lg border px-3 py-2 text-sm"
-              >
-                <FileIcon className="size-4 shrink-0 text-muted-foreground" />
-                <span className="truncate">{att.filename}</span>
-                <span className="shrink-0 text-xs text-muted-foreground">
-                  {formatSize(att.size)}
-                </span>
-              </div>
-            ))}
+            {message.attachments.map((att, i) => {
+              const downloadUrl = getAttachmentUrl(folder, message.uid, i)
+              const previewUrl = getAttachmentUrl(folder, message.uid, i, true)
+              const previewing = isPreviewable(att.contentType)
+
+              if (previewing) {
+                return (
+                  <div key={i} className="flex items-center gap-0">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setPreviewLoaded(false)
+                        setPreviewAttachment({
+                          index: i,
+                          filename: att.filename,
+                          contentType: att.contentType,
+                          url: previewUrl,
+                        })
+                      }}
+                      className="flex cursor-pointer items-center gap-2 rounded-l-lg border px-3 py-2 text-sm transition-colors hover:bg-muted/50"
+                    >
+                      <FileIcon className="size-4 shrink-0 text-muted-foreground" />
+                      <span className="truncate">{att.filename}</span>
+                      <span className="shrink-0 text-xs text-muted-foreground">
+                        {formatSize(att.size)}
+                      </span>
+                    </button>
+                    <button
+                      type="button"
+                      disabled={downloadingIndex === i}
+                      className="flex items-center rounded-r-lg border border-l-0 px-2 py-2 transition-colors hover:bg-muted/50 disabled:opacity-50"
+                      title={`Download ${att.filename}`}
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        void handleDownload(downloadUrl, att.filename, i)
+                      }}
+                    >
+                      {downloadingIndex === i
+                        ? <Loader2Icon className="size-4 animate-spin text-muted-foreground" />
+                        : <DownloadIcon className="size-4 text-muted-foreground" />}
+                    </button>
+                  </div>
+                )
+              }
+
+              return (
+                <button
+                  key={i}
+                  type="button"
+                  disabled={downloadingIndex === i}
+                  className="flex items-center gap-2 rounded-lg border px-3 py-2 text-sm transition-colors hover:bg-muted/50 disabled:opacity-50"
+                  onClick={() => void handleDownload(downloadUrl, att.filename, i)}
+                >
+                  {downloadingIndex === i
+                    ? <Loader2Icon className="size-4 shrink-0 animate-spin text-muted-foreground" />
+                    : <FileIcon className="size-4 shrink-0 text-muted-foreground" />}
+                  <span className="truncate">{att.filename}</span>
+                  <span className="shrink-0 text-xs text-muted-foreground">
+                    {formatSize(att.size)}
+                  </span>
+                </button>
+              )
+            })}
           </div>
         </div>
       )}
+
+      {/* Attachment Preview Dialog */}
+      <Dialog
+        open={previewAttachment !== null}
+        onOpenChange={(open) => {
+          if (!open) {
+            setPreviewAttachment(null)
+            setPreviewLoaded(false)
+          }
+        }}
+      >
+        <DialogContent className="sm:max-w-3xl h-[calc(100vh-4rem)] flex flex-col">
+          <DialogHeader>
+            <DialogTitle>{previewAttachment?.filename}</DialogTitle>
+          </DialogHeader>
+          <div className="relative flex flex-1 items-center justify-center min-h-0">
+            {!previewLoaded && (
+              <div className="absolute inset-0 flex items-center justify-center">
+                <Loader2Icon className="size-8 animate-spin text-muted-foreground" />
+              </div>
+            )}
+            {previewAttachment?.contentType.startsWith("image/") && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={previewAttachment.url}
+                alt={previewAttachment.filename}
+                className={`max-h-full w-auto object-contain transition-opacity ${previewLoaded ? "opacity-100" : "opacity-0"}`}
+                onLoad={() => setPreviewLoaded(true)}
+              />
+            )}
+            {previewAttachment?.contentType === "application/pdf" && (
+              <iframe
+                src={previewAttachment.url}
+                title={previewAttachment.filename}
+                className={`h-full w-full transition-opacity ${previewLoaded ? "opacity-100" : "opacity-0"}`}
+                onLoad={() => setPreviewLoaded(true)}
+              />
+            )}
+          </div>
+          <div className="flex justify-end">
+            <Button
+              variant="outline"
+              className="gap-1.5"
+              disabled={previewAttachment !== null && downloadingIndex === previewAttachment.index}
+              onClick={() => {
+                if (!previewAttachment) return
+                void handleDownload(
+                  getAttachmentUrl(folder, message.uid, previewAttachment.index),
+                  previewAttachment.filename,
+                  previewAttachment.index,
+                )
+              }}
+            >
+              {previewAttachment !== null && downloadingIndex === previewAttachment.index
+                ? <Loader2Icon className="size-4 animate-spin" />
+                : <DownloadIcon className="size-4" />}
+              Download
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
