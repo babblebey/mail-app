@@ -1,6 +1,6 @@
 ---
 title: "Mail List: Group Actions & Smart Selection"
-status: draft
+status: in-progress
 references:
   - type: doc
     url: .project/brief.md
@@ -62,12 +62,12 @@ New batch backend mutations are required to support these operations efficiently
 
 #### Tasks
 
-- [ ] In `src/server/api/routers/mail.ts`, add a `batchMarkAsRead` mutation to the `mailRouter` with the following specification:
+- [x] In `src/server/api/routers/mail.ts`, add a `batchMarkAsRead` mutation to the `mailRouter` with the following specification:
   - **Input schema**: `{ accountId: z.string().cuid().optional(), folder: z.string().min(1), uids: z.array(z.number().int().positive()).min(1), read: z.boolean() }`
   - **Implementation**: call `resolveAccountId`, then `withImapClient` → `client.mailboxOpen(input.folder)` → build a UID sequence set string by joining `input.uids` with commas (e.g. `input.uids.join(",")`) → if `input.read` is `true`, call `client.messageFlagsAdd(uidSet, ["\\Seen"], { uid: true })`, else call `client.messageFlagsRemove(uidSet, ["\\Seen"], { uid: true })`
   - **Return**: `{ ok: true }`
   - Follow the same `resolveAccountId` → `withImapClient` → `mailboxOpen` pattern as the existing `markAsRead` mutation
-- [ ] In `src/server/api/routers/mail.ts`, add a `batchMoveMessages` mutation to the `mailRouter` with the following specification:
+- [x] In `src/server/api/routers/mail.ts`, add a `batchMoveMessages` mutation to the `mailRouter` with the following specification:
   - **Input schema**: `{ accountId: z.string().cuid().optional(), folder: z.string().min(1), uids: z.array(z.number().int().positive()).min(1), destinationFolder: z.string().min(1) }`
   - **Implementation**: call `resolveAccountId`, then `withImapClient` → `client.mailboxOpen(input.folder)` → build a UID sequence set string by joining `input.uids` with commas → call `client.messageMove(uidSet, input.destinationFolder, { uid: true })`
   - **Return**: `{ ok: true }`
