@@ -42,15 +42,24 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "~/components/ui/dropdown-menu"
+import {
+  Popover,
+  PopoverTrigger,
+  PopoverContent,
+} from "~/components/ui/popover"
 import { api } from "~/trpc/react"
 
-function getInitials(name: string) {
-  return name
-    .split(" ")
-    .map((n) => n[0])
-    .join("")
-    .slice(0, 2)
-    .toUpperCase()
+function getInitials(name: string, email?: string) {
+  if (name) {
+    return name
+      .split(" ")
+      .map((n) => n[0])
+      .join("")
+      .slice(0, 2)
+      .toUpperCase()
+  }
+  const localPart = email?.split("@")[0] ?? ""
+  return localPart.slice(0, 2).toUpperCase()
 }
 
 function formatDate(isoDate: string) {
@@ -59,6 +68,17 @@ function formatDate(isoDate: string) {
     weekday: "short",
     month: "short",
     day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  })
+}
+
+function formatDetailDate(isoDate: string) {
+  const d = new Date(isoDate)
+  return d.toLocaleDateString(undefined, {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
     hour: "numeric",
     minute: "2-digit",
   })
@@ -113,29 +133,71 @@ function MessageView({
   folder: string
   onReply?: () => void
 }) {
-  const recipients = [
-    ...message.to.map((a) => a.name || a.address),
-    ...message.cc.map((a) => `cc: ${a.name || a.address}`),
-  ].join(", ")
+  const toList = message.to.map((a) => a.name || a.address).join(", ")
+  const ccList = message.cc.map((a) => a.name || a.address).join(", ")
+  const recipients = ccList
+    ? `${toList}, cc: ${ccList}`
+    : toList
 
   return (
     <div>
       {/* Message header */}
       <div className="flex items-start gap-4 px-4 py-5">
         <Avatar className="size-10 shrink-0 rounded-full">
-          <AvatarFallback className="text-sm font-semibold text-white rounded-full bg-muted">
-            {getInitials(message.from.name)}
+          <AvatarFallback className="text-sm font-semibold">
+            {getInitials(message.from.name, message.from.address)}
           </AvatarFallback>
         </Avatar>
         <div className="flex min-w-0 flex-1 flex-col gap-0.5">
           <div className="flex items-center justify-between">
             <div className="space-y-1">
               <div className="text-sm font-semibold text-foreground">
-                {message.from.name}
+                {message.from.name || message.from.address}
+                {message.from.name && (
+                  <span className="font-normal text-xs text-muted-foreground">
+                    {" <"}{message.from.address}{">"}
+                  </span>
+                )}
               </div>
               <div className="flex items-center gap-1 text-xs text-muted-foreground">
                 <span>to {recipients || "unknown"}</span>
-                <ChevronDownIcon className="size-3" />
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="ghost" className="size-5 p-0 cursor-pointer">
+                      <ChevronDownIcon className="size-3" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent align="start" className="w-auto max-w-md p-3">
+                    <div className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1.5">
+                      <span className="text-right text-sm text-muted-foreground">from:</span>
+                      <span className="text-sm font-semibold text-foreground">
+                        {message.from.name
+                          ? `${message.from.name} <${message.from.address}>`
+                          : message.from.address}
+                      </span>
+                      <span className="text-right text-sm text-muted-foreground">to:</span>
+                      <span className="text-sm text-foreground">
+                        {message.to
+                          .map((a) => (a.name ? `${a.name} <${a.address}>` : a.address))
+                          .join(", ")}
+                      </span>
+                      {message.cc.length > 0 && (
+                        <>
+                          <span className="text-right text-sm text-muted-foreground">cc:</span>
+                          <span className="text-sm text-foreground">
+                            {message.cc
+                              .map((a) => (a.name ? `${a.name} <${a.address}>` : a.address))
+                              .join(", ")}
+                          </span>
+                        </>
+                      )}
+                      <span className="text-right text-sm text-muted-foreground">subject:</span>
+                      <span className="text-sm text-foreground">{message.subject}</span>
+                      <span className="text-right text-sm text-muted-foreground">date:</span>
+                      <span className="text-sm text-foreground">{formatDetailDate(message.date)}</span>
+                    </div>
+                  </PopoverContent>
+                </Popover>
               </div>
             </div>
             <div className="flex items-center gap-3">
@@ -233,7 +295,7 @@ export function MailThreadView({ uid, folder }: { uid: number; folder: string })
         <div className="flex-1 overflow-y-auto p-6">
           <Skeleton className="mb-6 h-7 w-2/3" />
           <div className="flex items-start gap-4">
-            <Skeleton className="size-10 shrink-0 rounded" />
+            <Skeleton className="size-10 shrink-0 rounded-full" />
             <div className="flex-1 space-y-2">
               <Skeleton className="h-4 w-40" />
               <Skeleton className="h-3 w-28" />
@@ -317,7 +379,7 @@ export function MailThreadView({ uid, folder }: { uid: number; folder: string })
       <div className="flex-1 overflow-y-auto">
         <div className="py-6">
           {/* Subject line */}
-          <div className="mb-6 flex items-center gap-2 px-4 md:px-18">
+          <div className="mb-1 flex items-center gap-2 px-4 md:px-18">
             <h1 className="text-xl font-semibold text-foreground">
               {message.subject}
             </h1>
