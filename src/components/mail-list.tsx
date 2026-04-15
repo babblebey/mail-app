@@ -286,6 +286,15 @@ export function MailList({ folder }: { folder: string }) {
     return (
       <div className="flex flex-1 flex-col">
         <div className="flex items-center gap-2 border-b px-4 py-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="gap-1.5 text-muted-foreground"
+            onClick={() => void refetch()}
+          >
+            <RefreshCwIcon className="size-4" />
+            Refresh
+          </Button>
           <div className="ml-auto">
             <Button size="lg" className="gap-1.5" onClick={() => setComposerOpen(true)}>
               <PenSquareIcon className="size-4" />

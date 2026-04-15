@@ -115,8 +115,8 @@ New batch backend mutations are required to support these operations efficiently
 
 #### Tasks
 
-- [ ] In the empty-state branch (where `messages.length === 0`), add a **Refresh** button alongside the Write Message button — icon: `RefreshCwIcon`, variant: `"ghost"`, size: `"sm"`, `onClick` calls `void refetch()`
-- [ ] Ensure the select-all checkbox and smart selection dropdown are only rendered in the main (non-empty, non-loading, non-error) toolbar — they should not appear in the loading skeleton, error, or empty states
+- [x] In the empty-state branch (where `messages.length === 0`), add a **Refresh** button alongside the Write Message button — icon: `RefreshCwIcon`, variant: `"ghost"`, size: `"sm"`, `onClick` calls `void refetch()`
+- [x] Ensure the select-all checkbox and smart selection dropdown are only rendered in the main (non-empty, non-loading, non-error) toolbar — they should not appear in the loading skeleton, error, or empty states
 
 ## Acceptance Criteria
 
