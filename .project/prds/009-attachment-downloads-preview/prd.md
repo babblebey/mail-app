@@ -44,6 +44,7 @@ This PRD covers:
 - **Paperclip icon placement in mail list**: The `PaperclipIcon` is rendered next to the starred icon in the message row's name/metadata section, using existing icon styling (`size-3.5 shrink-0 text-muted-foreground`). The `hasAttachments` flag is already returned by `listMessages` but currently unused in the UI.
 - **Download button on previewable chips**: Previewable attachment chips open a preview Dialog on click, but also include a small download icon button so users can download without opening the preview first.
 - **Re-downloading full message for attachment content**: The API route uses the same `client.download(uid)` → `simpleParser` pattern as `getMessage`. While this re-downloads the full RFC822 message, it is the simplest approach given ImapFlow's API. A future optimization could cache parsed messages or use selective MIME part fetching.
+- **Download loading indicator via fetch + blob**: Instead of native `<a>` download links, attachment downloads use `fetch` to retrieve the file as a blob, then programmatically trigger a download. This enables tracking a `downloadingIndex` state that swaps the icon to an animated spinner and disables the button during the download. The loading indicator applies to non-previewable chip clicks, the download icon on previewable chips, and the Download button in the preview Dialog.
 
 ### User Stories
 

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useRef } from "react"
+import { useState, useRef, useCallback } from "react"
 import {
   ArrowLeftIcon,
   ArchiveIcon,
@@ -28,6 +28,7 @@ import {
   RefreshCwIcon,
   FileIcon,
   DownloadIcon,
+  Loader2Icon,
 } from "lucide-react"
 import Link from "next/link"
 
@@ -174,6 +175,25 @@ function MessageView({
     contentType: string
     url: string
   } | null>(null)
+  const [downloadingIndex, setDownloadingIndex] = useState<number | null>(null)
+
+  const handleDownload = useCallback(async (url: string, filename: string, index: number) => {
+    setDownloadingIndex(index)
+    try {
+      const res = await fetch(url)
+      const blob = await res.blob()
+      const blobUrl = URL.createObjectURL(blob)
+      const a = document.createElement("a")
+      a.href = blobUrl
+      a.download = filename
+      document.body.appendChild(a)
+      a.click()
+      a.remove()
+      URL.revokeObjectURL(blobUrl)
+    } finally {
+      setDownloadingIndex(null)
+    }
+  }, [])
 
   const toList = message.to.map((a) => a.name || a.address).join(", ")
   const ccList = message.cc.map((a) => a.name || a.address).join(", ")
@@ -294,32 +314,40 @@ function MessageView({
                         {formatSize(att.size)}
                       </span>
                     </button>
-                    <a
-                      href={downloadUrl}
-                      download={att.filename}
-                      className="flex items-center rounded-r-lg border border-l-0 px-2 py-2 transition-colors hover:bg-muted/50"
+                    <button
+                      type="button"
+                      disabled={downloadingIndex === i}
+                      className="flex items-center rounded-r-lg border border-l-0 px-2 py-2 transition-colors hover:bg-muted/50 disabled:opacity-50"
                       title={`Download ${att.filename}`}
-                      onClick={(e) => e.stopPropagation()}
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        void handleDownload(downloadUrl, att.filename, i)
+                      }}
                     >
-                      <DownloadIcon className="size-4 text-muted-foreground" />
-                    </a>
+                      {downloadingIndex === i
+                        ? <Loader2Icon className="size-4 animate-spin text-muted-foreground" />
+                        : <DownloadIcon className="size-4 text-muted-foreground" />}
+                    </button>
                   </div>
                 )
               }
 
               return (
-                <a
+                <button
                   key={i}
-                  href={downloadUrl}
-                  download={att.filename}
-                  className="flex items-center gap-2 rounded-lg border px-3 py-2 text-sm transition-colors hover:bg-muted/50"
+                  type="button"
+                  disabled={downloadingIndex === i}
+                  className="flex items-center gap-2 rounded-lg border px-3 py-2 text-sm transition-colors hover:bg-muted/50 disabled:opacity-50"
+                  onClick={() => void handleDownload(downloadUrl, att.filename, i)}
                 >
-                  <FileIcon className="size-4 shrink-0 text-muted-foreground" />
+                  {downloadingIndex === i
+                    ? <Loader2Icon className="size-4 shrink-0 animate-spin text-muted-foreground" />
+                    : <FileIcon className="size-4 shrink-0 text-muted-foreground" />}
                   <span className="truncate">{att.filename}</span>
                   <span className="shrink-0 text-xs text-muted-foreground">
                     {formatSize(att.size)}
                   </span>
-                </a>
+                </button>
               )
             })}
           </div>
@@ -351,14 +379,23 @@ function MessageView({
             />
           )}
           <div className="flex justify-end">
-            <Button asChild variant="outline" className="gap-1.5">
-              <a
-                href={getAttachmentUrl(folder, message.uid, previewAttachment?.index ?? 0)}
-                download={previewAttachment?.filename}
-              >
-                <DownloadIcon className="size-4" />
-                Download
-              </a>
+            <Button
+              variant="outline"
+              className="gap-1.5"
+              disabled={previewAttachment !== null && downloadingIndex === previewAttachment.index}
+              onClick={() => {
+                if (!previewAttachment) return
+                void handleDownload(
+                  getAttachmentUrl(folder, message.uid, previewAttachment.index),
+                  previewAttachment.filename,
+                  previewAttachment.index,
+                )
+              }}
+            >
+              {previewAttachment !== null && downloadingIndex === previewAttachment.index
+                ? <Loader2Icon className="size-4 animate-spin" />
+                : <DownloadIcon className="size-4" />}
+              Download
             </Button>
           </div>
         </DialogContent>
