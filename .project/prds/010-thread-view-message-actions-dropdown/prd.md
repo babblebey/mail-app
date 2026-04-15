@@ -1,6 +1,6 @@
 ---
 title: "Thread View: Message Actions Dropdown Menu"
-status: in-progress
+status: completed
 references:
   - type: doc
     url: .project/brief.md
@@ -90,8 +90,8 @@ This PRD adds a `DropdownMenu` to that button with five actions: Reply (static),
 
 #### Tasks
 
-- [ ] In the `MessageItem` component within `src/components/mail-thread.tsx`, wrap the existing three-dots `<Button>` (the `MoreHorizontalIcon` button next to the Reply button, around line 275) with `<DropdownMenu modal={false}>`, `<DropdownMenuTrigger asChild>`, and `<DropdownMenuContent align="end">`
-- [ ] Add the following `DropdownMenuItem` entries inside `DropdownMenuContent`:
+- [x] In the `MessageItem` component within `src/components/mail-thread.tsx`, wrap the existing three-dots `<Button>` (the `MoreHorizontalIcon` button next to the Reply button, around line 275) with `<DropdownMenu modal={false}>`, `<DropdownMenuTrigger asChild>`, and `<DropdownMenuContent align="end">`
+- [x] Add the following `DropdownMenuItem` entries inside `DropdownMenuContent`:
   1. **Reply** — icon: `ReplyIcon`, label: `"Reply"`, `onClick` triggers `onReply` prop (opens the existing inline reply composer)
   2. **Forward** — icon: `ForwardIcon`, label: `"Forward"`, `onClick` triggers `onForward` prop (opens the existing inline forward composer)
   3. `<DropdownMenuSeparator />`
@@ -106,21 +106,21 @@ This PRD adds a `DropdownMenu` to that button with five actions: Reply (static),
 
 #### Tasks
 
-- [ ] Update the `MessageItem` component's props interface to accept: `onMarkAsRead: () => void`, `onDelete: () => void`, `onReportSpam: () => void`, `isTrashFolder: boolean`, `isJunkFolder: boolean`
-- [ ] In `MailThreadView`, define the `onMarkAsRead` handler that calls `markAsRead.mutate({ folder, uid: message.uid, read: !message.read })` — this toggles the current read state
-- [ ] In `MailThreadView`, define the `onDelete` handler that calls `moveMessage.mutate({ folder, uid: message.uid, destinationFolder: trashFolder })` — guarded by checking that `trashFolder` is defined
-- [ ] In `MailThreadView`, define the `onReportSpam` handler that calls `moveMessage.mutate({ folder, uid: message.uid, destinationFolder: junkFolder })` — guarded by checking that `junkFolder` is defined
-- [ ] Pass `isTrashFolder` as `folder.toLowerCase().includes("trash")` and `isJunkFolder` as `folder.toLowerCase().includes("junk") || folder.toLowerCase().includes("spam")` — consistent with the folder detection heuristics used in `mail-list.tsx` (PRDs 006/007)
+- [x] Update the `MessageItem` component's props interface to accept: `onMarkAsRead: () => void`, `onDelete: () => void`, `onReportSpam: () => void`, `isTrashFolder: boolean`, `isJunkFolder: boolean`
+- [x] In `MailThreadView`, define the `onMarkAsRead` handler that calls `markAsRead.mutate({ folder, uid: message.uid, read: !message.read })` — this toggles the current read state
+- [x] In `MailThreadView`, define the `onDelete` handler that calls `moveMessage.mutate({ folder, uid: message.uid, destinationFolder: trashFolder })` — guarded by checking that `trashFolder` is defined
+- [x] In `MailThreadView`, define the `onReportSpam` handler that calls `moveMessage.mutate({ folder, uid: message.uid, destinationFolder: junkFolder })` — guarded by checking that `junkFolder` is defined
+- [x] Pass `isTrashFolder` as `folder.toLowerCase().includes("trash")` and `isJunkFolder` as `folder.toLowerCase().includes("junk") || folder.toLowerCase().includes("spam")` — consistent with the folder detection heuristics used in `mail-list.tsx` (PRDs 006/007)
 
 ## Acceptance Criteria
 
-- [ ] Clicking the three-dots button on a message's sender/recipient row opens a dropdown menu with: Reply, Forward, separator, Mark as Read/Unread, separator, Delete, Report Spam
-- [ ] Reply opens the inline reply composer (same as the existing Reply button)
-- [ ] Forward opens the inline forward composer
-- [ ] Mark as Read/Unread toggles the message's `\Seen` flag on the IMAP server and the label updates accordingly on re-fetch
-- [ ] Delete moves the message to the Trash folder and redirects the user back to the mail list
-- [ ] Report Spam moves the message to the Junk folder and redirects the user back to the mail list
-- [ ] Delete is not shown when viewing a message in the Trash folder
-- [ ] Report Spam is not shown when viewing a message in the Trash or Junk folders
-- [ ] The dropdown menu is keyboard-accessible (arrow keys, Enter, Escape)
-- [ ] No TypeScript errors — `pnpm build` passes cleanly
+- [x] Clicking the three-dots button on a message's sender/recipient row opens a dropdown menu with: Reply, Forward, separator, Mark as Read/Unread, separator, Delete, Report Spam
+- [x] Reply opens the inline reply composer (same as the existing Reply button)
+- [x] Forward opens the inline forward composer
+- [x] Mark as Read/Unread toggles the message's `\Seen` flag on the IMAP server and the label updates accordingly on re-fetch
+- [x] Delete moves the message to the Trash folder and redirects the user back to the mail list
+- [x] Report Spam moves the message to the Junk folder and redirects the user back to the mail list
+- [x] Delete is not shown when viewing a message in the Trash folder
+- [x] Report Spam is not shown when viewing a message in the Trash or Junk folders
+- [x] The dropdown menu is keyboard-accessible (arrow keys, Enter, Escape)
+- [x] No TypeScript errors — `pnpm build` passes cleanly
