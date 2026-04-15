@@ -11,6 +11,9 @@ references:
   - type: prd
     url: .project/prds/008-thread-view-sender-display-email-details/prd.md
     description: "Prior PRD — Thread view sender display & email details popover (completed)"
+  - type: pr
+    url: https://github.com/babblebey/mail-app/pull/14
+    description: "Implementation PR — Attachment downloads, list indicator & inline preview"
 ---
 
 > **Instructions for AI Agents:**
