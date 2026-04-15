@@ -32,6 +32,7 @@ import {
   MailIcon,
   MailOpenIcon,
   AlertOctagonIcon,
+  FolderInputIcon,
 } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
@@ -53,6 +54,9 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from "~/components/ui/dropdown-menu"
 import {
@@ -174,6 +178,8 @@ function MessageView({
   onMarkAsRead,
   onDelete,
   onReportSpam,
+  onMoveTo,
+  folders,
   isTrashFolder,
   isJunkFolder,
 }: {
@@ -184,6 +190,8 @@ function MessageView({
   onMarkAsRead?: () => void
   onDelete?: () => void
   onReportSpam?: () => void
+  onMoveTo?: (destinationFolder: string) => void
+  folders?: { path: string; name: string; specialUse?: string }[]
   isTrashFolder?: boolean
   isJunkFolder?: boolean
 }) {
@@ -319,6 +327,30 @@ function MessageView({
                       )}
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
+                    {folders && folders.length > 0 && onMoveTo && (
+                      <>
+                        <DropdownMenuSub>
+                          <DropdownMenuSubTrigger>
+                            <FolderInputIcon className="size-4" />
+                            Move to
+                          </DropdownMenuSubTrigger>
+                          <DropdownMenuSubContent>
+                            {folders
+                              .filter((f) => f.path !== folder)
+                              .map((f) => (
+                                <DropdownMenuItem
+                                  key={f.path}
+                                  onClick={() => onMoveTo(f.path)}
+                                >
+                                  <FolderIcon className="size-4" />
+                                  {f.name.charAt(0).toUpperCase() + f.name.slice(1).toLowerCase()}
+                                </DropdownMenuItem>
+                              ))}
+                          </DropdownMenuSubContent>
+                        </DropdownMenuSub> 
+                        <DropdownMenuSeparator /> 
+                      </>
+                    )}
                     {!isTrashFolder && (
                       <DropdownMenuItem variant="destructive" onClick={onDelete}>
                         <Trash2Icon className="size-4" />
@@ -665,6 +697,10 @@ export function MailThreadView({ uid, folder }: { uid: number; folder: string })
             onReportSpam={() => {
               if (junkFolder) moveMessageMutation.mutate({ folder, uid: message.uid, destinationFolder: junkFolder })
             }}
+            onMoveTo={(destinationFolder) => {
+              moveMessageMutation.mutate({ folder, uid: message.uid, destinationFolder })
+            }}
+            folders={folders}
             isTrashFolder={isTrashFolder}
             isJunkFolder={isJunkFolder}
           />

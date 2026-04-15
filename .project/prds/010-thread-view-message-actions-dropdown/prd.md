@@ -112,6 +112,17 @@ This PRD adds a `DropdownMenu` to that button with five actions: Reply (static),
 - [x] In `MailThreadView`, define the `onReportSpam` handler that calls `moveMessage.mutate({ folder, uid: message.uid, destinationFolder: junkFolder })` — guarded by checking that `junkFolder` is defined
 - [x] Pass `isTrashFolder` as `folder.toLowerCase().includes("trash")` and `isJunkFolder` as `folder.toLowerCase().includes("junk") || folder.toLowerCase().includes("spam")` — consistent with the folder detection heuristics used in `mail-list.tsx` (PRDs 006/007)
 
+### Phase 5: Move to Folder — Submenu Action
+
+**Goal:** Add a "Move to" submenu to the message actions dropdown, allowing users to move a message to any folder via a nested folder list.
+
+#### Tasks
+
+- [x] In `src/components/mail-thread.tsx`, import `DropdownMenuSub`, `DropdownMenuSubContent`, `DropdownMenuSubTrigger` from `~/components/ui/dropdown-menu` and `FolderInputIcon` from `lucide-react`
+- [x] Extend the `MessageView` component props with `onMoveTo?: (destinationFolder: string) => void` and `folders?: { path: string; name: string; specialUse?: string }[]`
+- [x] Add a "Move to" `DropdownMenuSub` item (with `FolderInputIcon`) between the Mark as Read/Unread separator and the Delete item — the sub-content lists all folders except the current folder, each as a `DropdownMenuItem` with a `FolderIcon` that calls `onMoveTo(folder.path)` on click
+- [x] In `MailThreadView`, pass the already-queried `folders` data and an `onMoveTo` handler that calls `moveMessageMutation.mutate({ folder, uid, destinationFolder })` to `MessageView`
+
 ## Acceptance Criteria
 
 - [x] Clicking the three-dots button on a message's sender/recipient row opens a dropdown menu with: Reply, Forward, separator, Mark as Read/Unread, separator, Delete, Report Spam
@@ -124,3 +135,4 @@ This PRD adds a `DropdownMenu` to that button with five actions: Reply (static),
 - [x] Report Spam is not shown when viewing a message in the Trash or Junk folders
 - [x] The dropdown menu is keyboard-accessible (arrow keys, Enter, Escape)
 - [x] No TypeScript errors — `pnpm build` passes cleanly
+- [x] The dropdown includes a "Move to" submenu that lists all folders (except the current one) and moves the message to the selected folder on click
