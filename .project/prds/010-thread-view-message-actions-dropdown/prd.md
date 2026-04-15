@@ -14,6 +14,9 @@ references:
   - type: prd
     url: .project/prds/009-attachment-downloads-preview/prd.md
     description: "Prior PRD — Attachment downloads & preview (thread view component structure)"
+  - type: pull-request
+    url: https://github.com/babblebey/mail-app/pull/15
+    description: "Implementation PR — Thread view message actions dropdown menu"
 ---
 
 > **Instructions for AI Agents:**
