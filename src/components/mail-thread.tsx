@@ -495,9 +495,12 @@ export function MailThreadView({ uid, folder }: { uid: number; folder: string })
   const isJunkFolder = folder.toLowerCase().includes("junk") || folder.toLowerCase().includes("spam")
 
   const markAsReadMutation = api.mail.markAsRead.useMutation({
-    onSuccess: () => {
+    onSuccess: (_data, variables) => {
       void utils.mail.getMessage.invalidate({ folder, uid })
       void utils.mail.listMessages.invalidate()
+      if (!variables.read) {
+        router.push(backHref)
+      }
     },
   })
 
