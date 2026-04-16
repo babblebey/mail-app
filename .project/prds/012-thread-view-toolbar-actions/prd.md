@@ -1,6 +1,6 @@
 ---
 title: "Thread View: Toolbar Actions"
-status: in-progress
+status: completed
 references:
   - type: doc
     url: .project/brief.md
@@ -92,18 +92,18 @@ This PRD replaces the static placeholder toolbar buttons with four functional ac
 
 #### Tasks
 
-- [ ] In `src/components/mail-thread.tsx`, check whether `ArchiveIcon` is still used anywhere in the file — if not, remove it from the `lucide-react` import statement
-- [ ] Verify that all other imported icons (`Trash2Icon`, `FolderIcon`, `MoreHorizontalIcon`, `PrinterIcon`, `AlertOctagonIcon`, `MailIcon`, `FolderInputIcon`) are still referenced — remove any that are unreferenced
+- [x] In `src/components/mail-thread.tsx`, check whether `ArchiveIcon` is still used anywhere in the file — if not, remove it from the `lucide-react` import statement
+- [x] Verify that all other imported icons (`Trash2Icon`, `FolderIcon`, `MoreHorizontalIcon`, `PrinterIcon`, `AlertOctagonIcon`, `MailIcon`, `FolderInputIcon`) are still referenced — remove any that are unreferenced
 
 ## Acceptance Criteria
 
-- [ ] The thread view toolbar shows (left to right): Back button, separator, Report Spam, Delete, Mark as unread, More (`...`), then Print on the far right
-- [ ] Clicking "Report spam" moves the message to the Junk folder and navigates back to the mail list
-- [ ] Clicking "Delete" moves the message to the Trash folder and navigates back to the mail list
-- [ ] Clicking "Mark as unread" removes the `\Seen` flag from the message and navigates back to the mail list
-- [ ] Clicking More → Move to → [folder] moves the message to the selected folder and navigates back to the mail list
-- [ ] "Report spam" is not shown when viewing a message in the Junk or Trash folder
-- [ ] "Delete" is not shown when viewing a message in the Trash folder
-- [ ] The Print button is visible on the far right but has no click handler (static placeholder)
-- [ ] The Archive and top-level Move buttons are no longer present in the toolbar
-- [ ] No TypeScript errors — `pnpm build` passes cleanly
+- [x] The thread view toolbar shows (left to right): Back button, separator, Report Spam, Delete, Mark as unread, More (`...`), then Print on the far right
+- [x] Clicking "Report spam" moves the message to the Junk folder and navigates back to the mail list
+- [x] Clicking "Delete" moves the message to the Trash folder and navigates back to the mail list
+- [x] Clicking "Mark as unread" removes the `\Seen` flag from the message and navigates back to the mail list
+- [x] Clicking More → Move to → [folder] moves the message to the selected folder and navigates back to the mail list
+- [x] "Report spam" is not shown when viewing a message in the Junk or Trash folder
+- [x] "Delete" is not shown when viewing a message in the Trash folder
+- [x] The Print button is visible on the far right but has no click handler (static placeholder)
+- [x] The Archive and top-level Move buttons are no longer present in the toolbar
+- [x] No TypeScript errors — `pnpm build` passes cleanly
