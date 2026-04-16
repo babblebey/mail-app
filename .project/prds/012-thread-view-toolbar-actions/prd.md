@@ -1,6 +1,6 @@
 ---
 title: "Thread View: Toolbar Actions"
-status: draft
+status: in-progress
 references:
   - type: doc
     url: .project/brief.md
@@ -59,32 +59,32 @@ This PRD replaces the static placeholder toolbar buttons with four functional ac
 
 #### Tasks
 
-- [ ] In `src/components/mail-thread.tsx`, in the `MailThreadView` component's toolbar section (the `<div className="flex items-center gap-1">` block after the back button and separator), remove the four existing static buttons: Archive (`ArchiveIcon`), Move (`FolderIcon`), Delete (`Trash2Icon`), and More (`MoreHorizontalIcon`)
-- [ ] In the same toolbar location, add a **Report Spam** button:
+- [x] In `src/components/mail-thread.tsx`, in the `MailThreadView` component's toolbar section (the `<div className="flex items-center gap-1">` block after the back button and separator), remove the four existing static buttons: Archive (`ArchiveIcon`), Move (`FolderIcon`), Delete (`Trash2Icon`), and More (`MoreHorizontalIcon`)
+- [x] In the same toolbar location, add a **Report Spam** button:
   - Element: `<Button variant="ghost" size="sm" className="gap-1.5 text-muted-foreground">`
   - Icon: `AlertOctagonIcon` (already imported)
   - Label: `"Report spam"`
   - `onClick`: calls `moveMessageMutation.mutate({ folder, uid: message.uid, destinationFolder: junkFolder })` — guarded by checking that `junkFolder` is defined and `message` is loaded
   - Conditionally rendered: hidden when `isJunkFolder` or `isTrashFolder` is `true`
-- [ ] Add a **Delete** button:
+- [x] Add a **Delete** button:
   - Element: `<Button variant="ghost" size="sm" className="gap-1.5 text-muted-foreground">`
   - Icon: `Trash2Icon` (already imported)
   - Label: `"Delete"`
   - `onClick`: calls `moveMessageMutation.mutate({ folder, uid: message.uid, destinationFolder: trashFolder })` — guarded by checking that `trashFolder` is defined and `message` is loaded
   - Conditionally rendered: hidden when `isTrashFolder` is `true`
-- [ ] Add a **Mark as unread** button:
+- [x] Add a **Mark as unread** button:
   - Element: `<Button variant="ghost" size="sm" className="gap-1.5 text-muted-foreground">`
   - Icon: `MailIcon` (already imported)
   - Label: `"Mark as unread"`
   - `onClick`: calls `markAsReadMutation.mutate({ folder, uid: message.uid, read: false })` — the existing `onSuccess` callback already navigates back to the mail list when `read` is `false`
   - Always rendered (not conditionally hidden) — relevant in all folder contexts
-- [ ] Add a **More** dropdown menu:
+- [x] Add a **More** dropdown menu:
   - Wrap a `<Button variant="ghost" size="icon-sm" className="text-muted-foreground">` containing `<MoreHorizontalIcon>` with `<DropdownMenu modal={false}>` and `<DropdownMenuTrigger asChild>`
   - Inside `<DropdownMenuContent align="end">`, add a **Move To** submenu using the following structure:
     - `<DropdownMenuSub>` → `<DropdownMenuSubTrigger>` with `FolderInputIcon` icon and `"Move to"` label
     - `<DropdownMenuSubContent>` listing all folders from `folders` (excluding the current `folder`) as `<DropdownMenuItem>` entries — each with a `FolderIcon` and the folder name (capitalised first letter), `onClick` calling `moveMessageMutation.mutate({ folder, uid: message.uid, destinationFolder: f.path })`
   - The Move To submenu is conditionally rendered only when `folders` has entries and `message` is loaded
-- [ ] Ensure the **Print** button remains in its current position on the far right of the toolbar (`<div className="ml-auto ...">`) — no changes to its markup or behaviour
+- [x] Ensure the **Print** button remains in its current position on the far right of the toolbar (`<div className="ml-auto ...">`) — no changes to its markup or behaviour
 
 ### Phase 2: Cleanup Unused Imports
 
