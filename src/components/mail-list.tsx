@@ -4,18 +4,18 @@ import { useState, useCallback, useRef, useEffect } from "react"
 import Link from "next/link"
 import {
   AlertOctagonIcon,
-  ArchiveIcon,
-  FolderIcon,
   Trash2Icon,
   PenSquareIcon,
   ChevronDownIcon,
-  MoreHorizontalIcon,
   StarIcon,
   AlertCircleIcon,
   RefreshCwIcon,
   InboxIcon,
   Loader2Icon,
   PaperclipIcon,
+  MailIcon,
+  MailOpenIcon,
+  FolderInputIcon,
 } from "lucide-react"
 
 import { cn } from "~/lib/utils"
@@ -27,6 +27,12 @@ import {
 } from "~/components/ui/avatar"
 import { Button } from "~/components/ui/button"
 import { Checkbox } from "~/components/ui/checkbox"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "~/components/ui/dropdown-menu"
 import { Skeleton } from "~/components/ui/skeleton"
 import { MailComposer } from "~/components/mail-composer"
 import { api } from "~/trpc/react"
@@ -166,6 +172,31 @@ export function MailList({ folder }: { folder: string }) {
 
   console.log({ messages });
 
+  // Folder list for batch actions (Trash, Junk, Move To)
+  const { data: folders } = api.mail.listFolders.useQuery({})
+  const trashFolder = folders?.find((f) => f.specialUse === "\\Trash")?.path
+  const junkFolder = folders?.find((f) => f.specialUse === "\\Junk")?.path
+
+  const utils = api.useUtils()
+
+  const batchMarkAsRead = api.mail.batchMarkAsRead.useMutation({
+    onSuccess: () => {
+      setSelected(new Set())
+      void utils.mail.listMessages.invalidate()
+      void utils.mail.listFolders.invalidate()
+    },
+  })
+
+  const batchMoveMessages = api.mail.batchMoveMessages.useMutation({
+    onSuccess: () => {
+      setSelected(new Set())
+      void utils.mail.listMessages.invalidate()
+      void utils.mail.listFolders.invalidate()
+    },
+  })
+
+  const selectedUids = Array.from(selected).map(Number)
+
   // Infinite scroll: observe the sentinel element
   const handleObserver = useCallback(
     (entries: IntersectionObserverEntry[]) => {
@@ -255,6 +286,15 @@ export function MailList({ folder }: { folder: string }) {
     return (
       <div className="flex flex-1 flex-col">
         <div className="flex items-center gap-2 border-b px-4 py-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="gap-1.5 text-muted-foreground"
+            onClick={() => void refetch()}
+          >
+            <RefreshCwIcon className="size-4" />
+            Refresh
+          </Button>
           <div className="ml-auto">
             <Button size="lg" className="gap-1.5" onClick={() => setComposerOpen(true)}>
               <PenSquareIcon className="size-4" />
@@ -287,27 +327,76 @@ export function MailList({ folder }: { folder: string }) {
             onCheckedChange={toggleSelectAll}
             aria-label="Select all"
           />
-          <Button variant="ghost" size="icon-xs">
-            <ChevronDownIcon className="size-3.5" />
-          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon-xs">
+                <ChevronDownIcon className="size-3.5" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start">
+              <DropdownMenuItem onClick={() => setSelected(new Set(messages.map((m) => String(m.uid))))}>
+                All
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setSelected(new Set())}>
+                None
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setSelected(new Set(messages.filter((m) => m.read).map((m) => String(m.uid))))}>
+                Read
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setSelected(new Set(messages.filter((m) => !m.read).map((m) => String(m.uid))))}>
+                Unread
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
 
         <div className="flex items-center gap-1">
-          <Button variant="ghost" size="sm" className="gap-1.5 text-muted-foreground">
-            <ArchiveIcon className="size-4" />
-            Archive
-          </Button>
-          <Button variant="ghost" size="sm" className="gap-1.5 text-muted-foreground">
-            <FolderIcon className="size-4" />
-            Folder
-          </Button>
-          <Button variant="ghost" size="sm" className="gap-1.5 text-muted-foreground">
-            <Trash2Icon className="size-4" />
-            Delete
-          </Button>
-          <Button variant="ghost" size="icon-sm" className="text-muted-foreground">
-            <MoreHorizontalIcon className="size-4" />
-          </Button>
+          {selected.size === 0 ? (
+            <Button variant="ghost" size="sm" className="gap-1.5 text-muted-foreground" onClick={() => void refetch()}>
+              <RefreshCwIcon className="size-4" />
+              Refresh
+            </Button>
+          ) : (
+            <>
+              {junkFolder && !isDraftsFolder(folder) && !isTrashFolder(folder) && (
+                <Button variant="ghost" size="sm" className="gap-1.5 text-muted-foreground" onClick={() => batchMoveMessages.mutate({ folder, uids: selectedUids, destinationFolder: junkFolder })}>
+                  <AlertOctagonIcon className="size-4" />
+                  Report spam
+                </Button>
+              )}
+              {trashFolder && (
+                <Button variant="ghost" size="sm" className="gap-1.5 text-muted-foreground" onClick={() => batchMoveMessages.mutate({ folder, uids: selectedUids, destinationFolder: trashFolder })}>
+                  <Trash2Icon className="size-4" />
+                  Delete
+                </Button>
+              )}
+              <Button variant="ghost" size="sm" className="gap-1.5 text-muted-foreground" onClick={() => batchMarkAsRead.mutate({ folder, uids: selectedUids, read: true })}>
+                <MailOpenIcon className="size-4" />
+                Mark as read
+              </Button>
+              <Button variant="ghost" size="sm" className="gap-1.5 text-muted-foreground" onClick={() => batchMarkAsRead.mutate({ folder, uids: selectedUids, read: false })}>
+                <MailIcon className="size-4" />
+                Mark as unread
+              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="sm" className="gap-1.5 text-muted-foreground">
+                    <FolderInputIcon className="size-4" />
+                    Move to
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent>
+                  {folders
+                    ?.filter((f) => f.path !== folder)
+                    .map((f) => (
+                      <DropdownMenuItem key={f.path} onClick={() => batchMoveMessages.mutate({ folder, uids: selectedUids, destinationFolder: f.path })}>
+                        {f.name === "INBOX" ? "Inbox" : f.name}
+                      </DropdownMenuItem>
+                    ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </>
+          )}
         </div>
 
         <div className="ml-auto">
@@ -340,20 +429,22 @@ export function MailList({ folder }: { folder: string }) {
                 selected.has(mailId) && "bg-muted/50",
               )}
             >
-              <Checkbox
-                checked={selected.has(mailId)}
-                onCheckedChange={() => toggleSelect(mailId)}
-                aria-label={
-                  displayMode === "drafts"
-                    ? realRecipients.length > 0
-                      ? `Select draft to ${realRecipients.map(getRecipientName).join(", ")}`
-                      : "Select draft with no recipient"
-                    : displayMode === "sent" && allRecipients.length > 0
-                      ? `Select mail to ${getRecipientLabel(mail.to, mail.cc, mail.bcc)}`
-                      : `Select mail from ${getSenderName(mail.from)}`
-                }
-                className="shrink-0"
-              />
+              <div onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}>
+                <Checkbox
+                  checked={selected.has(mailId)}
+                  onCheckedChange={() => toggleSelect(mailId)}
+                  aria-label={
+                    displayMode === "drafts"
+                      ? realRecipients.length > 0
+                        ? `Select draft to ${realRecipients.map(getRecipientName).join(", ")}`
+                        : "Select draft with no recipient"
+                      : displayMode === "sent" && allRecipients.length > 0
+                        ? `Select mail to ${getRecipientLabel(mail.to, mail.cc, mail.bcc)}`
+                        : `Select mail from ${getSenderName(mail.from)}`
+                  }
+                  className="shrink-0"
+                />
+              </div>
 
               {/* Unread indicator */}
               <div className="flex w-2 shrink-0 justify-center">

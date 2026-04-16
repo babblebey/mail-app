@@ -482,4 +482,69 @@ export const mailRouter = createTRPCRouter({
         return { ok: true };
       });
     }),
+
+  /**
+   * Marks multiple messages as read or unread in a single IMAP operation
+   * using a UID sequence set.
+   */
+  batchMarkAsRead: protectedProcedure
+    .input(
+      z.object({
+        accountId: z.string().cuid().optional(),
+        folder: z.string().min(1),
+        uids: z.array(z.number().int().positive()).min(1),
+        read: z.boolean(),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const accountId = await resolveAccountId(
+        input.accountId,
+        ctx.session.user.id,
+      );
+
+      return withImapClient(accountId, ctx.session.user.id, async (client) => {
+        await client.mailboxOpen(input.folder);
+
+        const uidSet = input.uids.join(",");
+
+        if (input.read) {
+          await client.messageFlagsAdd(uidSet, ["\\Seen"], { uid: true });
+        } else {
+          await client.messageFlagsRemove(uidSet, ["\\Seen"], { uid: true });
+        }
+
+        return { ok: true };
+      });
+    }),
+
+  /**
+   * Moves multiple messages to a destination folder in a single IMAP
+   * operation using a UID sequence set.
+   */
+  batchMoveMessages: protectedProcedure
+    .input(
+      z.object({
+        accountId: z.string().cuid().optional(),
+        folder: z.string().min(1),
+        uids: z.array(z.number().int().positive()).min(1),
+        destinationFolder: z.string().min(1),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const accountId = await resolveAccountId(
+        input.accountId,
+        ctx.session.user.id,
+      );
+
+      return withImapClient(accountId, ctx.session.user.id, async (client) => {
+        await client.mailboxOpen(input.folder);
+
+        const uidSet = input.uids.join(",");
+        await client.messageMove(uidSet, input.destinationFolder, {
+          uid: true,
+        });
+
+        return { ok: true };
+      });
+    }),
 });
