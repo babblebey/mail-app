@@ -1,7 +1,9 @@
 import { z } from "zod";
-import type { MessageStructureObject } from "imapflow";
+import type { MessageStructureObject, MessageEnvelopeObject } from "imapflow";
 import { simpleParser } from "mailparser";
 import sanitizeHtml from "sanitize-html";
+import iconv from "iconv-lite";
+import { convert } from "html-to-text";
 
 import { createTRPCRouter, protectedProcedure } from "~/server/api/trpc";
 import { withImapClient, resolveAccountId } from "~/server/imap/client";
@@ -26,29 +28,40 @@ function hasAttachments(structure?: MessageStructureObject): boolean {
   return false;
 }
 
-/**
- * Walks the BODYSTRUCTURE tree to find the MIME part number of the first
- * text/plain part. For simple messages this is "1"; for multipart messages
- * with attachments it may be "1.1" or deeper.
- */
-function findTextPlainPart(
-  structure?: MessageStructureObject,
-  prefix = "",
-): string | null {
-  if (!structure) return null;
-
-  if (structure.type === "text/plain" && structure.part) {
-    return structure.part;
+/** Find the first MIME part matching a given type (e.g. "text/plain"). */
+function findPartByType(
+  structure: MessageStructureObject,
+  mimeType: string,
+): { part: string; type: string; charset: string | null; encoding: string | null } | null {
+  if (structure.type === mimeType && structure.part) {
+    return {
+      part: structure.part,
+      type: mimeType,
+      charset: structure.parameters?.charset ?? null,
+      encoding: structure.encoding ?? null,
+    };
   }
-
   if (structure.childNodes) {
     for (const child of structure.childNodes) {
-      const found = findTextPlainPart(child, prefix);
+      const found = findPartByType(child, mimeType);
       if (found) return found;
     }
   }
-
   return null;
+}
+
+/**
+ * Walks the BODYSTRUCTURE tree to find the best part for generating a
+ * snippet. Prefers text/plain; falls back to text/html.
+ */
+function findSnippetPart(
+  structure?: MessageStructureObject,
+): { part: string; type: string; charset: string | null; encoding: string | null } | null {
+  if (!structure) return null;
+  return (
+    findPartByType(structure, "text/plain") ??
+    findPartByType(structure, "text/html")
+  );
 }
 
 /** Ordering for well-known special-use folders. Lower = higher priority. */
@@ -155,6 +168,32 @@ export const mailRouter = createTRPCRouter({
         const lowerSeq = Math.max(1, upperSeq - input.limit + 1);
         const range = `${lowerSeq}:${upperSeq}`;
 
+        // Pass 1: Fetch metadata (envelope, flags, bodyStructure) without body parts.
+        // We must fully drain the async iterator before issuing further IMAP commands.
+        const fetched: Array<{
+          uid: number;
+          seq: number;
+          flags: string[];
+          envelope?: MessageEnvelopeObject;
+          bodyStructure?: MessageStructureObject;
+        }> = [];
+
+        for await (const msg of client.fetch(range, {
+          uid: true,
+          flags: true,
+          envelope: true,
+          bodyStructure: true,
+        })) {
+          fetched.push({
+            uid: msg.uid,
+            seq: msg.seq,
+            flags: msg.flags ? Array.from(msg.flags) : [],
+            envelope: msg.envelope,
+            bodyStructure: msg.bodyStructure,
+          });
+        }
+
+        // Pass 2: For each message, download the correct snippet part by UID.
         const messages: Array<{
           uid: number;
           sequenceNumber: number;
@@ -171,33 +210,56 @@ export const mailRouter = createTRPCRouter({
           hasAttachments: boolean;
         }> = [];
 
-        for await (const msg of client.fetch(range, {
-          uid: true,
-          flags: true,
-          envelope: true,
-          bodyStructure: true,
-          bodyParts: ["1", "1.1", "1.1.1"],
-        })) {
-          const flags = msg.flags ? Array.from(msg.flags) : [];
+        for (const msg of fetched) {
+          const flags = msg.flags;
           const fromAddr = msg.envelope?.from?.[0];
           const toAddrs = msg.envelope?.to ?? [];
           const ccAddrs = msg.envelope?.cc ?? [];
           const bccAddrs = msg.envelope?.bcc ?? [];
 
-          // Find the actual text/plain part from the MIME structure
-          const textPartId = findTextPlainPart(msg.bodyStructure) ?? "1";
           let snippet = "";
-          if (msg.bodyParts) {
-            const textBuf = msg.bodyParts.get(textPartId);
-            if (textBuf) {
-              snippet = sanitizeHtml(textBuf.toString("utf-8"), {
-                  allowedTags: [],
-                  allowedAttributes: {},
-                })
-                .replace(/\r?\n/g, " ")
-                .replace(/\s+/g, " ")
-                .trim()
-                .slice(0, 120);
+          const snippetPart = findSnippetPart(msg.bodyStructure);
+
+          if (snippetPart) {
+            try {
+              const { content, meta } = await client.download(
+                String(msg.uid),
+                snippetPart.part,
+                { uid: true },
+              );
+              const chunks: Buffer[] = [];
+              for await (const chunk of content) {
+                chunks.push(
+                  // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+                  Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk),
+                );
+              }
+              const rawBuf = Buffer.concat(chunks);
+
+              // download() already decodes transfer encoding; just decode charset
+              const charset = meta.charset ?? snippetPart.charset ?? "utf-8";
+              const text = iconv.encodingExists(charset)
+                ? iconv.decode(rawBuf, charset)
+                : rawBuf.toString("utf-8");
+              // Convert to plain text
+              // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+              const plain =
+                snippetPart.type === "text/html"
+                  // eslint-disable-next-line @typescript-eslint/no-unsafe-call
+                  ? convert(text, {
+                      wordwrap: false,
+                      selectors: [
+                        { selector: "img", format: "skip" },
+                        { selector: "a", options: { ignoreHref: true } },
+                      ],
+                    })
+                  : text;
+              // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call
+              snippet = plain
+                // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+                .replace(/\r?\n/g, " ").replace(/\s+/g, " ").trim().slice(0, 120);
+            } catch {
+              // If downloading the part fails, leave snippet empty
             }
           }
 
@@ -272,6 +334,7 @@ export const mailRouter = createTRPCRouter({
         // Collect the stream into a buffer
         const chunks: Buffer[] = [];
         for await (const chunk of downloadResult.content) {
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
           chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
         }
         const rawSource = Buffer.concat(chunks);

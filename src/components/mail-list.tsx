@@ -580,13 +580,14 @@ export function MailList({ folder }: { folder: string }) {
                 <div className="flex min-w-0 flex-1 items-center gap-1">
                   <span
                     className={cn(
-                      "shrink-0 truncate text-sm max-w-[50%]",
+                      "shrink-0 truncate text-sm",
+                      !mail.snippet?.trim() ? "" : "max-w-[50%]",
                       !mail.read ? "font-semibold text-foreground" : "text-foreground",
                     )}
                   >
                     {mail.subject}
                   </span>
-                  {!(displayMode === "drafts" && !mail.snippet?.trim()) && (
+                  {mail.snippet?.trim() && !(displayMode === "drafts" && !mail.snippet?.trim()) && (
                     <span className="min-w-0 truncate text-sm text-muted-foreground">
                       - {mail.snippet}
                     </span>
