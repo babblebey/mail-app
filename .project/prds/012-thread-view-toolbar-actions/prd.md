@@ -11,6 +11,9 @@ references:
   - type: prd
     url: .project/prds/011-mail-list-group-actions/prd.md
     description: "Prior PRD — Mail list group actions (batch mutations, contextual toolbar pattern, Move To submenu)"
+  - type: pr
+    url: https://github.com/babblebey/mail-app/pull/17
+    description: "Implementation PR — Thread view toolbar actions"
 ---
 
 > **Instructions for AI Agents:**
