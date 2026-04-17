@@ -90,10 +90,10 @@ Reply, Reply All, and Forward are rendered as static (disabled) menu items — t
 
 #### Tasks
 
-- [ ] In `src/components/mail-list.tsx`, add imports for `ContextMenu`, `ContextMenuContent`, `ContextMenuItem`, `ContextMenuSeparator`, `ContextMenuSub`, `ContextMenuSubContent`, `ContextMenuSubTrigger`, `ContextMenuTrigger` from `~/components/ui/context-menu`
-- [ ] In `src/components/mail-list.tsx`, add imports for `ReplyIcon`, `ReplyAllIcon`, `ForwardIcon` from `lucide-react`
-- [ ] In the messages `.map()` rendering block, wrap each mail list row's `<Link>` element with `<ContextMenu>` and `<ContextMenuTrigger asChild>`. Attach the `onContextMenu` event to the `<Link>` element (or a wrapping div) to call `handleContextMenu(mailId)` before the Radix context menu opens
-- [ ] After the `<ContextMenuTrigger>`, add a `<ContextMenuContent>` block containing the following items in order:
+- [x] In `src/components/mail-list.tsx`, add imports for `ContextMenu`, `ContextMenuContent`, `ContextMenuItem`, `ContextMenuSeparator`, `ContextMenuSub`, `ContextMenuSubContent`, `ContextMenuSubTrigger`, `ContextMenuTrigger` from `~/components/ui/context-menu`
+- [x] In `src/components/mail-list.tsx`, add imports for `ReplyIcon`, `ReplyAllIcon`, `ForwardIcon` from `lucide-react`
+- [x] In the messages `.map()` rendering block, wrap each mail list row's `<Link>` element with `<ContextMenu>` and `<ContextMenuTrigger asChild>`. Attach the `onContextMenu` event to the `<Link>` element (or a wrapping div) to call `handleContextMenu(mailId)` before the Radix context menu opens
+- [x] After the `<ContextMenuTrigger>`, add a `<ContextMenuContent>` block containing the following items in order:
   1. **Reply** — `<ContextMenuItem disabled>` with `ReplyIcon` and label `"Reply"`
   2. **Reply All** — `<ContextMenuItem disabled>` with `ReplyAllIcon` and label `"Reply all"`
   3. **Forward** — `<ContextMenuItem disabled>` with `ForwardIcon` and label `"Forward"`
