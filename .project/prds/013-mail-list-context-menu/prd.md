@@ -1,6 +1,6 @@
 ---
 title: "Mail List: Context Menu Actions"
-status: draft
+status: in-progress
 references:
   - type: doc
     url: .project/brief.md
@@ -70,7 +70,7 @@ Reply, Reply All, and Forward are rendered as static (disabled) menu items — t
 
 #### Tasks
 
-- [ ] Run `pnpm dlx shadcn@latest add context-menu` to install the component — this creates `src/components/ui/context-menu.tsx` with exports for `ContextMenu`, `ContextMenuTrigger`, `ContextMenuContent`, `ContextMenuItem`, `ContextMenuSeparator`, `ContextMenuSub`, `ContextMenuSubTrigger`, `ContextMenuSubContent`, and related primitives
+- [x] Run `pnpm dlx shadcn@latest add context-menu` to install the component — this creates `src/components/ui/context-menu.tsx` with exports for `ContextMenu`, `ContextMenuTrigger`, `ContextMenuContent`, `ContextMenuItem`, `ContextMenuSeparator`, `ContextMenuSub`, `ContextMenuSubTrigger`, `ContextMenuSubContent`, and related primitives
 
 ### Phase 2: Context Menu Selection Logic
 
