@@ -78,11 +78,11 @@ Reply, Reply All, and Forward are rendered as static (disabled) menu items — t
 
 #### Tasks
 
-- [ ] In `src/components/mail-list.tsx`, add a `handleContextMenu` callback function that accepts a `mailId: string` parameter and implements the three selection rules:
+- [x] In `src/components/mail-list.tsx`, add a `handleContextMenu` callback function that accepts a `mailId: string` parameter and implements the three selection rules:
   1. If `selected.size === 0`, call `setSelected(new Set([mailId]))` — select only the right-clicked item
   2. If `selected.size > 0` and `!selected.has(mailId)`, call `setSelected(new Set([mailId]))` — clear existing selection, select only the right-clicked item
   3. If `selected.size > 0` and `selected.has(mailId)`, do nothing — keep existing selection unchanged
-- [ ] Wrap `handleContextMenu` in `useCallback` with `[selected]` in the dependency array to avoid unnecessary re-renders
+- [x] Wrap `handleContextMenu` in `useCallback` with `[selected]` in the dependency array to avoid unnecessary re-renders
 
 ### Phase 3: Context Menu UI Integration
 

@@ -238,6 +238,15 @@ export function MailList({ folder }: { folder: string }) {
     }
   }
 
+  const handleContextMenu = useCallback(
+    (mailId: string) => {
+      if (!selected.has(mailId)) {
+        setSelected(new Set([mailId]))
+      }
+    },
+    [selected],
+  )
+
   // Loading skeleton
   if (isLoading) {
     return (
