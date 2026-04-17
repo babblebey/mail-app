@@ -16,6 +16,10 @@ import {
   MailIcon,
   MailOpenIcon,
   FolderInputIcon,
+  FolderIcon,
+  ReplyIcon,
+  ReplyAllIcon,
+  ForwardIcon,
 } from "lucide-react"
 
 import { cn } from "~/lib/utils"
@@ -33,6 +37,16 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "~/components/ui/dropdown-menu"
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuSeparator,
+  ContextMenuSub,
+  ContextMenuSubContent,
+  ContextMenuSubTrigger,
+  ContextMenuTrigger,
+} from "~/components/ui/context-menu"
 import { Skeleton } from "~/components/ui/skeleton"
 import { MailComposer } from "~/components/mail-composer"
 import { api } from "~/trpc/react"
@@ -197,6 +211,10 @@ export function MailList({ folder }: { folder: string }) {
 
   const selectedUids = Array.from(selected).map(Number)
 
+  const hasUnreadSelected = messages.some(
+    (m) => selected.has(String(m.uid)) && !m.read,
+  )
+
   // Infinite scroll: observe the sentinel element
   const handleObserver = useCallback(
     (entries: IntersectionObserverEntry[]) => {
@@ -237,6 +255,15 @@ export function MailList({ folder }: { folder: string }) {
       setSelected(new Set(messages.map((m) => String(m.uid))))
     }
   }
+
+  const handleContextMenu = useCallback(
+    (mailId: string) => {
+      if (!selected.has(mailId)) {
+        setSelected(new Set([mailId]))
+      }
+    },
+    [selected],
+  )
 
   // Loading skeleton
   if (isLoading) {
@@ -421,14 +448,16 @@ export function MailList({ folder }: { folder: string }) {
           const realRecipients = [...mail.to, ...mail.cc, ...mail.bcc].filter(isRealRecipient)
           const allRecipients = [...mail.to, ...mail.cc, ...mail.bcc]
           return (
-            <Link
-              key={mailId}
-              href={`/dashboard/mail/${mail.uid}?folder=${encodeURIComponent(folder)}`}
-              className={cn(
-                "group flex items-center gap-3 border-b px-4 py-3 transition-colors hover:bg-muted/50",
-                selected.has(mailId) && "bg-muted/50",
-              )}
-            >
+            <ContextMenu key={mailId}>
+              <ContextMenuTrigger asChild>
+                <Link
+                  href={`/dashboard/mail/${mail.uid}?folder=${encodeURIComponent(folder)}`}
+                  className={cn(
+                    "group flex items-center gap-3 border-b px-4 py-3 transition-colors hover:bg-muted/50",
+                    selected.has(mailId) && "bg-muted/50",
+                  )}
+                  onContextMenu={() => handleContextMenu(mailId)}
+                >
               <div onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}>
                 <Checkbox
                   checked={selected.has(mailId)}
@@ -577,6 +606,57 @@ export function MailList({ folder }: { folder: string }) {
                 </span>
               </div>
             </Link>
+              </ContextMenuTrigger>
+              <ContextMenuContent>
+                <ContextMenuItem>
+                  <ReplyIcon className="size-4" />
+                  Reply
+                </ContextMenuItem>
+                <ContextMenuItem>
+                  <ReplyAllIcon className="size-4" />
+                  Reply all
+                </ContextMenuItem>
+                <ContextMenuItem>
+                  <ForwardIcon className="size-4" />
+                  Forward
+                </ContextMenuItem>
+                <ContextMenuSeparator />
+                {trashFolder && (
+                  <ContextMenuItem onClick={() => batchMoveMessages.mutate({ folder, uids: Array.from(selected).map(Number), destinationFolder: trashFolder })}>
+                    <Trash2Icon className="size-4" />
+                    Delete
+                  </ContextMenuItem>
+                )}
+                {hasUnreadSelected ? (
+                  <ContextMenuItem onClick={() => batchMarkAsRead.mutate({ folder, uids: Array.from(selected).map(Number), read: true })}>
+                    <MailOpenIcon className="size-4" />
+                    Mark as read
+                  </ContextMenuItem>
+                ) : (
+                  <ContextMenuItem onClick={() => batchMarkAsRead.mutate({ folder, uids: Array.from(selected).map(Number), read: false })}>
+                    <MailIcon className="size-4" />
+                    Mark as unread
+                  </ContextMenuItem>
+                )}
+                <ContextMenuSeparator />
+                <ContextMenuSub>
+                  <ContextMenuSubTrigger>
+                    <FolderInputIcon className="size-4" />
+                    Move to
+                  </ContextMenuSubTrigger>
+                  <ContextMenuSubContent>
+                    {folders
+                      ?.filter((f) => f.path !== folder)
+                      .map((f) => (
+                        <ContextMenuItem key={f.path} onClick={() => batchMoveMessages.mutate({ folder, uids: Array.from(selected).map(Number), destinationFolder: f.path })}>
+                          <FolderIcon className="size-4" />
+                          {f.name === "INBOX" ? "Inbox" : f.name}
+                        </ContextMenuItem>
+                      ))}
+                  </ContextMenuSubContent>
+                </ContextMenuSub>
+              </ContextMenuContent>
+            </ContextMenu>
           )
         })}
 
