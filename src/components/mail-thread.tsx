@@ -157,7 +157,6 @@ function MessageBody({ message }: { message: MessageData }) {
 
     const imgs = container.querySelectorAll<HTMLImageElement>("img[src]")
     imgs.forEach((img) => {
-      if (!img.src.includes("/api/attachments")) return
       if (img.complete) return
 
       // Wrap the image in a relative container for the placeholder
