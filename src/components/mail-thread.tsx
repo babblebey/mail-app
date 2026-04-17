@@ -478,21 +478,36 @@ function MessageView({
               }
 
               return (
-                <button
-                  key={i}
-                  type="button"
-                  disabled={downloadingIndex === i}
-                  className="flex items-center gap-2 rounded-lg border px-3 py-2 text-sm transition-colors hover:bg-muted/50 disabled:opacity-50"
-                  onClick={() => void handleDownload(downloadUrl, att.filename, i)}
-                >
-                  {downloadingIndex === i
-                    ? <Loader2Icon className="size-4 shrink-0 animate-spin text-muted-foreground" />
-                    : <FileIcon className="size-4 shrink-0 text-muted-foreground" />}
-                  <span className="truncate">{att.filename}</span>
-                  <span className="shrink-0 text-xs text-muted-foreground">
-                    {formatSize(att.size)}
-                  </span>
-                </button>
+                <div key={i} className="flex items-center gap-0">
+                  <button
+                    type="button"
+                    disabled={downloadingIndex === i}
+                    className="flex items-center gap-2 rounded-l-lg border px-3 py-2 text-sm transition-colors hover:bg-muted/50 disabled:opacity-50"
+                    onClick={() => void handleDownload(downloadUrl, att.filename, i)}
+                  >
+                    {downloadingIndex === i
+                      ? <Loader2Icon className="size-4 shrink-0 animate-spin text-muted-foreground" />
+                      : <FileIcon className="size-4 shrink-0 text-muted-foreground" />}
+                    <span className="truncate">{att.filename}</span>
+                    <span className="shrink-0 text-xs text-muted-foreground">
+                      {formatSize(att.size)}
+                    </span>
+                  </button>
+                  <button
+                    type="button"
+                    disabled={downloadingIndex === i}
+                    className="flex items-center rounded-r-lg border border-l-0 px-2 py-2 transition-colors hover:bg-muted/50 disabled:opacity-50"
+                    title={`Download ${att.filename}`}
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      void handleDownload(downloadUrl, att.filename, i)
+                    }}
+                  >
+                    {downloadingIndex === i
+                      ? <Loader2Icon className="size-4 animate-spin text-muted-foreground" />
+                      : <DownloadIcon className="size-4 text-muted-foreground" />}
+                  </button>
+                </div>
               )
             })}
           </div>
