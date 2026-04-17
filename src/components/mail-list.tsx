@@ -16,6 +16,7 @@ import {
   MailIcon,
   MailOpenIcon,
   FolderInputIcon,
+  FolderIcon,
   ReplyIcon,
   ReplyAllIcon,
   ForwardIcon,
@@ -607,15 +608,15 @@ export function MailList({ folder }: { folder: string }) {
             </Link>
               </ContextMenuTrigger>
               <ContextMenuContent>
-                <ContextMenuItem disabled>
+                <ContextMenuItem>
                   <ReplyIcon className="size-4" />
                   Reply
                 </ContextMenuItem>
-                <ContextMenuItem disabled>
+                <ContextMenuItem>
                   <ReplyAllIcon className="size-4" />
                   Reply all
                 </ContextMenuItem>
-                <ContextMenuItem disabled>
+                <ContextMenuItem>
                   <ForwardIcon className="size-4" />
                   Forward
                 </ContextMenuItem>
@@ -648,6 +649,7 @@ export function MailList({ folder }: { folder: string }) {
                       ?.filter((f) => f.path !== folder)
                       .map((f) => (
                         <ContextMenuItem key={f.path} onClick={() => batchMoveMessages.mutate({ folder, uids: Array.from(selected).map(Number), destinationFolder: f.path })}>
+                          <FolderIcon className="size-4" />
                           {f.name === "INBOX" ? "Inbox" : f.name}
                         </ContextMenuItem>
                       ))}
