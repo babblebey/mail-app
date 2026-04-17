@@ -1,6 +1,6 @@
 ---
 title: "Mail List: Context Menu Actions"
-status: in-progress
+status: completed
 references:
   - type: doc
     url: .project/brief.md
@@ -110,24 +110,24 @@ Reply, Reply All, and Forward are rendered as static (disabled) menu items — t
 
 #### Tasks
 
-- [ ] In `src/components/mail-list.tsx`, add a derived boolean `hasUnreadSelected` computed as: `messages.some((m) => selected.has(String(m.uid)) && !m.read)` — this is `true` when any selected message is unread
-- [ ] Use `hasUnreadSelected` to conditionally render:
+- [x] In `src/components/mail-list.tsx`, add a derived boolean `hasUnreadSelected` computed as: `messages.some((m) => selected.has(String(m.uid)) && !m.read)` — this is `true` when any selected message is unread
+- [x] Use `hasUnreadSelected` to conditionally render:
   - When `true`: show "Mark as read" with `MailOpenIcon`, `onClick` calls `batchMarkAsRead.mutate({ folder, uids: Array.from(selected).map(Number), read: true })`
   - When `false`: show "Mark as unread" with `MailIcon`, `onClick` calls `batchMarkAsRead.mutate({ folder, uids: Array.from(selected).map(Number), read: false })`
 
 ## Acceptance Criteria
 
-- [ ] Right-clicking a mail list item when no items are selected causes the item to become selected (checkbox checked) and opens a context menu at the click position
-- [ ] Right-clicking a mail list item that is not in the current selection clears all selections, selects only the right-clicked item, and opens the context menu
-- [ ] Right-clicking a mail list item that is already in a multi-selection preserves the entire selection and opens the context menu
-- [ ] The context menu displays six items: Reply, Reply all, Forward, Delete, Mark as read/unread, Move to
-- [ ] Reply, Reply all, and Forward are visible but disabled (greyed out, not clickable)
-- [ ] Clicking "Delete" in the context menu moves all selected messages to the Trash folder, clears the selection, and refreshes the list
-- [ ] Clicking "Mark as read" in the context menu adds the `\Seen` flag to all selected messages, clears the selection, and refreshes the list
-- [ ] Clicking "Mark as unread" in the context menu removes the `\Seen` flag from all selected messages, clears the selection, and refreshes the list
-- [ ] The Mark as read/unread label is dynamic: shows "Mark as read" when any selected message is unread; shows "Mark as unread" when all selected messages are read
-- [ ] Clicking "Move to" opens a sub-menu listing all IMAP folders except the current one; clicking a folder moves all selected messages there, clears the selection, and refreshes the list
-- [ ] Left-clicking a mail list item still navigates to `/dashboard/mail/[uid]` — context menu does not interfere with normal navigation
-- [ ] Long-press on mobile triggers the same context menu (native Radix context menu behaviour)
-- [ ] Dismissing the context menu without selecting an action does not revert the selection state
-- [ ] No TypeScript errors — `pnpm build` passes cleanly
+- [x] Right-clicking a mail list item when no items are selected causes the item to become selected (checkbox checked) and opens a context menu at the click position
+- [x] Right-clicking a mail list item that is not in the current selection clears all selections, selects only the right-clicked item, and opens the context menu
+- [x] Right-clicking a mail list item that is already in a multi-selection preserves the entire selection and opens the context menu
+- [x] The context menu displays six items: Reply, Reply all, Forward, Delete, Mark as read/unread, Move to
+- [x] Reply, Reply all, and Forward are visible but disabled (greyed out, not clickable)
+- [x] Clicking "Delete" in the context menu moves all selected messages to the Trash folder, clears the selection, and refreshes the list
+- [x] Clicking "Mark as read" in the context menu adds the `\Seen` flag to all selected messages, clears the selection, and refreshes the list
+- [x] Clicking "Mark as unread" in the context menu removes the `\Seen` flag from all selected messages, clears the selection, and refreshes the list
+- [x] The Mark as read/unread label is dynamic: shows "Mark as read" when any selected message is unread; shows "Mark as unread" when all selected messages are read
+- [x] Clicking "Move to" opens a sub-menu listing all IMAP folders except the current one; clicking a folder moves all selected messages there, clears the selection, and refreshes the list
+- [x] Left-clicking a mail list item still navigates to `/dashboard/mail/[uid]` — context menu does not interfere with normal navigation
+- [x] Long-press on mobile triggers the same context menu (native Radix context menu behaviour)
+- [x] Dismissing the context menu without selecting an action does not revert the selection state
+- [x] No TypeScript errors — `pnpm build` passes cleanly

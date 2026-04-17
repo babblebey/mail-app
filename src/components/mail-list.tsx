@@ -607,15 +607,15 @@ export function MailList({ folder }: { folder: string }) {
             </Link>
               </ContextMenuTrigger>
               <ContextMenuContent>
-                <ContextMenuItem>
+                <ContextMenuItem disabled>
                   <ReplyIcon className="size-4" />
                   Reply
                 </ContextMenuItem>
-                <ContextMenuItem>
+                <ContextMenuItem disabled>
                   <ReplyAllIcon className="size-4" />
                   Reply all
                 </ContextMenuItem>
-                <ContextMenuItem>
+                <ContextMenuItem disabled>
                   <ForwardIcon className="size-4" />
                   Forward
                 </ContextMenuItem>
