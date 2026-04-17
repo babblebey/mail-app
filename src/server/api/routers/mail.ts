@@ -2,6 +2,8 @@ import { z } from "zod";
 import type { MessageStructureObject } from "imapflow";
 import { simpleParser } from "mailparser";
 import sanitizeHtml from "sanitize-html";
+import he from "he";
+import iconv from "iconv-lite";
 
 import { createTRPCRouter, protectedProcedure } from "~/server/api/trpc";
 import { withImapClient, resolveAccountId } from "~/server/imap/client";
@@ -27,23 +29,25 @@ function hasAttachments(structure?: MessageStructureObject): boolean {
 }
 
 /**
- * Walks the BODYSTRUCTURE tree to find the MIME part number of the first
- * text/plain part. For simple messages this is "1"; for multipart messages
- * with attachments it may be "1.1" or deeper.
+ * Walks the BODYSTRUCTURE tree to find the MIME part number and charset of
+ * the first text/plain part. For simple messages the part is "1"; for
+ * multipart messages with attachments it may be "1.1" or deeper.
  */
 function findTextPlainPart(
   structure?: MessageStructureObject,
-  prefix = "",
-): string | null {
+): { part: string; charset: string | null } | null {
   if (!structure) return null;
 
   if (structure.type === "text/plain" && structure.part) {
-    return structure.part;
+    return {
+      part: structure.part,
+      charset: structure.parameters?.charset ?? null,
+    };
   }
 
   if (structure.childNodes) {
     for (const child of structure.childNodes) {
-      const found = findTextPlainPart(child, prefix);
+      const found = findTextPlainPart(child);
       if (found) return found;
     }
   }
@@ -185,15 +189,22 @@ export const mailRouter = createTRPCRouter({
           const bccAddrs = msg.envelope?.bcc ?? [];
 
           // Find the actual text/plain part from the MIME structure
-          const textPartId = findTextPlainPart(msg.bodyStructure) ?? "1";
+          const textPartInfo = findTextPlainPart(msg.bodyStructure);
+          const textPartId = textPartInfo?.part ?? "1";
+          const textPartCharset = textPartInfo?.charset ?? "utf-8";
           let snippet = "";
           if (msg.bodyParts) {
             const textBuf = msg.bodyParts.get(textPartId);
             if (textBuf) {
-              snippet = sanitizeHtml(textBuf.toString("utf-8"), {
-                  allowedTags: [],
-                  allowedAttributes: {},
-                })
+              const decoded = iconv.encodingExists(textPartCharset)
+                ? iconv.decode(textBuf, textPartCharset)
+                : textBuf.toString("utf-8");
+              snippet = he.decode(
+                  sanitizeHtml(decoded, {
+                    allowedTags: [],
+                    allowedAttributes: {},
+                  }),
+                )
                 .replace(/\r?\n/g, " ")
                 .replace(/\s+/g, " ")
                 .trim()
