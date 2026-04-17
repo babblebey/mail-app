@@ -26,6 +26,31 @@ function hasAttachments(structure?: MessageStructureObject): boolean {
   return false;
 }
 
+/**
+ * Walks the BODYSTRUCTURE tree to find the MIME part number of the first
+ * text/plain part. For simple messages this is "1"; for multipart messages
+ * with attachments it may be "1.1" or deeper.
+ */
+function findTextPlainPart(
+  structure?: MessageStructureObject,
+  prefix = "",
+): string | null {
+  if (!structure) return null;
+
+  if (structure.type === "text/plain" && structure.part) {
+    return structure.part;
+  }
+
+  if (structure.childNodes) {
+    for (const child of structure.childNodes) {
+      const found = findTextPlainPart(child, prefix);
+      if (found) return found;
+    }
+  }
+
+  return null;
+}
+
 /** Ordering for well-known special-use folders. Lower = higher priority. */
 const SPECIAL_USE_ORDER: Record<string, number> = {
   "\\Inbox": 0,
@@ -151,7 +176,7 @@ export const mailRouter = createTRPCRouter({
           flags: true,
           envelope: true,
           bodyStructure: true,
-          bodyParts: ["1"],
+          bodyParts: ["1", "1.1", "1.1.1"],
         })) {
           const flags = msg.flags ? Array.from(msg.flags) : [];
           const fromAddr = msg.envelope?.from?.[0];
@@ -159,10 +184,11 @@ export const mailRouter = createTRPCRouter({
           const ccAddrs = msg.envelope?.cc ?? [];
           const bccAddrs = msg.envelope?.bcc ?? [];
 
-          // Extract a plain-text snippet from body part "1" (first text part)
+          // Find the actual text/plain part from the MIME structure
+          const textPartId = findTextPlainPart(msg.bodyStructure) ?? "1";
           let snippet = "";
           if (msg.bodyParts) {
-            const textBuf = msg.bodyParts.get("1");
+            const textBuf = msg.bodyParts.get(textPartId);
             if (textBuf) {
               snippet = sanitizeHtml(textBuf.toString("utf-8"), {
                   allowedTags: [],
