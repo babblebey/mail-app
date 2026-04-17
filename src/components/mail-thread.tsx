@@ -152,7 +152,7 @@ function MessageBody({ message }: { message: MessageData }) {
   if (message.htmlBody) {
     return (
       <div
-        className="prose prose-sm max-w-none text-foreground prose-blockquote:not-italic"
+        className="prose prose-sm max-w-none text-foreground prose-blockquote:not-italic prose-tr:border-0"
         dangerouslySetInnerHTML={{ __html: message.htmlBody }}
       />
     )
