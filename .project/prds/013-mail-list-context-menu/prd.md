@@ -14,6 +14,9 @@ references:
   - type: prd
     url: .project/prds/010-thread-view-message-actions-dropdown/prd.md
     description: "Prior PRD — Thread view message actions dropdown (moveMessage mutation, listFolders query)"
+  - type: pr
+    url: https://github.com/babblebey/mail-app/pull/19
+    description: "Implementation PR — Mail list context menu actions"
 ---
 
 > **Instructions for AI Agents:**
