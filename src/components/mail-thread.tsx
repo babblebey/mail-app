@@ -3,7 +3,6 @@
 import { useState, useRef, useCallback } from "react"
 import {
   ArrowLeftIcon,
-  ArchiveIcon,
   Trash2Icon,
   FolderIcon,
   MoreHorizontalIcon,
@@ -645,21 +644,79 @@ export function MailThreadView({ uid, folder }: { uid: number; folder: string })
         <Separator orientation="vertical" className="mx-1 data-vertical:h-full" />
 
         <div className="flex items-center gap-1">
-          <Button variant="ghost" size="sm" className="gap-1.5 text-muted-foreground">
-            <ArchiveIcon className="size-4" />
-            Archive
+          {!isJunkFolder && !isTrashFolder && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="gap-1.5 text-muted-foreground"
+              onClick={() => {
+                if (junkFolder && message) {
+                  moveMessageMutation.mutate({ folder, uid: message.uid, destinationFolder: junkFolder })
+                }
+              }}
+            >
+              <AlertOctagonIcon className="size-4" />
+              Report spam
+            </Button>
+          )}
+          {!isTrashFolder && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="gap-1.5 text-muted-foreground"
+              onClick={() => {
+                if (trashFolder && message) {
+                  moveMessageMutation.mutate({ folder, uid: message.uid, destinationFolder: trashFolder })
+                }
+              }}
+            >
+              <Trash2Icon className="size-4" />
+              Delete
+            </Button>
+          )}
+          <Button
+            variant="ghost"
+            size="sm"
+            className="gap-1.5 text-muted-foreground"
+            onClick={() => {
+              if (message) {
+                markAsReadMutation.mutate({ folder, uid: message.uid, read: false })
+              }
+            }}
+          >
+            <MailIcon className="size-4" />
+            Mark as unread
           </Button>
-          <Button variant="ghost" size="sm" className="gap-1.5 text-muted-foreground">
-            <FolderIcon className="size-4" />
-            Move
-          </Button>
-          <Button variant="ghost" size="sm" className="gap-1.5 text-muted-foreground">
-            <Trash2Icon className="size-4" />
-            Delete
-          </Button>
-          <Button variant="ghost" size="icon-sm" className="text-muted-foreground">
-            <MoreHorizontalIcon className="size-4" />
-          </Button>
+          <DropdownMenu modal={false}>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon-sm" className="text-muted-foreground">
+                <MoreHorizontalIcon className="size-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start">
+              {folders && folders.length > 0 && message && (
+                <DropdownMenuSub>
+                  <DropdownMenuSubTrigger>
+                    <FolderInputIcon className="size-4" />
+                    Move to
+                  </DropdownMenuSubTrigger>
+                  <DropdownMenuSubContent>
+                    {folders
+                      .filter((f) => f.path !== folder)
+                      .map((f) => (
+                        <DropdownMenuItem
+                          key={f.path}
+                          onClick={() => moveMessageMutation.mutate({ folder, uid: message.uid, destinationFolder: f.path })}
+                        >
+                          <FolderIcon className="size-4" />
+                          {f.name.charAt(0).toUpperCase() + f.name.slice(1).toLowerCase()}
+                        </DropdownMenuItem>
+                      ))}
+                  </DropdownMenuSubContent>
+                </DropdownMenuSub>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
 
         <div className="ml-auto flex items-center gap-1">
