@@ -85,7 +85,7 @@ This PRD introduces a **local caching layer** backed by PostgreSQL and a **stand
 
 #### Tasks
 
-- [x] Create `src/server/sync/folder-sync.ts` exporting a `syncFolders(accountId: string)` function:
+                                                                                                                                                                                                    - [x] Create `src/server/sync/folder-sync.ts` exporting a `syncFolders(accountId: string)` function:
   - Open an IMAP connection using the existing `createImapClient` + credential decryption pattern from `src/server/imap/client.ts`
   - Call `client.list()` to retrieve all mailboxes
   - For each mailbox:
@@ -120,7 +120,7 @@ This PRD introduces a **local caching layer** backed by PostgreSQL and a **stand
 
 #### Tasks
 
-- [ ] Create `src/server/sync/body-sync.ts` exporting a `syncBodies(client: ImapFlow, folder: MailFolder)` function:
+- [x] Create `src/server/sync/body-sync.ts` exporting a `syncBodies(client: ImapFlow, folder: MailFolder)` function:
   - Query `MailMessage` records for this folder where `bodyFetched = false`, ordered by `date DESC`, limited to 50
   - For each message:
     - Download the full RFC822 source via `client.download(uid, undefined, { uid: true })`
