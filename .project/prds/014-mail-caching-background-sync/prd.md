@@ -1,6 +1,6 @@
 ---
 title: "Mail Caching & Background Sync"
-status: draft
+status: in-progress
 references:
   - type: doc
     url: .project/brief.md
@@ -60,24 +60,24 @@ This PRD introduces a **local caching layer** backed by PostgreSQL and a **stand
 
 #### Tasks
 
-- [ ] Add `MailFolder` model to `prisma/schema.prisma`:
+- [x] Add `MailFolder` model to `prisma/schema.prisma`:
   - Fields: `id` (cuid PK), `mailAccountId` (FK → MailAccount), `path` (IMAP path e.g. `"INBOX"`), `name` (display name), `specialUse` (optional, e.g. `"\\Inbox"`), `delimiter` (optional), `totalMessages` (Int, default 0), `unseenMessages` (Int, default 0), `uidValidity` (Int, optional — IMAP UIDVALIDITY), `highestUid` (Int, default 0 — highest synced UID for incremental fetch), `lastSyncedAt` (DateTime, optional)
   - Unique constraint: `[mailAccountId, path]`
   - Relation: belongs to `MailAccount`
-- [ ] Add `MailMessage` model to `prisma/schema.prisma`:
+- [x] Add `MailMessage` model to `prisma/schema.prisma`:
   - Fields: `id` (cuid PK), `mailAccountId` (FK → MailAccount), `folderId` (FK → MailFolder), `uid` (Int — IMAP UID), `messageId` (String, optional — Message-ID header), `subject` (String, optional), `fromAddress` (Json — array of `{name, address}`), `toAddress` (Json), `ccAddress` (Json, optional), `bccAddress` (Json, optional), `date` (DateTime, optional), `flags` (String array), `read` (Boolean, default false), `starred` (Boolean, default false), `snippet` (String, optional — first ~120 chars), `hasAttachments` (Boolean, default false), `inReplyTo` (String, optional), `references` (String array), `bodyFetched` (Boolean, default false), `createdAt` (DateTime), `updatedAt` (DateTime)
   - Unique constraint: `[folderId, uid]`
   - Indexes: `[mailAccountId]`, `[folderId, date DESC]` (for ordered pagination)
   - Relations: belongs to `MailAccount`, belongs to `MailFolder`, has one `MailMessageBody`
-- [ ] Add `MailMessageBody` model to `prisma/schema.prisma`:
+- [x] Add `MailMessageBody` model to `prisma/schema.prisma`:
   - Fields: `id` (cuid PK), `messageId` (String, unique FK → MailMessage.id), `textBody` (String, optional), `htmlBody` (String, optional), `attachments` (Json, optional — metadata array: filename, contentType, size, cid, index), `fetchedAt` (DateTime, default now)
   - Relation: belongs to `MailMessage` (1:1)
-- [ ] Add `SyncState` model to `prisma/schema.prisma`:
+- [x] Add `SyncState` model to `prisma/schema.prisma`:
   - Fields: `id` (cuid PK), `mailAccountId` (String, unique FK → MailAccount), `status` (String, default `"idle"` — one of `"idle"`, `"syncing"`, `"error"`), `error` (String, optional), `lastSyncStartedAt` (DateTime, optional), `lastSyncCompletedAt` (DateTime, optional)
   - Relation: belongs to `MailAccount` (1:1)
-- [ ] Add corresponding relation fields on the `MailAccount` model (`folders`, `messages`, `syncState`)
-- [ ] Run `prisma migrate dev --name mail-caching` to generate and apply the migration
-- [ ] Verify the generated client types include the new models
+- [x] Add corresponding relation fields on the `MailAccount` model (`folders`, `messages`, `syncState`)
+- [x] Run `prisma migrate dev --name mail-caching` to generate and apply the migration
+- [x] Verify the generated client types include the new models
 
 ### Phase 2: Sync Engine — Folder Sync
 
