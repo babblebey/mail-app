@@ -222,8 +222,14 @@ export async function syncMessages(
       const envelope = msg.envelope;
       const fromAddr = fmtAddr(envelope?.from?.[0]);
 
-      await db.mailMessage.create({
-        data: {
+      await db.mailMessage.upsert({
+        where: {
+          folderId_uid: {
+            folderId: folder.id,
+            uid: msg.uid,
+          },
+        },
+        create: {
           mailAccountId: folder.mailAccountId,
           folderId: folder.id,
           uid: msg.uid,
@@ -241,6 +247,12 @@ export async function syncMessages(
           hasAttachments: hasAttachments(msg.bodyStructure),
           inReplyTo: envelope?.inReplyTo ?? null,
           references: [],  // ImapFlow envelope doesn't expose references; empty for now
+        },
+        update: {
+          flags,
+          read: flags.includes("\\Seen"),
+          starred: flags.includes("\\Flagged"),
+          snippet,
         },
       });
     }
