@@ -43,6 +43,7 @@ This PRD introduces a **local caching layer** backed by PostgreSQL and a **stand
 - **Standalone worker process**: The sync engine runs as a separate Node.js process (`tsx src/server/sync/index.ts`), not inside Next.js API routes. This avoids serverless timeout constraints, allows continuous polling, and keeps the web server responsive.
 - **Sequential account processing**: The worker processes accounts one at a time to avoid IMAP connection storms. With a 30-second interval this provides acceptable freshness for typical use.
 - **Deletion detection window**: To avoid expensive full-UID comparisons on large folders, deletion detection is limited to the most recent 200 messages per folder.
+- **Idempotent message sync**: Before inserting new messages, the sync queries existing UIDs for the fetched range and skips any already-persisted messages. This makes the sync resilient to interruptions — if the worker crashes mid-sync, the next run skips messages that were already written instead of failing on unique constraint violations or performing redundant upserts.
 - **Newest-first sync order**: During message metadata sync, fetched messages are sorted by UID descending before persisting so the most recent messages appear in the UI first while older messages continue syncing in the background.
 - **Folder priority ordering**: The worker sorts folders by special-use priority before syncing (Inbox → Drafts → Sent → Junk → Trash → Archive → others alphabetically). This ensures the Inbox — the most frequently accessed folder — has its metadata and bodies cached first, rather than depending on the arbitrary order returned by `client.list()`.
 
@@ -108,7 +109,8 @@ This PRD introduces a **local caching layer** backed by PostgreSQL and a **stand
   - **UIDVALIDITY check**: Compare the IMAP mailbox's `uidValidity` with the stored `folder.uidValidity`
     - If they differ: delete all `MailMessage` records for this folder, reset `highestUid` to 0, update stored `uidValidity` — then proceed as a full sync
   - **New messages**: Fetch messages with `UID > folder.highestUid` using `client.fetch()` with `{ envelope: true, flags: true, uid: true, bodyStructure: true }`
-    - For each message: create a `MailMessage` record with uid, subject, from/to/cc/bcc (from envelope), date, flags, read (`\\Seen`), starred (`\\Flagged`), hasAttachments (using existing `hasAttachments()` helper), snippet (fetch the snippet part as done in current `listMessages`)
+    - Before inserting, query the database for any UIDs in the fetched range that already exist (from a prior interrupted sync) and filter them out — this avoids unique constraint errors and redundant snippet downloads
+    - For each genuinely new message: create a `MailMessage` record with uid, subject, from/to/cc/bcc (from envelope), date, flags, read (`\\Seen`), starred (`\\Flagged`), hasAttachments (using existing `hasAttachments()` helper), snippet (fetch the snippet part as done in current `listMessages`)
     - Update `folder.highestUid` to the max UID seen
   - **Flag refresh on recent messages**: For the most recent 200 messages (by UID descending), re-fetch flags only (`client.fetch(range, { flags: true, uid: true })`)
     - Update `read` and `starred` fields, plus the raw `flags` array, for any changed messages

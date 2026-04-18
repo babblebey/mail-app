@@ -179,8 +179,19 @@ export async function syncMessages(
     // Sort newest-first so the most recent messages are persisted first
     fetched.sort((a, b) => b.uid - a.uid);
 
+    // Filter out UIDs already persisted (e.g. from an interrupted prior sync)
+    const existingMessages = await db.mailMessage.findMany({
+      where: {
+        folderId: folder.id,
+        uid: { in: fetched.map((m) => m.uid) },
+      },
+      select: { uid: true },
+    });
+    const existingUids = new Set(existingMessages.map((m) => m.uid));
+    const newMessages = fetched.filter((m) => !existingUids.has(m.uid));
+
     // Pass 2: fetch snippets and create DB records
-    for (const msg of fetched) {
+    for (const msg of newMessages) {
       let snippet = "";
       const snippetPart = findSnippetPart(msg.bodyStructure);
 
@@ -222,14 +233,8 @@ export async function syncMessages(
       const envelope = msg.envelope;
       const fromAddr = fmtAddr(envelope?.from?.[0]);
 
-      await db.mailMessage.upsert({
-        where: {
-          folderId_uid: {
-            folderId: folder.id,
-            uid: msg.uid,
-          },
-        },
-        create: {
+      await db.mailMessage.create({
+        data: {
           mailAccountId: folder.mailAccountId,
           folderId: folder.id,
           uid: msg.uid,
@@ -247,12 +252,6 @@ export async function syncMessages(
           hasAttachments: hasAttachments(msg.bodyStructure),
           inReplyTo: envelope?.inReplyTo ?? null,
           references: [],  // ImapFlow envelope doesn't expose references; empty for now
-        },
-        update: {
-          flags,
-          read: flags.includes("\\Seen"),
-          starred: flags.includes("\\Flagged"),
-          snippet,
         },
       });
     }
