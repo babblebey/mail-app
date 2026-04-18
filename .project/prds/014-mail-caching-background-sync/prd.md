@@ -217,6 +217,23 @@ This PRD introduces a **local caching layer** backed by PostgreSQL and a **stand
   - The worker, on each iteration, processes `"pending"` accounts first before applying the 30-second wait
   - Returns `{ ok: true }`
 
+### Phase 9: Frontend — Sync Status UI
+
+**Goal:** Surface sync status and manual sync triggers in the frontend so users can see when data was last refreshed and request an immediate sync.
+
+#### Tasks
+
+- [x] Add sync status and trigger to the **mail list toolbar** (`src/components/mail-list.tsx`):
+  - Poll `mail.getSyncStatus` (every 2s while syncing/pending, every 30s otherwise)
+  - Replace the existing "Refresh" buttons (toolbar + empty state) with a "Sync" button that calls `mail.triggerSync`
+  - Show animated spinning `RefreshCwIcon` and "Syncing…" text while sync is in progress; disable the button to prevent duplicate triggers
+  - When sync status transitions from syncing/pending to idle, automatically invalidate `listMessages` and `listFolders` queries so the UI refreshes
+- [x] Add per-account sync status and trigger to the **settings page** (`src/app/dashboard/settings/page.tsx`):
+  - Create an `AccountSyncStatus` component rendered inside each account card
+  - Poll `mail.getSyncStatus` with the specific `accountId` (same adaptive interval)
+  - Display a status indicator: green dot + "Last synced X ago" for idle, spinning icon + "Syncing…" for active, red dot + error message for errors
+  - Provide a "Sync Now" button that calls `mail.triggerSync` with the specific `accountId`
+
 ## Acceptance Criteria
 
 - [x] Four new Prisma models (`MailFolder`, `MailMessage`, `MailMessageBody`, `SyncState`) exist and the migration applies cleanly
@@ -233,3 +250,5 @@ This PRD introduces a **local caching layer** backed by PostgreSQL and a **stand
 - [x] Attachment downloads continue to work via the live IMAP `/api/attachments` route (not cached)
 - [x] Inline images (CID-referenced) in eagerly synced message bodies render correctly in the thread view, not as separate attachments
 - [x] No TypeScript or lint errors after all changes
+- [x] The mail list toolbar shows a "Sync" button that triggers `mail.triggerSync`, displays animated spinner during sync, and auto-refreshes messages when sync completes
+- [x] The settings page shows per-account sync status (last synced time, syncing indicator, error state) and a "Sync Now" button for each account

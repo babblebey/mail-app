@@ -193,6 +193,32 @@ export function MailList({ folder }: { folder: string }) {
 
   const utils = api.useUtils()
 
+  const syncStatus = api.mail.getSyncStatus.useQuery({}, {
+    refetchInterval: (query) => {
+      const status = query.state.data?.status
+      return status === "syncing" || status === "pending" ? 2000 : 30000
+    },
+  })
+  const isSyncing = syncStatus.data?.status === "syncing" || syncStatus.data?.status === "pending"
+
+  const triggerSync = api.mail.triggerSync.useMutation({
+    onSuccess: () => {
+      void syncStatus.refetch()
+    },
+  })
+
+  // When sync finishes, refetch messages and folders
+  const prevSyncStatus = useRef(syncStatus.data?.status)
+  useEffect(() => {
+    const prev = prevSyncStatus.current
+    const curr = syncStatus.data?.status
+    prevSyncStatus.current = curr
+    if ((prev === "syncing" || prev === "pending") && curr !== "syncing" && curr !== "pending") {
+      void utils.mail.listMessages.invalidate()
+      void utils.mail.listFolders.invalidate()
+    }
+  }, [syncStatus.data?.status, utils])
+
   const batchMarkAsRead = api.mail.batchMarkAsRead.useMutation({
     onSuccess: () => {
       setSelected(new Set())
@@ -317,10 +343,11 @@ export function MailList({ folder }: { folder: string }) {
             variant="ghost"
             size="sm"
             className="gap-1.5 text-muted-foreground"
-            onClick={() => void refetch()}
+            disabled={isSyncing || triggerSync.isPending}
+            onClick={() => triggerSync.mutate({})}
           >
-            <RefreshCwIcon className="size-4" />
-            Refresh
+            <RefreshCwIcon className={cn("size-4", isSyncing && "animate-spin")} />
+            {isSyncing ? "Syncing…" : "Sync"}
           </Button>
           <div className="ml-auto">
             <Button size="lg" className="gap-1.5" onClick={() => setComposerOpen(true)}>
@@ -379,9 +406,15 @@ export function MailList({ folder }: { folder: string }) {
 
         <div className="flex items-center gap-1">
           {selected.size === 0 ? (
-            <Button variant="ghost" size="sm" className="gap-1.5 text-muted-foreground" onClick={() => void refetch()}>
-              <RefreshCwIcon className="size-4" />
-              Refresh
+            <Button
+              variant="ghost"
+              size="sm"
+              className="gap-1.5 text-muted-foreground"
+              disabled={isSyncing || triggerSync.isPending}
+              onClick={() => triggerSync.mutate({})}
+            >
+              <RefreshCwIcon className={cn("size-4", isSyncing && "animate-spin")} />
+              {isSyncing ? "Syncing…" : "Sync"}
             </Button>
           ) : (
             <>
