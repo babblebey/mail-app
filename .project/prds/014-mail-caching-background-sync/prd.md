@@ -136,7 +136,7 @@ This PRD introduces a **local caching layer** backed by PostgreSQL and a **stand
 
 #### Tasks
 
-- [ ] Create `src/server/sync/worker.ts` exporting a `startSyncWorker()` function:
+- [x] Create `src/server/sync/worker.ts` exporting a `startSyncWorker()` function:
   - On startup: for each `MailAccount` in the database, ensure a `SyncState` record exists (create with status `"idle"` if missing)
   - Main loop (runs indefinitely):
     1. Query all `MailAccount` records (with their `SyncState`)
@@ -150,11 +150,11 @@ This PRD introduces a **local caching layer** backed by PostgreSQL and a **stand
        - On error: set `SyncState.status = "error"`, store error message, log the error, and continue to the next account
     3. Wait 30 seconds, then repeat
   - Handle graceful shutdown on `SIGINT` / `SIGTERM` (finish current account, then exit)
-- [ ] Create `src/server/sync/index.ts` as the entry point:
+- [x] Create `src/server/sync/index.ts` as the entry point:
   - Load environment variables (so `DATABASE_URL` and encryption keys are available)
   - Import and call `startSyncWorker()`
   - Log startup and shutdown messages
-- [ ] Add a `"sync"` script to `package.json`: `"sync": "tsx src/server/sync/index.ts"`
+- [x] Add a `"sync"` script to `package.json`: `"sync": "tsx --env-file .env src/server/sync/index.ts"`
 
 ### Phase 6: API — Read From Cache
 
