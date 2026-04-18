@@ -44,6 +44,7 @@ This PRD introduces a **local caching layer** backed by PostgreSQL and a **stand
 - **Sequential account processing**: The worker processes accounts one at a time to avoid IMAP connection storms. With a 30-second interval this provides acceptable freshness for typical use.
 - **Deletion detection window**: To avoid expensive full-UID comparisons on large folders, deletion detection is limited to the most recent 200 messages per folder.
 - **Newest-first sync order**: During message metadata sync, fetched messages are sorted by UID descending before persisting so the most recent messages appear in the UI first while older messages continue syncing in the background.
+- **Folder priority ordering**: The worker sorts folders by special-use priority before syncing (Inbox → Drafts → Sent → Junk → Trash → Archive → others alphabetically). This ensures the Inbox — the most frequently accessed folder — has its metadata and bodies cached first, rather than depending on the arbitrary order returned by `client.list()`.
 
 ### User Stories
 
@@ -145,7 +146,8 @@ This PRD introduces a **local caching layer** backed by PostgreSQL and a **stand
        - Set `SyncState.status = "syncing"`, `lastSyncStartedAt = now()`
        - Open one IMAP connection for the account
        - Run `syncFolders(accountId)` → returns folder list
-       - For each folder: run `syncMessages(client, folder)` then `syncBodies(client, folder)`
+       - Sort folders by special-use priority (`\Inbox` first, then `\Drafts`, `\Sent`, `\Junk`, `\Trash`, `\Archive`, then remaining folders alphabetically)
+       - For each folder (in priority order): run `syncMessages(client, folder)` then `syncBodies(client, folder)`
        - Close the IMAP connection
        - Set `SyncState.status = "idle"`, `lastSyncCompletedAt = now()`, clear `error`
        - On error: set `SyncState.status = "error"`, store error message, log the error, and continue to the next account

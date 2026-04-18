@@ -5,6 +5,16 @@ import { syncBodies } from "./body-sync";
 
 const SYNC_INTERVAL_MS = 30_000;
 
+/** Ordering for well-known special-use folders. Lower = higher priority. */
+const SPECIAL_USE_ORDER: Record<string, number> = {
+  "\\Inbox": 0,
+  "\\Drafts": 1,
+  "\\Sent": 2,
+  "\\Junk": 3,
+  "\\Trash": 4,
+  "\\Archive": 5,
+};
+
 let shutdownRequested = false;
 
 /**
@@ -61,7 +71,21 @@ export async function startSyncWorker(): Promise<void> {
         // 1. Sync folders (manages its own IMAP connection)
         const folders = await syncFolders(account.id);
 
-        // 2. Open one IMAP connection for message + body sync
+        // 2. Sort folders so Inbox is synced first
+        folders.sort((a, b) => {
+          const aOrder =
+            a.specialUse && a.specialUse in SPECIAL_USE_ORDER
+              ? SPECIAL_USE_ORDER[a.specialUse]!
+              : 100;
+          const bOrder =
+            b.specialUse && b.specialUse in SPECIAL_USE_ORDER
+              ? SPECIAL_USE_ORDER[b.specialUse]!
+              : 100;
+          if (aOrder !== bOrder) return aOrder - bOrder;
+          return a.name.localeCompare(b.name);
+        });
+
+        // 3. Open one IMAP connection for message + body sync
         const client = await createSyncImapClient(account);
         try {
           for (const folder of folders) {
