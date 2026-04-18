@@ -99,7 +99,7 @@ export async function startSyncWorker(): Promise<void> {
             } catch (folderError) {
               const errMsg = folderError instanceof Error ? folderError.message : String(folderError);
               const errDetail = folderError instanceof Error
-                ? (folderError as Record<string, unknown>).responseText ?? folderError.stack
+                ? (folderError as unknown as { responseText?: unknown }).responseText ?? folderError.stack
                 : folderError;
               console.error(
                 `[sync] Error syncing folder "${folder.path}" for account ${account.id}: ${errMsg}`,
