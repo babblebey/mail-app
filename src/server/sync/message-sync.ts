@@ -176,6 +176,9 @@ export async function syncMessages(
       if (msg.uid > maxUid) maxUid = msg.uid;
     }
 
+    // Sort newest-first so the most recent messages are persisted first
+    fetched.sort((a, b) => b.uid - a.uid);
+
     // Pass 2: fetch snippets and create DB records
     for (const msg of fetched) {
       let snippet = "";

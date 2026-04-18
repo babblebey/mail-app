@@ -43,6 +43,7 @@ This PRD introduces a **local caching layer** backed by PostgreSQL and a **stand
 - **Standalone worker process**: The sync engine runs as a separate Node.js process (`tsx src/server/sync/index.ts`), not inside Next.js API routes. This avoids serverless timeout constraints, allows continuous polling, and keeps the web server responsive.
 - **Sequential account processing**: The worker processes accounts one at a time to avoid IMAP connection storms. With a 30-second interval this provides acceptable freshness for typical use.
 - **Deletion detection window**: To avoid expensive full-UID comparisons on large folders, deletion detection is limited to the most recent 200 messages per folder.
+- **Newest-first sync order**: During message metadata sync, fetched messages are sorted by UID descending before persisting so the most recent messages appear in the UI first while older messages continue syncing in the background.
 
 ### User Stories
 
