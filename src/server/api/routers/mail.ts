@@ -339,8 +339,11 @@ export const mailRouter = createTRPCRouter({
         }
         const rawSource = Buffer.concat(chunks);
 
-        // Parse with mailparser
-        const parsed = await simpleParser(rawSource);
+        // Parse with mailparser – skip converting cid: links to data: URIs
+        // so we can replace them with /api/attachments URLs ourselves
+        const parsed = await simpleParser(rawSource, {
+          skipImageLinks: true,
+        });
 
         // Fetch flags for this message
         const flagMsg = await client.fetchOne(
@@ -384,9 +387,53 @@ export const mailRouter = createTRPCRouter({
         const bccAddrs = normaliseAddresses(parsed.bcc);
         const replyToAddrs = normaliseAddresses(parsed.replyTo);
 
-        // Sanitise HTML body
-        const htmlBody = parsed.html
-          ? sanitizeHtml(parsed.html, {
+        // Map attachments and build CID lookup
+        const allAttachments = (parsed.attachments ?? []).map((att, idx) => ({
+          filename: att.filename ?? "unnamed",
+          contentType: att.contentType,
+          size: att.size,
+          cid: att.cid ?? undefined,
+          index: idx,
+        }));
+
+        // Replace cid: references in raw HTML BEFORE sanitisation, because
+        // sanitize-html strips cid: src values even when listed in allowedSchemes
+        const inlineIndices = new Set<number>();
+        let rawHtml = parsed.html ?? null;
+        if (rawHtml) {
+          const cidMap = new Map<string, number>();
+          for (const att of allAttachments) {
+            if (att.cid) {
+              // mailparser CIDs may include angle brackets, strip them
+              const cleanCid = att.cid.replace(/^<|>$/g, "");
+              cidMap.set(cleanCid, att.index);
+            }
+          }
+
+          if (cidMap.size > 0) {
+            rawHtml = rawHtml.replace(
+              /cid:([^"'\s)]+)/g,
+              (_match, cidValue: string) => {
+                const idx = cidMap.get(cidValue);
+                if (idx !== undefined) {
+                  inlineIndices.add(idx);
+                  const params = new URLSearchParams({
+                    folder: input.folder,
+                    uid: String(input.uid),
+                    index: String(idx),
+                    preview: "1",
+                  });
+                  return `/api/attachments?${params.toString()}`;
+                }
+                return _match;
+              },
+            );
+          }
+        }
+
+        // Sanitise HTML body (cid: URLs already replaced with /api/attachments)
+        const htmlBody = rawHtml
+          ? sanitizeHtml(rawHtml, {
               allowedTags: sanitizeHtml.defaults.allowedTags.concat([
                 "img",
                 "span",
@@ -413,7 +460,7 @@ export const mailRouter = createTRPCRouter({
                 center: ["style"],
                 hr: ["style"],
               },
-              allowedSchemes: ["http", "https", "mailto", "cid"],
+              allowedSchemes: ["http", "https", "mailto"],
               transformTags: {
                 a: (tagName, attribs) => ({
                   tagName,
@@ -427,13 +474,10 @@ export const mailRouter = createTRPCRouter({
             })
           : null;
 
-        // Map attachments
-        const attachments = (parsed.attachments ?? []).map((att) => ({
-          filename: att.filename ?? "unnamed",
-          contentType: att.contentType,
-          size: att.size,
-          cid: att.cid ?? undefined,
-        }));
+        // Exclude inline CID attachments from the attachment list
+        const attachments = allAttachments
+          .filter((att) => !inlineIndices.has(att.index))
+          .map(({ index: _index, ...rest }) => rest);
 
         // Normalise references to string[]
         const references = parsed.references

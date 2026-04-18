@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useRef, useCallback } from "react"
+import { useState, useRef, useCallback, useEffect } from "react"
 import {
   ArrowLeftIcon,
   Trash2Icon,
@@ -149,10 +149,63 @@ type MessageData = {
 }
 
 function MessageBody({ message }: { message: MessageData }) {
+  const htmlRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    const container = htmlRef.current
+    if (!container) return
+
+    const imgs = container.querySelectorAll<HTMLImageElement>("img[src]")
+    imgs.forEach((img) => {
+      if (img.complete) return
+
+      // Wrap the image in a relative container for the placeholder
+      const wrapper = document.createElement("span")
+      wrapper.style.display = "inline-block"
+      wrapper.style.position = "relative"
+      wrapper.style.overflow = "hidden"
+      wrapper.style.borderRadius = "4px"
+      wrapper.style.backgroundColor = "var(--muted, #f3f4f6)"
+      wrapper.style.minWidth = img.width ? `${img.width}px` : "80px"
+      wrapper.style.minHeight = img.height ? `${img.height}px` : "40px"
+
+      // Add a shimmer animation
+      const shimmer = document.createElement("span")
+      shimmer.style.cssText =
+        "position:absolute;inset:0;background:linear-gradient(90deg,transparent 0%,rgba(255,255,255,0.4) 50%,transparent 100%);animation:mail-img-shimmer 1.5s infinite;"
+      wrapper.appendChild(shimmer)
+
+      img.parentNode?.insertBefore(wrapper, img)
+      wrapper.appendChild(img)
+      img.style.opacity = "0"
+      img.style.transition = "opacity 0.2s ease-in"
+
+      const reveal = () => {
+        img.style.opacity = "1"
+        shimmer.remove()
+        wrapper.style.backgroundColor = ""
+        wrapper.style.minWidth = ""
+        wrapper.style.minHeight = ""
+      }
+      img.addEventListener("load", reveal, { once: true })
+      img.addEventListener("error", reveal, { once: true })
+    })
+
+    // Inject the shimmer keyframes once
+    if (!document.getElementById("mail-img-shimmer-style")) {
+      const style = document.createElement("style")
+      style.id = "mail-img-shimmer-style"
+      style.textContent =
+        "@keyframes mail-img-shimmer{0%{transform:translateX(-100%)}100%{transform:translateX(100%)}}"
+      document.head.appendChild(style)
+    }
+  }, [message.htmlBody])
+
   if (message.htmlBody) {
     return (
       <div
-        className="prose prose-sm max-w-none text-foreground prose-blockquote:not-italic"
+        ref={htmlRef}
+        className="prose prose-sm max-w-none text-foreground prose-blockquote:not-italic prose-tr:border-0 prose-td:text-sm prose-th:text-sm prose-td:p-1 prose-th:p-1"
         dangerouslySetInnerHTML={{ __html: message.htmlBody }}
       />
     )
@@ -425,21 +478,36 @@ function MessageView({
               }
 
               return (
-                <button
-                  key={i}
-                  type="button"
-                  disabled={downloadingIndex === i}
-                  className="flex items-center gap-2 rounded-lg border px-3 py-2 text-sm transition-colors hover:bg-muted/50 disabled:opacity-50"
-                  onClick={() => void handleDownload(downloadUrl, att.filename, i)}
-                >
-                  {downloadingIndex === i
-                    ? <Loader2Icon className="size-4 shrink-0 animate-spin text-muted-foreground" />
-                    : <FileIcon className="size-4 shrink-0 text-muted-foreground" />}
-                  <span className="truncate">{att.filename}</span>
-                  <span className="shrink-0 text-xs text-muted-foreground">
-                    {formatSize(att.size)}
-                  </span>
-                </button>
+                <div key={i} className="flex items-center gap-0">
+                  <button
+                    type="button"
+                    disabled={downloadingIndex === i}
+                    className="flex items-center gap-2 rounded-l-lg border px-3 py-2 text-sm transition-colors hover:bg-muted/50 disabled:opacity-50"
+                    onClick={() => void handleDownload(downloadUrl, att.filename, i)}
+                  >
+                    {downloadingIndex === i
+                      ? <Loader2Icon className="size-4 shrink-0 animate-spin text-muted-foreground" />
+                      : <FileIcon className="size-4 shrink-0 text-muted-foreground" />}
+                    <span className="truncate">{att.filename}</span>
+                    <span className="shrink-0 text-xs text-muted-foreground">
+                      {formatSize(att.size)}
+                    </span>
+                  </button>
+                  <button
+                    type="button"
+                    disabled={downloadingIndex === i}
+                    className="flex items-center rounded-r-lg border border-l-0 px-2 py-2 transition-colors hover:bg-muted/50 disabled:opacity-50"
+                    title={`Download ${att.filename}`}
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      void handleDownload(downloadUrl, att.filename, i)
+                    }}
+                  >
+                    {downloadingIndex === i
+                      ? <Loader2Icon className="size-4 animate-spin text-muted-foreground" />
+                      : <DownloadIcon className="size-4 text-muted-foreground" />}
+                  </button>
+                </div>
               )
             })}
           </div>
