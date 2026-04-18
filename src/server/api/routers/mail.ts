@@ -768,6 +768,7 @@ export const mailRouter = createTRPCRouter({
 
   /**
    * Marks a message as read or unread by adding/removing the \Seen flag.
+   * Write-through: updates both IMAP and the local cache.
    */
   markAsRead: protectedProcedure
     .input(
@@ -801,12 +802,34 @@ export const mailRouter = createTRPCRouter({
           );
         }
 
+        // Write-through to local cache
+        const folder = await ctx.db.mailFolder.findUnique({
+          where: {
+            mailAccountId_path: { mailAccountId: accountId, path: input.folder },
+          },
+        });
+        if (folder) {
+          const cached = await ctx.db.mailMessage.findUnique({
+            where: { folderId_uid: { folderId: folder.id, uid: input.uid } },
+          });
+          if (cached) {
+            const newFlags = input.read
+              ? cached.flags.includes("\\Seen") ? cached.flags : [...cached.flags, "\\Seen"]
+              : cached.flags.filter((f) => f !== "\\Seen");
+            await ctx.db.mailMessage.update({
+              where: { id: cached.id },
+              data: { read: input.read, flags: newFlags },
+            });
+          }
+        }
+
         return { ok: true };
       });
     }),
 
   /**
    * Toggles the starred/flagged state by adding/removing the \Flagged flag.
+   * Write-through: updates both IMAP and the local cache.
    */
   toggleStar: protectedProcedure
     .input(
@@ -840,12 +863,34 @@ export const mailRouter = createTRPCRouter({
           );
         }
 
+        // Write-through to local cache
+        const folder = await ctx.db.mailFolder.findUnique({
+          where: {
+            mailAccountId_path: { mailAccountId: accountId, path: input.folder },
+          },
+        });
+        if (folder) {
+          const cached = await ctx.db.mailMessage.findUnique({
+            where: { folderId_uid: { folderId: folder.id, uid: input.uid } },
+          });
+          if (cached) {
+            const newFlags = input.starred
+              ? cached.flags.includes("\\Flagged") ? cached.flags : [...cached.flags, "\\Flagged"]
+              : cached.flags.filter((f) => f !== "\\Flagged");
+            await ctx.db.mailMessage.update({
+              where: { id: cached.id },
+              data: { starred: input.starred, flags: newFlags },
+            });
+          }
+        }
+
         return { ok: true };
       });
     }),
 
   /**
    * Moves a message from one IMAP folder to another (e.g. Trash, Junk).
+   * Write-through: deletes the message from the source folder cache.
    */
   moveMessage: protectedProcedure
     .input(
@@ -870,6 +915,18 @@ export const mailRouter = createTRPCRouter({
           { uid: true },
         );
 
+        // Write-through: remove from source folder cache
+        const folder = await ctx.db.mailFolder.findUnique({
+          where: {
+            mailAccountId_path: { mailAccountId: accountId, path: input.folder },
+          },
+        });
+        if (folder) {
+          await ctx.db.mailMessage.deleteMany({
+            where: { folderId: folder.id, uid: input.uid },
+          });
+        }
+
         return { ok: true };
       });
     }),
@@ -877,6 +934,7 @@ export const mailRouter = createTRPCRouter({
   /**
    * Marks multiple messages as read or unread in a single IMAP operation
    * using a UID sequence set.
+   * Write-through: batch-updates the local cache.
    */
   batchMarkAsRead: protectedProcedure
     .input(
@@ -904,6 +962,27 @@ export const mailRouter = createTRPCRouter({
           await client.messageFlagsRemove(uidSet, ["\\Seen"], { uid: true });
         }
 
+        // Write-through to local cache
+        const folder = await ctx.db.mailFolder.findUnique({
+          where: {
+            mailAccountId_path: { mailAccountId: accountId, path: input.folder },
+          },
+        });
+        if (folder) {
+          const cached = await ctx.db.mailMessage.findMany({
+            where: { folderId: folder.id, uid: { in: input.uids } },
+          });
+          for (const msg of cached) {
+            const newFlags = input.read
+              ? msg.flags.includes("\\Seen") ? msg.flags : [...msg.flags, "\\Seen"]
+              : msg.flags.filter((f) => f !== "\\Seen");
+            await ctx.db.mailMessage.update({
+              where: { id: msg.id },
+              data: { read: input.read, flags: newFlags },
+            });
+          }
+        }
+
         return { ok: true };
       });
     }),
@@ -911,6 +990,7 @@ export const mailRouter = createTRPCRouter({
   /**
    * Moves multiple messages to a destination folder in a single IMAP
    * operation using a UID sequence set.
+   * Write-through: batch-deletes messages from the source folder cache.
    */
   batchMoveMessages: protectedProcedure
     .input(
@@ -934,6 +1014,18 @@ export const mailRouter = createTRPCRouter({
         await client.messageMove(uidSet, input.destinationFolder, {
           uid: true,
         });
+
+        // Write-through: remove from source folder cache
+        const folder = await ctx.db.mailFolder.findUnique({
+          where: {
+            mailAccountId_path: { mailAccountId: accountId, path: input.folder },
+          },
+        });
+        if (folder) {
+          await ctx.db.mailMessage.deleteMany({
+            where: { folderId: folder.id, uid: { in: input.uids } },
+          });
+        }
 
         return { ok: true };
       });

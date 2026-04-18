@@ -184,15 +184,15 @@ This PRD introduces a **local caching layer** backed by PostgreSQL and a **stand
 
 #### Tasks
 
-- [ ] Update `mail.markAsRead`:
+- [x] Update `mail.markAsRead`:
   - After successfully updating IMAP flags: update the corresponding `MailMessage` record's `read` field and `flags` array
-- [ ] Update `mail.toggleStar`:
+- [x] Update `mail.toggleStar`:
   - After successfully updating IMAP flags: update the corresponding `MailMessage` record's `starred` field and `flags` array
-- [ ] Update `mail.moveMessage`:
+- [x] Update `mail.moveMessage`:
   - After successfully moving on IMAP: delete the `MailMessage` record from the source folder's cache (the message will appear in the destination folder on the next sync cycle)
-- [ ] Update `mail.batchMarkAsRead`:
+- [x] Update `mail.batchMarkAsRead`:
   - After successfully updating IMAP: batch-update `MailMessage` records for all affected UIDs
-- [ ] Update `mail.batchMoveMessages`:
+- [x] Update `mail.batchMoveMessages`:
   - After successfully moving on IMAP: batch-delete `MailMessage` records for all affected UIDs from the source folder
 
 ### Phase 8: API — Sync Status & Manual Trigger
