@@ -201,10 +201,10 @@ This PRD introduces a **local caching layer** backed by PostgreSQL and a **stand
 
 #### Tasks
 
-- [ ] Add `mail.getSyncStatus` query:
+- [x] Add `mail.getSyncStatus` query:
   - Input: `{ accountId?: string }`
   - Returns the `SyncState` record for the resolved account: `{ status, error, lastSyncStartedAt, lastSyncCompletedAt }`
-- [ ] Add `mail.triggerSync` mutation:
+- [x] Add `mail.triggerSync` mutation:
   - Input: `{ accountId?: string }`
   - Sets `SyncState.status` to `"pending"` (a new transient state the worker checks)
   - The worker, on each iteration, processes `"pending"` accounts first before applying the 30-second wait

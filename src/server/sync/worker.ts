@@ -116,18 +116,28 @@ export async function startSyncWorker(): Promise<void> {
       }
     }
 
-    // Wait 30 seconds before the next cycle (exit early on shutdown)
+    // Wait 30 seconds before the next cycle (exit early on shutdown or pending trigger)
     if (!shutdownRequested) {
       await new Promise<void>((resolve) => {
         const timer = setTimeout(resolve, SYNC_INTERVAL_MS);
-        // Allow early exit if shutdown is requested during wait
-        const check = setInterval(() => {
+        const check = setInterval(async () => {
           if (shutdownRequested) {
             clearTimeout(timer);
             clearInterval(check);
             resolve();
+            return;
           }
-        }, 500);
+          // Break out early when a manual trigger sets status to "pending"
+          const pending = await db.syncState.findFirst({
+            where: { status: "pending" },
+            select: { id: true },
+          });
+          if (pending) {
+            clearTimeout(timer);
+            clearInterval(check);
+            resolve();
+          }
+        }, 1_000);
       });
     }
   }

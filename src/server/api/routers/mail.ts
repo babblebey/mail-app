@@ -1030,4 +1030,56 @@ export const mailRouter = createTRPCRouter({
         return { ok: true };
       });
     }),
+
+  /**
+   * Returns the sync state for a mail account.
+   */
+  getSyncStatus: protectedProcedure
+    .input(
+      z.object({
+        accountId: z.string().cuid().optional(),
+      }),
+    )
+    .query(async ({ ctx, input }) => {
+      const accountId = await resolveAccountId(
+        input.accountId,
+        ctx.session.user.id,
+      );
+
+      const syncState = await ctx.db.syncState.findUnique({
+        where: { mailAccountId: accountId },
+      });
+
+      return {
+        status: syncState?.status ?? "idle",
+        error: syncState?.error ?? null,
+        lastSyncStartedAt: syncState?.lastSyncStartedAt?.toISOString() ?? null,
+        lastSyncCompletedAt: syncState?.lastSyncCompletedAt?.toISOString() ?? null,
+      };
+    }),
+
+  /**
+   * Requests an immediate sync for a mail account by setting its SyncState
+   * to "pending". The background worker picks up pending accounts first.
+   */
+  triggerSync: protectedProcedure
+    .input(
+      z.object({
+        accountId: z.string().cuid().optional(),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const accountId = await resolveAccountId(
+        input.accountId,
+        ctx.session.user.id,
+      );
+
+      await ctx.db.syncState.upsert({
+        where: { mailAccountId: accountId },
+        create: { mailAccountId: accountId, status: "pending" },
+        update: { status: "pending" },
+      });
+
+      return { ok: true };
+    }),
 });
