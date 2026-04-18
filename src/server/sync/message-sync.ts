@@ -161,7 +161,7 @@ export async function syncMessages(
       flags: true,
       envelope: true,
       bodyStructure: true,
-    })) {
+    }, { uid: true })) {
       // ImapFlow returns the message at highestUid when the range starts
       // beyond existing UIDs. Skip messages we already have.
       if (msg.uid <= folder.highestUid) continue;
@@ -286,7 +286,7 @@ export async function syncMessages(
     for await (const msg of client.fetch(uidRange, {
       uid: true,
       flags: true,
-    })) {
+    }, { uid: true })) {
       imapFlags.set(msg.uid, msg.flags ? Array.from(msg.flags) : []);
     }
 
