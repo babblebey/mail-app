@@ -669,8 +669,8 @@ export const mailRouter = createTRPCRouter({
               allowedAttributes: {
                 ...sanitizeHtml.defaults.allowedAttributes,
                 img: ["src", "alt", "width", "height", "style", "align"],
-                td: ["style", "align", "valign", "width", "colspan", "rowspan", "align"],
-                th: ["style", "align", "valign", "width", "colspan", "rowspan", "align"],
+                td: ["style", "align", "valign", "width", "colspan", "rowspan"],
+                th: ["style", "align", "valign", "width", "colspan", "rowspan"],
                 table: ["style", "width", "cellpadding", "cellspacing", "border", "align"],
                 div: ["style", "class", "align"],
                 span: ["style", "class", "align"],
