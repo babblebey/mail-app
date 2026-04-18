@@ -1,6 +1,6 @@
 ---
 title: "Mail Caching & Background Sync"
-status: in-progress
+status: completed
 references:
   - type: doc
     url: .project/brief.md
@@ -219,17 +219,17 @@ This PRD introduces a **local caching layer** backed by PostgreSQL and a **stand
 
 ## Acceptance Criteria
 
-- [ ] Four new Prisma models (`MailFolder`, `MailMessage`, `MailMessageBody`, `SyncState`) exist and the migration applies cleanly
-- [ ] Running `pnpm sync` starts the background worker, which logs sync activity and processes all mail accounts on a 30-second interval
-- [ ] `mail.listFolders` returns cached folder data from the database (no IMAP round-trip after first sync)
-- [ ] `mail.listMessages` returns cached message summaries with date-cursor pagination (no IMAP round-trip after first sync)
-- [ ] `mail.getMessage` returns cached body for recently synced messages instantly; for uncached messages it fetches from IMAP, caches, and returns
-- [ ] Flag mutations (`markAsRead`, `toggleStar`) update both IMAP and the local `MailMessage` record
-- [ ] Move mutations (`moveMessage`, `batchMoveMessages`) update IMAP and remove the message from the source folder cache
-- [ ] A UIDVALIDITY change on the IMAP server triggers a full folder cache purge and rebuild on the next sync cycle
-- [ ] The sync worker handles account-level errors gracefully (logs, records in `SyncState`, continues to next account)
-- [ ] The sync worker shuts down cleanly on SIGINT/SIGTERM
-- [ ] The existing frontend components (`mail-list`, `mail-thread`, `app-sidebar`) continue to work without modification — the API response shapes are preserved
-- [ ] Attachment downloads continue to work via the live IMAP `/api/attachments` route (not cached)
-- [ ] Inline images (CID-referenced) in eagerly synced message bodies render correctly in the thread view, not as separate attachments
-- [ ] No TypeScript or lint errors after all changes
+- [x] Four new Prisma models (`MailFolder`, `MailMessage`, `MailMessageBody`, `SyncState`) exist and the migration applies cleanly
+- [x] Running `pnpm sync` starts the background worker, which logs sync activity and processes all mail accounts on a 30-second interval
+- [x] `mail.listFolders` returns cached folder data from the database (no IMAP round-trip after first sync)
+- [x] `mail.listMessages` returns cached message summaries with date-cursor pagination (no IMAP round-trip after first sync)
+- [x] `mail.getMessage` returns cached body for recently synced messages instantly; for uncached messages it fetches from IMAP, caches, and returns
+- [x] Flag mutations (`markAsRead`, `toggleStar`) update both IMAP and the local `MailMessage` record
+- [x] Move mutations (`moveMessage`, `batchMoveMessages`) update IMAP and remove the message from the source folder cache
+- [x] A UIDVALIDITY change on the IMAP server triggers a full folder cache purge and rebuild on the next sync cycle
+- [x] The sync worker handles account-level errors gracefully (logs, records in `SyncState`, continues to next account)
+- [x] The sync worker shuts down cleanly on SIGINT/SIGTERM
+- [x] The existing frontend components (`mail-list`, `mail-thread`, `app-sidebar`) continue to work without modification — the API response shapes are preserved
+- [x] Attachment downloads continue to work via the live IMAP `/api/attachments` route (not cached)
+- [x] Inline images (CID-referenced) in eagerly synced message bodies render correctly in the thread view, not as separate attachments
+- [x] No TypeScript or lint errors after all changes
