@@ -101,7 +101,7 @@ This PRD introduces a **local caching layer** backed by PostgreSQL and a **stand
 
 #### Tasks
 
-- [ ] Create `src/server/sync/message-sync.ts` exporting a `syncMessages(client: ImapFlow, folder: MailFolder)` function:
+- [x] Create `src/server/sync/message-sync.ts` exporting a `syncMessages(client: ImapFlow, folder: MailFolder)` function:
   - Open the mailbox read-only
   - **UIDVALIDITY check**: Compare the IMAP mailbox's `uidValidity` with the stored `folder.uidValidity`
     - If they differ: delete all `MailMessage` records for this folder, reset `highestUid` to 0, update stored `uidValidity` — then proceed as a full sync
