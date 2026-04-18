@@ -18,7 +18,7 @@ export async function syncBodies(
   // Find messages that haven't had their body fetched yet, newest first
   const unfetched = await db.mailMessage.findMany({
     where: { folderId: folder.id, bodyFetched: false },
-    orderBy: { date: "desc" },
+    orderBy: { uid: "desc" },
     take: 50,
     select: { id: true, uid: true },
   });
