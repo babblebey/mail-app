@@ -127,7 +127,8 @@ This PRD introduces a **local caching layer** backed by PostgreSQL and a **stand
   - For each message:
     - Download the full RFC822 source via `client.download(uid, undefined, { uid: true })`
     - Parse with `simpleParser` from `mailparser`
-    - Extract `textBody`, `htmlBody` (sanitised using the same `sanitize-html` configuration from the current `getMessage` procedure), and attachment metadata (filename, contentType, size, cid, index)
+    - **Replace `cid:` references** in the raw HTML with `/api/attachments` URLs **before** sanitisation — `sanitize-html` strips the `cid:` scheme, so this must happen first. Build a CID→index map from parsed attachments that mirrors the logic in `getMessage`'s live-fetch path, and track which attachment indices are inline
+    - Extract `textBody`, `htmlBody` (sanitised using the same `sanitize-html` configuration from the current `getMessage` procedure), and attachment metadata (filename, contentType, size, cid, index, **`inline`** boolean flag for CID-referenced attachments)
     - Create a `MailMessageBody` record linked to the `MailMessage`
     - Set `bodyFetched = true` on the `MailMessage` record
   - Handle individual message failures gracefully (log and continue to next message)
@@ -177,6 +178,7 @@ This PRD introduces a **local caching layer** backed by PostgreSQL and a **stand
 - [x] Refactor `mail.getMessage`:
   - Look up the `MailMessage` + `MailMessageBody` from the database by folder path + UID
   - If `MailMessageBody` exists: return cached data (textBody, htmlBody, attachments) mapped to the same response shape
+    - When filtering inline attachments out of the visible list, also check the `inline` boolean flag in cached attachment metadata (set by `syncBodies`) in addition to CID regex matches — this handles bodies where CIDs were already replaced before caching
   - If `MailMessageBody` does not exist (lazy path): execute the current live IMAP fetch, **then** persist the result to `MailMessageBody`, set `bodyFetched = true`, and return
   - Preserve the existing auto-mark-as-read behavior (update both IMAP and local cache)
   - Preserve the existing HTML sanitisation, CID-to-URL replacement, and attachment processing
@@ -227,4 +229,5 @@ This PRD introduces a **local caching layer** backed by PostgreSQL and a **stand
 - [ ] The sync worker shuts down cleanly on SIGINT/SIGTERM
 - [ ] The existing frontend components (`mail-list`, `mail-thread`, `app-sidebar`) continue to work without modification — the API response shapes are preserved
 - [ ] Attachment downloads continue to work via the live IMAP `/api/attachments` route (not cached)
+- [ ] Inline images (CID-referenced) in eagerly synced message bodies render correctly in the thread view, not as separate attachments
 - [ ] No TypeScript or lint errors after all changes

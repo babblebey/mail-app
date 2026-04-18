@@ -478,6 +478,7 @@ export const mailRouter = createTRPCRouter({
           size: number;
           cid?: string | null;
           index: number;
+          inline?: boolean;
         }>;
 
         // Replace cid: references in cached HTML with /api/attachments URLs
@@ -513,8 +514,8 @@ export const mailRouter = createTRPCRouter({
         }
 
         const attachments = rawAttachments
-          .filter((att) => !inlineIndices.has(att.index))
-          .map(({ index: _index, cid: _cid, ...rest }) => rest);
+          .filter((att) => !inlineIndices.has(att.index) && !att.inline)
+          .map(({ index: _index, cid: _cid, inline: _inline, ...rest }) => rest);
 
         return {
           uid: cachedMsg.uid,

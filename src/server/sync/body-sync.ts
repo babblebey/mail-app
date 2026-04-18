@@ -45,9 +45,42 @@ export async function syncBodies(
         skipImageLinks: true,
       });
 
+      // Replace cid: references BEFORE sanitisation — sanitize-html strips
+      // the cid: scheme, so we must convert to /api/attachments URLs first.
+      const inlineIndices = new Set<number>();
+      let rawHtml = parsed.html ?? null;
+      if (rawHtml) {
+        const cidMap = new Map<string, number>();
+        for (const [idx, att] of (parsed.attachments ?? []).entries()) {
+          if (att.cid) {
+            const cleanCid = att.cid.replace(/^<|>$/g, "");
+            cidMap.set(cleanCid, idx);
+          }
+        }
+        if (cidMap.size > 0) {
+          rawHtml = rawHtml.replace(
+            /cid:([^"'\s)]+)/g,
+            (_match, cidValue: string) => {
+              const idx = cidMap.get(cidValue);
+              if (idx !== undefined) {
+                inlineIndices.add(idx);
+                const params = new URLSearchParams({
+                  folder: folder.path,
+                  uid: String(msg.uid),
+                  index: String(idx),
+                  preview: "1",
+                });
+                return `/api/attachments?${params.toString()}`;
+              }
+              return _match;
+            },
+          );
+        }
+      }
+
       // Sanitise HTML body using the same config as getMessage
-      const htmlBody = parsed.html
-        ? sanitizeHtml(parsed.html, {
+      const htmlBody = rawHtml
+        ? sanitizeHtml(rawHtml, {
             allowedTags: sanitizeHtml.defaults.allowedTags.concat([
               "img",
               "span",
@@ -95,6 +128,7 @@ export async function syncBodies(
         size: att.size,
         cid: att.cid ?? null,
         index: idx,
+        inline: inlineIndices.has(idx),
       }));
 
       // Persist body and mark as fetched in a single transaction
