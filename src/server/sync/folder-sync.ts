@@ -26,7 +26,12 @@ export async function createSyncImapClient(account: {
       user: account.username,
       pass: password,
     },
-    logger: false,
+    logger: {
+      debug: () => {},
+      info: (obj: { msg: string }) => console.log(`[imap] ${obj.msg}`),
+      warn: (obj: { msg: string }) => console.warn(`[imap] ${obj.msg}`),
+      error: (obj: { msg: string }) => console.error(`[imap] ${obj.msg}`),
+    },
   });
 
   await client.connect();
