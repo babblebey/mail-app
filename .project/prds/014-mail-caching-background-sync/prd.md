@@ -85,7 +85,7 @@ This PRD introduces a **local caching layer** backed by PostgreSQL and a **stand
 
 #### Tasks
 
-- [ ] Create `src/server/sync/folder-sync.ts` exporting a `syncFolders(accountId: string)` function:
+- [x] Create `src/server/sync/folder-sync.ts` exporting a `syncFolders(accountId: string)` function:
   - Open an IMAP connection using the existing `createImapClient` + credential decryption pattern from `src/server/imap/client.ts`
   - Call `client.list()` to retrieve all mailboxes
   - For each mailbox:
