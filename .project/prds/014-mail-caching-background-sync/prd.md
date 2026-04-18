@@ -162,16 +162,16 @@ This PRD introduces a **local caching layer** backed by PostgreSQL and a **stand
 
 #### Tasks
 
-- [ ] Refactor `mail.listFolders`:
+- [x] Refactor `mail.listFolders`:
   - Query `MailFolder` records from the database for the resolved account, sorted by special-use priority (same ordering as current IMAP implementation), then alphabetically
   - Map to the same response shape: `{ path, name, specialUse, delimiter, totalMessages, unseenMessages }`
   - **Fallback**: If no `MailFolder` records exist for the account (first load before sync has run), fall back to the current live IMAP fetch — but do **not** persist results (let the worker handle that)
-- [ ] Refactor `mail.listMessages`:
+- [x] Refactor `mail.listMessages`:
   - Query `MailMessage` records from the database for the resolved account + folder path
   - Paginate by `date DESC` using a date-based cursor (ISO string) instead of IMAP sequence numbers
   - Return `{ messages[], nextCursor }` with the same message summary shape the frontend expects: `{ uid, subject, from, to, cc, bcc, date, flags, read, starred, snippet, hasAttachments }`
   - **Fallback**: If the folder has no cached messages, fall back to the current live IMAP fetch
-- [ ] Refactor `mail.getMessage`:
+- [x] Refactor `mail.getMessage`:
   - Look up the `MailMessage` + `MailMessageBody` from the database by folder path + UID
   - If `MailMessageBody` exists: return cached data (textBody, htmlBody, attachments) mapped to the same response shape
   - If `MailMessageBody` does not exist (lazy path): execute the current live IMAP fetch, **then** persist the result to `MailMessageBody`, set `bodyFetched = true`, and return

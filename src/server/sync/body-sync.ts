@@ -104,7 +104,7 @@ export async function syncBodies(
             messageId: msg.id,
             textBody: parsed.text ?? null,
             htmlBody,
-            attachments: attachments.length > 0 ? attachments : null,
+            attachments: attachments.length > 0 ? attachments : undefined,
           },
         }),
         db.mailMessage.update({
