@@ -17,6 +17,9 @@ references:
   - type: prd
     url: .project/prds/013-mail-list-context-menu/prd.md
     description: "Prior PRD — Mail list context menu (completed)"
+  - type: pull-request
+    url: https://github.com/babblebey/mail-app/pull/22
+    description: "Implementation PR — Mail caching & background sync"
 ---
 
 > **Instructions for AI Agents:**
