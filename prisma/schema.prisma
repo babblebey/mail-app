@@ -81,7 +81,84 @@ model MailAccount {
     user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
     userId    String
 
+    folders   MailFolder[]
+    messages  MailMessage[]
+    syncState SyncState?
+
     @@index([userId])
+}
+
+model MailFolder {
+    id              String    @id @default(cuid())
+    mailAccountId   String
+    path            String
+    name            String
+    specialUse      String?
+    delimiter       String?
+    totalMessages   Int       @default(0)
+    unseenMessages  Int       @default(0)
+    uidValidity     Int?
+    highestUid      Int       @default(0)
+    lastSyncedAt    DateTime?
+
+    mailAccount     MailAccount  @relation(fields: [mailAccountId], references: [id], onDelete: Cascade)
+    messages        MailMessage[]
+
+    @@unique([mailAccountId, path])
+}
+
+model MailMessage {
+    id              String    @id @default(cuid())
+    mailAccountId   String
+    folderId        String
+    uid             Int
+    messageId       String?
+    subject         String?
+    fromAddress     Json
+    toAddress       Json
+    ccAddress       Json?
+    bccAddress      Json?
+    date            DateTime?
+    flags           String[]
+    read            Boolean   @default(false)
+    starred         Boolean   @default(false)
+    snippet         String?
+    hasAttachments  Boolean   @default(false)
+    inReplyTo       String?
+    references      String[]
+    bodyFetched     Boolean   @default(false)
+    createdAt       DateTime  @default(now())
+    updatedAt       DateTime  @updatedAt
+
+    mailAccount     MailAccount     @relation(fields: [mailAccountId], references: [id], onDelete: Cascade)
+    folder          MailFolder      @relation(fields: [folderId], references: [id], onDelete: Cascade)
+    body            MailMessageBody?
+
+    @@unique([folderId, uid])
+    @@index([mailAccountId])
+    @@index([folderId, date(sort: Desc)])
+}
+
+model MailMessageBody {
+    id          String   @id @default(cuid())
+    messageId   String   @unique
+    textBody    String?
+    htmlBody    String?
+    attachments Json?
+    fetchedAt   DateTime @default(now())
+
+    message     MailMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
+}
+
+model SyncState {
+    id                  String    @id @default(cuid())
+    mailAccountId       String    @unique
+    status              String    @default("idle")
+    error               String?
+    lastSyncStartedAt   DateTime?
+    lastSyncCompletedAt DateTime?
+
+    mailAccount         MailAccount @relation(fields: [mailAccountId], references: [id], onDelete: Cascade)
 }
 
 model VerificationToken {

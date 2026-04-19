@@ -45,9 +45,11 @@ import {
   MailIcon,
   PencilIcon,
   PlusIcon,
+  RefreshCwIcon,
   StarIcon,
   Trash2Icon,
 } from "lucide-react"
+import { cn } from "~/lib/utils"
 import { api } from "~/trpc/react"
 
 export default function SettingsPage() {
@@ -303,6 +305,7 @@ export default function SettingsPage() {
                         </span>
                         <span>User: {account.username}</span>
                       </div>
+                      <AccountSyncStatus accountId={account.id} />
                     </CardContent>
                   </Card>
                 ))}
@@ -311,5 +314,79 @@ export default function SettingsPage() {
         </div>
       </SidebarInset>
     </SidebarProvider>
+  )
+}
+
+function formatRelativeTime(iso: string): string {
+  const diff = Date.now() - new Date(iso).getTime()
+  const seconds = Math.floor(diff / 1000)
+  if (seconds < 60) return "just now"
+  const minutes = Math.floor(seconds / 60)
+  if (minutes < 60) return `${minutes}m ago`
+  const hours = Math.floor(minutes / 60)
+  if (hours < 24) return `${hours}h ago`
+  return new Date(iso).toLocaleDateString()
+}
+
+function AccountSyncStatus({ accountId }: { accountId: string }) {
+  const syncStatus = api.mail.getSyncStatus.useQuery(
+    { accountId },
+    {
+      refetchInterval: (query) => {
+        const status = query.state.data?.status
+        return status === "syncing" || status === "pending" ? 2000 : 30000
+      },
+    },
+  )
+
+  const triggerSync = api.mail.triggerSync.useMutation({
+    onSuccess: () => {
+      void syncStatus.refetch()
+    },
+  })
+
+  const isSyncing =
+    syncStatus.data?.status === "syncing" ||
+    syncStatus.data?.status === "pending"
+
+  return (
+    <div className="mt-3 flex items-center gap-3 border-t pt-3">
+      <div className="flex flex-1 items-center gap-2 text-sm text-muted-foreground">
+        {syncStatus.data?.status === "error" ? (
+          <>
+            <span className="size-2 rounded-full bg-destructive" />
+            <span className="text-destructive">
+              Sync error: {syncStatus.data.error ?? "Unknown error"}
+            </span>
+          </>
+        ) : isSyncing ? (
+          <>
+            <RefreshCwIcon className="size-3.5 animate-spin" />
+            <span>Syncing…</span>
+          </>
+        ) : (
+          <>
+            <span className="size-2 rounded-full bg-green-500" />
+            <span>
+              {syncStatus.data?.lastSyncCompletedAt
+                ? `Last synced ${formatRelativeTime(syncStatus.data.lastSyncCompletedAt)}`
+                : "Not synced yet"}
+            </span>
+          </>
+        )}
+      </div>
+      <Button
+        variant="outline"
+        size="sm"
+        className="gap-1.5"
+        disabled={isSyncing || triggerSync.isPending}
+        onClick={() => triggerSync.mutate({ accountId })}
+      >
+        <RefreshCwIcon
+          className={cn("size-3.5", isSyncing && "animate-spin")}
+        />
+        {isSyncing ? "Syncing…" : "Sync Now"}
+      </Button>
+    </div>
   )
 }

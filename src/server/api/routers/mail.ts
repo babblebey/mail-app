@@ -76,8 +76,9 @@ const SPECIAL_USE_ORDER: Record<string, number> = {
 
 export const mailRouter = createTRPCRouter({
   /**
-   * Lists all IMAP mailbox folders for a mail account, sorted with
-   * well-known special-use folders first, then alphabetically.
+   * Lists all mailbox folders for a mail account, reading from the local
+   * cache. Falls back to a live IMAP fetch when the cache is empty (first
+   * load before the sync worker has run).
    */
   listFolders: protectedProcedure
     .input(
@@ -91,6 +92,41 @@ export const mailRouter = createTRPCRouter({
         ctx.session.user.id,
       );
 
+      // Try local cache first
+      const cachedFolders = await ctx.db.mailFolder.findMany({
+        where: { mailAccountId: accountId },
+      });
+
+      if (cachedFolders.length > 0) {
+        const folders = cachedFolders.map((f) => ({
+          path: f.path,
+          name: f.name,
+          specialUse: f.specialUse ?? undefined,
+          delimiter: f.delimiter ?? undefined,
+          listed: true as const,
+          subscribed: true as const,
+          totalMessages: f.totalMessages,
+          unseenMessages: f.unseenMessages,
+        }));
+
+        folders.sort((a, b) => {
+          const aOrder =
+            a.specialUse && a.specialUse in SPECIAL_USE_ORDER
+              ? SPECIAL_USE_ORDER[a.specialUse]!
+              : 100;
+          const bOrder =
+            b.specialUse && b.specialUse in SPECIAL_USE_ORDER
+              ? SPECIAL_USE_ORDER[b.specialUse]!
+              : 100;
+
+          if (aOrder !== bOrder) return aOrder - bOrder;
+          return a.name.localeCompare(b.name);
+        });
+
+        return folders;
+      }
+
+      // Fallback: live IMAP fetch (cache not yet populated)
       return withImapClient(accountId, ctx.session.user.id, async (client) => {
         const mailboxes = await client.list({
           statusQuery: {
@@ -110,7 +146,6 @@ export const mailRouter = createTRPCRouter({
           unseenMessages: mailbox.status?.unseen,
         }));
 
-        // Sort: special-use folders first (by known order), then alphabetically
         folders.sort((a, b) => {
           const aOrder =
             a.specialUse && a.specialUse in SPECIAL_USE_ORDER
@@ -131,14 +166,15 @@ export const mailRouter = createTRPCRouter({
 
   /**
    * Returns a paginated list of message summaries for a given folder,
-   * ordered newest-first using sequence-number-based cursor pagination.
+   * ordered newest-first using date-based cursor pagination (reads from
+   * local cache, falls back to live IMAP when cache is empty).
    */
   listMessages: protectedProcedure
     .input(
       z.object({
         accountId: z.string().cuid().optional(),
         folder: z.string().min(1),
-        cursor: z.number().int().positive().optional(),
+        cursor: z.string().optional(), // ISO date string
         limit: z.number().int().min(1).max(100).default(50),
       }),
     )
@@ -148,6 +184,63 @@ export const mailRouter = createTRPCRouter({
         ctx.session.user.id,
       );
 
+      // Look up the cached folder
+      const folder = await ctx.db.mailFolder.findUnique({
+        where: {
+          mailAccountId_path: {
+            mailAccountId: accountId,
+            path: input.folder,
+          },
+        },
+      });
+
+      const cachedCount = folder
+        ? await ctx.db.mailMessage.count({ where: { folderId: folder.id } })
+        : 0;
+
+      if (folder && cachedCount > 0) {
+        // Cache path: read from database
+        const where: { folderId: string; date?: { lt: Date } } = {
+          folderId: folder.id,
+        };
+        if (input.cursor) {
+          where.date = { lt: new Date(input.cursor) };
+        }
+
+        const rows = await ctx.db.mailMessage.findMany({
+          where,
+          orderBy: { date: "desc" },
+          take: input.limit + 1,
+        });
+
+        const hasMore = rows.length > input.limit;
+        const page = hasMore ? rows.slice(0, input.limit) : rows;
+        const nextCursor: string | null =
+          hasMore && page[page.length - 1]?.date
+            ? page[page.length - 1]!.date!.toISOString()
+            : null;
+
+        return {
+          messages: page.map((m) => ({
+            uid: m.uid,
+            sequenceNumber: 0,
+            subject: m.subject ?? "(no subject)",
+            from: m.fromAddress as { name: string; address: string },
+            to: (m.toAddress ?? []) as { name: string; address: string }[],
+            cc: (m.ccAddress ?? []) as { name: string; address: string }[],
+            bcc: (m.bccAddress ?? []) as { name: string; address: string }[],
+            date: m.date ? m.date.toISOString() : new Date().toISOString(),
+            flags: m.flags,
+            read: m.read,
+            starred: m.starred,
+            snippet: m.snippet ?? "",
+            hasAttachments: m.hasAttachments,
+          })),
+          nextCursor,
+        };
+      }
+
+      // Fallback: live IMAP fetch (cache not yet populated)
       return withImapClient(accountId, ctx.session.user.id, async (client) => {
         const mailbox = await client.mailboxOpen(input.folder, {
           readOnly: true,
@@ -155,21 +248,28 @@ export const mailRouter = createTRPCRouter({
 
         const total = mailbox.exists;
         if (total === 0) {
-          return { messages: [], nextCursor: null as number | null };
+          return { messages: [] as Array<{
+            uid: number;
+            sequenceNumber: number;
+            subject: string;
+            from: { name: string; address: string };
+            to: { name: string; address: string }[];
+            cc: { name: string; address: string }[];
+            bcc: { name: string; address: string }[];
+            date: string;
+            flags: string[];
+            read: boolean;
+            starred: boolean;
+            snippet: string;
+            hasAttachments: boolean;
+          }>, nextCursor: null as string | null };
         }
 
-        // Determine the sequence range (newest-first).
-        // cursor is the sequence number to paginate FROM (exclusive upper bound).
-        const upperSeq = input.cursor ? input.cursor - 1 : total;
-        if (upperSeq <= 0) {
-          return { messages: [], nextCursor: null as number | null };
-        }
-
+        // Fetch the most recent messages (no cursor support in fallback)
+        const upperSeq = total;
         const lowerSeq = Math.max(1, upperSeq - input.limit + 1);
         const range = `${lowerSeq}:${upperSeq}`;
 
-        // Pass 1: Fetch metadata (envelope, flags, bodyStructure) without body parts.
-        // We must fully drain the async iterator before issuing further IMAP commands.
         const fetched: Array<{
           uid: number;
           seq: number;
@@ -193,7 +293,6 @@ export const mailRouter = createTRPCRouter({
           });
         }
 
-        // Pass 2: For each message, download the correct snippet part by UID.
         const messages: Array<{
           uid: number;
           sequenceNumber: number;
@@ -236,12 +335,10 @@ export const mailRouter = createTRPCRouter({
               }
               const rawBuf = Buffer.concat(chunks);
 
-              // download() already decodes transfer encoding; just decode charset
               const charset = meta.charset ?? snippetPart.charset ?? "utf-8";
               const text = iconv.encodingExists(charset)
                 ? iconv.decode(rawBuf, charset)
                 : rawBuf.toString("utf-8");
-              // Convert to plain text
               // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
               const plain =
                 snippetPart.type === "text/html"
@@ -294,18 +391,23 @@ export const mailRouter = createTRPCRouter({
           });
         }
 
-        // Sort newest-first (highest sequence number first)
-        messages.sort((a, b) => b.sequenceNumber - a.sequenceNumber);
+        // Sort newest-first
+        messages.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
-        const nextCursor: number | null = lowerSeq > 1 ? lowerSeq : null;
+        // Date-based next cursor from the oldest message in this page
+        const nextCursor: string | null =
+          lowerSeq > 1 && messages.length > 0
+            ? messages[messages.length - 1]!.date
+            : null;
 
         return { messages, nextCursor };
       });
     }),
 
   /**
-   * Fetches and parses a single email by UID, sanitises HTML,
-   * and auto-marks it as read on the IMAP server.
+   * Fetches a single email by UID. Reads from the local cache when the
+   * body has already been synced; otherwise performs a live IMAP download,
+   * persists the result, and returns it. Auto-marks the message as read.
    */
   getMessage: protectedProcedure
     .input(
@@ -321,6 +423,124 @@ export const mailRouter = createTRPCRouter({
         ctx.session.user.id,
       );
 
+      // Try to find the cached message
+      const folder = await ctx.db.mailFolder.findUnique({
+        where: {
+          mailAccountId_path: {
+            mailAccountId: accountId,
+            path: input.folder,
+          },
+        },
+      });
+
+      const cachedMsg = folder
+        ? await ctx.db.mailMessage.findUnique({
+            where: {
+              folderId_uid: { folderId: folder.id, uid: input.uid },
+            },
+            include: { body: true },
+          })
+        : null;
+
+      // ── Cached-body path ──────────────────────────────────────────
+      if (cachedMsg?.body) {
+        // Auto-mark as read on IMAP + local cache
+        if (!cachedMsg.read) {
+          // Fire IMAP flag update (best-effort)
+          withImapClient(accountId, ctx.session.user.id, async (client) => {
+            await client.mailboxOpen(input.folder);
+            await client.messageFlagsAdd(
+              String(input.uid),
+              ["\\Seen"],
+              { uid: true },
+            );
+          }).catch(() => {/* swallow – sync will reconcile */});
+
+          await ctx.db.mailMessage.update({
+            where: { id: cachedMsg.id },
+            data: {
+              read: true,
+              flags: cachedMsg.flags.includes("\\Seen")
+                ? cachedMsg.flags
+                : [...cachedMsg.flags, "\\Seen"],
+            },
+          });
+        }
+
+        const flags = cachedMsg.flags.includes("\\Seen")
+          ? cachedMsg.flags
+          : [...cachedMsg.flags, "\\Seen"];
+
+        // Process cached attachment metadata
+        const rawAttachments = (cachedMsg.body.attachments ?? []) as Array<{
+          filename: string;
+          contentType: string;
+          size: number;
+          cid?: string | null;
+          index: number;
+          inline?: boolean;
+        }>;
+
+        // Replace cid: references in cached HTML with /api/attachments URLs
+        const inlineIndices = new Set<number>();
+        let htmlBody = cachedMsg.body.htmlBody;
+        if (htmlBody) {
+          const cidMap = new Map<string, number>();
+          for (const att of rawAttachments) {
+            if (att.cid) {
+              const cleanCid = att.cid.replace(/^<|>$/g, "");
+              cidMap.set(cleanCid, att.index);
+            }
+          }
+          if (cidMap.size > 0) {
+            htmlBody = htmlBody.replace(
+              /cid:([^"'\s)]+)/g,
+              (_match, cidValue: string) => {
+                const idx = cidMap.get(cidValue);
+                if (idx !== undefined) {
+                  inlineIndices.add(idx);
+                  const params = new URLSearchParams({
+                    folder: input.folder,
+                    uid: String(input.uid),
+                    index: String(idx),
+                    preview: "1",
+                  });
+                  return `/api/attachments?${params.toString()}`;
+                }
+                return _match;
+              },
+            );
+          }
+        }
+
+        const attachments = rawAttachments
+          .filter((att) => !inlineIndices.has(att.index) && !att.inline)
+          .map(({ index: _index, cid: _cid, inline: _inline, ...rest }) => rest);
+
+        return {
+          uid: cachedMsg.uid,
+          messageId: cachedMsg.messageId ?? "",
+          subject: cachedMsg.subject ?? "(no subject)",
+          from: cachedMsg.fromAddress as { name: string; address: string },
+          to: (cachedMsg.toAddress ?? []) as { name: string; address: string }[],
+          cc: (cachedMsg.ccAddress ?? []) as { name: string; address: string }[],
+          bcc: (cachedMsg.bccAddress ?? []) as { name: string; address: string }[],
+          replyTo: [] as { name: string; address: string }[],
+          date: cachedMsg.date
+            ? cachedMsg.date.toISOString()
+            : new Date().toISOString(),
+          flags,
+          read: true,
+          starred: flags.includes("\\Flagged"),
+          textBody: cachedMsg.body.textBody,
+          htmlBody,
+          attachments,
+          inReplyTo: cachedMsg.inReplyTo ?? undefined,
+          references: cachedMsg.references.length > 0 ? cachedMsg.references : undefined,
+        };
+      }
+
+      // ── Lazy-fetch path (body not cached) ─────────────────────────
       return withImapClient(accountId, ctx.session.user.id, async (client) => {
         await client.mailboxOpen(input.folder);
 
@@ -449,12 +669,12 @@ export const mailRouter = createTRPCRouter({
               ]),
               allowedAttributes: {
                 ...sanitizeHtml.defaults.allowedAttributes,
-                img: ["src", "alt", "width", "height", "style"],
+                img: ["src", "alt", "width", "height", "style", "align"],
                 td: ["style", "align", "valign", "width", "colspan", "rowspan"],
                 th: ["style", "align", "valign", "width", "colspan", "rowspan"],
-                table: ["style", "width", "cellpadding", "cellspacing", "border"],
-                div: ["style", "class"],
-                span: ["style", "class"],
+                table: ["style", "width", "cellpadding", "cellspacing", "border", "align"],
+                div: ["style", "class", "align"],
+                span: ["style", "class", "align"],
                 a: ["href", "target", "rel", "style"],
                 tr: ["style"],
                 center: ["style"],
@@ -486,6 +706,45 @@ export const mailRouter = createTRPCRouter({
             : [parsed.references]
           : undefined;
 
+        // Persist body to cache (best-effort, don't fail the response)
+        if (cachedMsg && !cachedMsg.bodyFetched) {
+          const attachmentMeta = (parsed.attachments ?? []).map((att, idx) => ({
+            filename: att.filename ?? "unnamed",
+            contentType: att.contentType,
+            size: att.size,
+            cid: att.cid ?? null,
+            index: idx,
+          }));
+
+          ctx.db.$transaction([
+            ctx.db.mailMessageBody.create({
+              data: {
+                messageId: cachedMsg.id,
+                textBody: parsed.text ?? null,
+                htmlBody,
+                attachments: attachmentMeta.length > 0 ? attachmentMeta : undefined,
+              },
+            }),
+            ctx.db.mailMessage.update({
+              where: { id: cachedMsg.id },
+              data: { bodyFetched: true },
+            }),
+          ]).catch(() => {/* swallow – sync will retry */});
+        }
+
+        // Auto-mark-as-read in cache
+        if (cachedMsg && !cachedMsg.read) {
+          ctx.db.mailMessage.update({
+            where: { id: cachedMsg.id },
+            data: {
+              read: true,
+              flags: cachedMsg.flags.includes("\\Seen")
+                ? cachedMsg.flags
+                : [...cachedMsg.flags, "\\Seen"],
+            },
+          }).catch(() => {/* swallow */});
+        }
+
         return {
           uid: input.uid,
           messageId: parsed.messageId ?? "",
@@ -510,6 +769,7 @@ export const mailRouter = createTRPCRouter({
 
   /**
    * Marks a message as read or unread by adding/removing the \Seen flag.
+   * Write-through: updates both IMAP and the local cache.
    */
   markAsRead: protectedProcedure
     .input(
@@ -543,12 +803,34 @@ export const mailRouter = createTRPCRouter({
           );
         }
 
+        // Write-through to local cache
+        const folder = await ctx.db.mailFolder.findUnique({
+          where: {
+            mailAccountId_path: { mailAccountId: accountId, path: input.folder },
+          },
+        });
+        if (folder) {
+          const cached = await ctx.db.mailMessage.findUnique({
+            where: { folderId_uid: { folderId: folder.id, uid: input.uid } },
+          });
+          if (cached) {
+            const newFlags = input.read
+              ? cached.flags.includes("\\Seen") ? cached.flags : [...cached.flags, "\\Seen"]
+              : cached.flags.filter((f) => f !== "\\Seen");
+            await ctx.db.mailMessage.update({
+              where: { id: cached.id },
+              data: { read: input.read, flags: newFlags },
+            });
+          }
+        }
+
         return { ok: true };
       });
     }),
 
   /**
    * Toggles the starred/flagged state by adding/removing the \Flagged flag.
+   * Write-through: updates both IMAP and the local cache.
    */
   toggleStar: protectedProcedure
     .input(
@@ -582,12 +864,34 @@ export const mailRouter = createTRPCRouter({
           );
         }
 
+        // Write-through to local cache
+        const folder = await ctx.db.mailFolder.findUnique({
+          where: {
+            mailAccountId_path: { mailAccountId: accountId, path: input.folder },
+          },
+        });
+        if (folder) {
+          const cached = await ctx.db.mailMessage.findUnique({
+            where: { folderId_uid: { folderId: folder.id, uid: input.uid } },
+          });
+          if (cached) {
+            const newFlags = input.starred
+              ? cached.flags.includes("\\Flagged") ? cached.flags : [...cached.flags, "\\Flagged"]
+              : cached.flags.filter((f) => f !== "\\Flagged");
+            await ctx.db.mailMessage.update({
+              where: { id: cached.id },
+              data: { starred: input.starred, flags: newFlags },
+            });
+          }
+        }
+
         return { ok: true };
       });
     }),
 
   /**
    * Moves a message from one IMAP folder to another (e.g. Trash, Junk).
+   * Write-through: deletes the message from the source folder cache.
    */
   moveMessage: protectedProcedure
     .input(
@@ -612,6 +916,18 @@ export const mailRouter = createTRPCRouter({
           { uid: true },
         );
 
+        // Write-through: remove from source folder cache
+        const folder = await ctx.db.mailFolder.findUnique({
+          where: {
+            mailAccountId_path: { mailAccountId: accountId, path: input.folder },
+          },
+        });
+        if (folder) {
+          await ctx.db.mailMessage.deleteMany({
+            where: { folderId: folder.id, uid: input.uid },
+          });
+        }
+
         return { ok: true };
       });
     }),
@@ -619,6 +935,7 @@ export const mailRouter = createTRPCRouter({
   /**
    * Marks multiple messages as read or unread in a single IMAP operation
    * using a UID sequence set.
+   * Write-through: batch-updates the local cache.
    */
   batchMarkAsRead: protectedProcedure
     .input(
@@ -646,6 +963,27 @@ export const mailRouter = createTRPCRouter({
           await client.messageFlagsRemove(uidSet, ["\\Seen"], { uid: true });
         }
 
+        // Write-through to local cache
+        const folder = await ctx.db.mailFolder.findUnique({
+          where: {
+            mailAccountId_path: { mailAccountId: accountId, path: input.folder },
+          },
+        });
+        if (folder) {
+          const cached = await ctx.db.mailMessage.findMany({
+            where: { folderId: folder.id, uid: { in: input.uids } },
+          });
+          for (const msg of cached) {
+            const newFlags = input.read
+              ? msg.flags.includes("\\Seen") ? msg.flags : [...msg.flags, "\\Seen"]
+              : msg.flags.filter((f) => f !== "\\Seen");
+            await ctx.db.mailMessage.update({
+              where: { id: msg.id },
+              data: { read: input.read, flags: newFlags },
+            });
+          }
+        }
+
         return { ok: true };
       });
     }),
@@ -653,6 +991,7 @@ export const mailRouter = createTRPCRouter({
   /**
    * Moves multiple messages to a destination folder in a single IMAP
    * operation using a UID sequence set.
+   * Write-through: batch-deletes messages from the source folder cache.
    */
   batchMoveMessages: protectedProcedure
     .input(
@@ -677,7 +1016,71 @@ export const mailRouter = createTRPCRouter({
           uid: true,
         });
 
+        // Write-through: remove from source folder cache
+        const folder = await ctx.db.mailFolder.findUnique({
+          where: {
+            mailAccountId_path: { mailAccountId: accountId, path: input.folder },
+          },
+        });
+        if (folder) {
+          await ctx.db.mailMessage.deleteMany({
+            where: { folderId: folder.id, uid: { in: input.uids } },
+          });
+        }
+
         return { ok: true };
       });
+    }),
+
+  /**
+   * Returns the sync state for a mail account.
+   */
+  getSyncStatus: protectedProcedure
+    .input(
+      z.object({
+        accountId: z.string().cuid().optional(),
+      }),
+    )
+    .query(async ({ ctx, input }) => {
+      const accountId = await resolveAccountId(
+        input.accountId,
+        ctx.session.user.id,
+      );
+
+      const syncState = await ctx.db.syncState.findUnique({
+        where: { mailAccountId: accountId },
+      });
+
+      return {
+        status: syncState?.status ?? "idle",
+        error: syncState?.error ?? null,
+        lastSyncStartedAt: syncState?.lastSyncStartedAt?.toISOString() ?? null,
+        lastSyncCompletedAt: syncState?.lastSyncCompletedAt?.toISOString() ?? null,
+      };
+    }),
+
+  /**
+   * Requests an immediate sync for a mail account by setting its SyncState
+   * to "pending". The background worker picks up pending accounts first.
+   */
+  triggerSync: protectedProcedure
+    .input(
+      z.object({
+        accountId: z.string().cuid().optional(),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const accountId = await resolveAccountId(
+        input.accountId,
+        ctx.session.user.id,
+      );
+
+      await ctx.db.syncState.upsert({
+        where: { mailAccountId: accountId },
+        create: { mailAccountId: accountId, status: "pending" },
+        update: { status: "pending" },
+      });
+
+      return { ok: true };
     }),
 });
