@@ -69,7 +69,20 @@ export default function SettingsPage() {
   })
 
   const setDefaultMutation = api.mailAccount.setDefault.useMutation({
-    onSuccess: () => {
+    onMutate: async (variables) => {
+      await utils.mailAccount.list.cancel()
+      const previousAccounts = utils.mailAccount.list.getData()
+      utils.mailAccount.list.setData(undefined, (old) =>
+        old?.map((a) => ({ ...a, isDefault: a.id === variables.id }))
+      )
+      return { previousAccounts }
+    },
+    onError: (_err, _variables, context) => {
+      if (context?.previousAccounts) {
+        utils.mailAccount.list.setData(undefined, context.previousAccounts)
+      }
+    },
+    onSettled: () => {
       void utils.mailAccount.list.invalidate()
     },
   })

@@ -120,13 +120,13 @@ This PRD adds **optimistic updates** to all mutations where the expected outcome
 
 #### Tasks
 
-- [ ] In `src/app/dashboard/settings/page.tsx`, refactor the `setDefaultMutation` to add an `onMutate` callback that:
+- [x] In `src/app/dashboard/settings/page.tsx`, refactor the `setDefaultMutation` to add an `onMutate` callback that:
   1. Cancels in-flight `mailAccount.list` queries via `await utils.mailAccount.list.cancel()`
   2. Snapshots the current `mailAccount.list` data via `utils.mailAccount.list.getData()`
   3. Calls `utils.mailAccount.list.setData(undefined, (old) => old?.map((a) => ({ ...a, isDefault: a.id === variables.id })))` to set `isDefault: true` on the target account and `isDefault: false` on all others
   4. Returns `{ previousAccounts }` as context for rollback
-- [ ] Add an `onError` callback that restores the snapshot via `utils.mailAccount.list.setData(undefined, context.previousAccounts)`
-- [ ] Replace the existing `onSuccess` callback with an `onSettled` callback that invalidates `mailAccount.list`
+- [x] Add an `onError` callback that restores the snapshot via `utils.mailAccount.list.setData(undefined, context.previousAccounts)`
+- [x] Replace the existing `onSuccess` callback with an `onSettled` callback that invalidates `mailAccount.list`
 
 ### Phase 6: Settings — Delete Account
 
