@@ -594,20 +594,91 @@ export function MailThreadView({ uid, folder }: { uid: number; folder: string })
   const isJunkFolder = folder.toLowerCase().includes("junk") || folder.toLowerCase().includes("spam")
 
   const markAsReadMutation = api.mail.markAsRead.useMutation({
-    onSuccess: (_data, variables) => {
-      void utils.mail.getMessage.invalidate({ folder, uid })
-      void utils.mail.listMessages.invalidate()
+    onMutate: async (variables) => {
       if (!variables.read) {
+        // Mark as unread: navigate immediately, then update list cache.
+        // No awaits before navigation to avoid delay and re-render flicker.
         router.push(backHref)
+        const previousMessages = utils.mail.listMessages.getInfiniteData({ folder, limit: 50 })
+        utils.mail.listMessages.setInfiniteData({ folder, limit: 50 }, (oldData) => {
+          if (!oldData) return oldData
+          return {
+            ...oldData,
+            pages: oldData.pages.map((page) => ({
+              ...page,
+              messages: page.messages.map((msg) =>
+                msg.uid === variables.uid ? { ...msg, read: false } : msg
+              ),
+            })),
+          }
+        })
+        return { previousMessage: undefined, previousMessages }
+      }
+      // Mark as read: staying on page, do full optimistic update.
+      await utils.mail.listMessages.cancel()
+      await utils.mail.getMessage.cancel({ folder, uid })
+      const previousMessages = utils.mail.listMessages.getInfiniteData({ folder, limit: 50 })
+      const previousMessage = utils.mail.getMessage.getData({ folder, uid })
+      utils.mail.getMessage.setData({ folder, uid }, (old) =>
+        old ? { ...old, read: true } : old
+      )
+      utils.mail.listMessages.setInfiniteData({ folder, limit: 50 }, (oldData) => {
+        if (!oldData) return oldData
+        return {
+          ...oldData,
+          pages: oldData.pages.map((page) => ({
+            ...page,
+            messages: page.messages.map((msg) =>
+              msg.uid === variables.uid ? { ...msg, read: true } : msg
+            ),
+          })),
+        }
+      })
+      return { previousMessage, previousMessages }
+    },
+    onError: (_err, _variables, context) => {
+      if (context?.previousMessage) {
+        utils.mail.getMessage.setData({ folder, uid }, context.previousMessage)
+      }
+      if (context?.previousMessages) {
+        utils.mail.listMessages.setInfiniteData({ folder, limit: 50 }, context.previousMessages)
+      }
+    },
+    onSettled: (_data, _error, variables) => {
+      if (variables.read) {
+        void utils.mail.getMessage.invalidate({ folder, uid })
+        void utils.mail.listMessages.invalidate()
       }
     },
   })
 
   const moveMessageMutation = api.mail.moveMessage.useMutation({
+    onMutate: async (variables) => {
+      await utils.mail.listMessages.cancel()
+      const previousMessages = utils.mail.listMessages.getInfiniteData({ folder, limit: 50 })
+      utils.mail.listMessages.setInfiniteData({ folder, limit: 50 }, (oldData) => {
+        if (!oldData) return oldData
+        return {
+          ...oldData,
+          pages: oldData.pages.map((page) => ({
+            ...page,
+            messages: page.messages.filter((msg) => msg.uid !== variables.uid),
+          })),
+        }
+      })
+      return { previousMessages }
+    },
     onSuccess: () => {
+      router.push(backHref)
+    },
+    onError: (_err, _variables, context) => {
+      if (context?.previousMessages) {
+        utils.mail.listMessages.setInfiniteData({ folder, limit: 50 }, context.previousMessages)
+      }
+    },
+    onSettled: () => {
       void utils.mail.getMessage.invalidate()
       void utils.mail.listMessages.invalidate()
-      router.push(backHref)
     },
   })
 
