@@ -105,14 +105,14 @@ This PRD adds **optimistic updates** to all mutations where the expected outcome
 
 #### Tasks
 
-- [ ] In `src/components/mail-thread.tsx`, refactor the `moveMessageMutation` to add an `onMutate` callback that:
+- [x] In `src/components/mail-thread.tsx`, refactor the `moveMessageMutation` to add an `onMutate` callback that:
   1. Cancels in-flight `listMessages` queries via `await utils.mail.listMessages.cancel()`
   2. Snapshots the current `listMessages` infinite data
   3. Calls `utils.mail.listMessages.setInfiniteData(...)` to filter out the message with the matching `uid` from all loaded pages — so when the user navigates back, the message is already gone from the list
   4. Returns `{ previousMessages }` as context for rollback
-- [ ] Add an `onError` callback that restores the `listMessages` snapshot
-- [ ] Keep `router.push(backHref)` in `onSuccess` so navigation only happens after server confirmation
-- [ ] Replace the remaining `onSuccess` invalidation logic with an `onSettled` callback that invalidates `mail.getMessage` and `mail.listMessages`
+- [x] Add an `onError` callback that restores the `listMessages` snapshot
+- [x] Keep `router.push(backHref)` in `onSuccess` so navigation only happens after server confirmation
+- [x] Replace the remaining `onSuccess` invalidation logic with an `onSettled` callback that invalidates `mail.getMessage` and `mail.listMessages`
 
 ### Phase 5: Settings — Set Default Account
 

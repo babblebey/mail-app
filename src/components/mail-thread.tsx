@@ -653,10 +653,32 @@ export function MailThreadView({ uid, folder }: { uid: number; folder: string })
   })
 
   const moveMessageMutation = api.mail.moveMessage.useMutation({
+    onMutate: async (variables) => {
+      await utils.mail.listMessages.cancel()
+      const previousMessages = utils.mail.listMessages.getInfiniteData({ folder, limit: 50 })
+      utils.mail.listMessages.setInfiniteData({ folder, limit: 50 }, (oldData) => {
+        if (!oldData) return oldData
+        return {
+          ...oldData,
+          pages: oldData.pages.map((page) => ({
+            ...page,
+            messages: page.messages.filter((msg) => msg.uid !== variables.uid),
+          })),
+        }
+      })
+      return { previousMessages }
+    },
     onSuccess: () => {
+      router.push(backHref)
+    },
+    onError: (_err, _variables, context) => {
+      if (context?.previousMessages) {
+        utils.mail.listMessages.setInfiniteData({ folder, limit: 50 }, context.previousMessages)
+      }
+    },
+    onSettled: () => {
       void utils.mail.getMessage.invalidate()
       void utils.mail.listMessages.invalidate()
-      router.push(backHref)
     },
   })
 
