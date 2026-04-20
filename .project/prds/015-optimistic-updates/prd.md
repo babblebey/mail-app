@@ -89,15 +89,15 @@ This PRD adds **optimistic updates** to all mutations where the expected outcome
 
 #### Tasks
 
-- [ ] In `src/components/mail-thread.tsx`, refactor the `markAsReadMutation` to add an `onMutate` callback that:
+- [x] In `src/components/mail-thread.tsx`, refactor the `markAsReadMutation` to add an `onMutate` callback that:
   1. Cancels in-flight `getMessage` and `listMessages` queries via `await utils.mail.getMessage.cancel({ folder, uid })` and `await utils.mail.listMessages.cancel()`
   2. Snapshots the current `getMessage` data via `utils.mail.getMessage.getData({ folder, uid })` and the current `listMessages` infinite data
   3. Calls `utils.mail.getMessage.setData({ folder, uid }, (old) => old ? { ...old, read: variables.read } : old)` to instantly flip the read flag in the thread view
   4. Calls `utils.mail.listMessages.setInfiniteData(...)` to update the matching message's `read` flag across all loaded pages
   5. Returns `{ previousMessage, previousMessages }` as context for rollback
-- [ ] Add an `onError` callback that restores both snapshots
-- [ ] Move the `router.push(backHref)` for the "mark as unread" case to remain in `onSuccess` (user should only navigate after server confirms)
-- [ ] Replace the remaining `onSuccess` invalidation logic with an `onSettled` callback that invalidates `mail.getMessage` and `mail.listMessages`
+- [x] Add an `onError` callback that restores both snapshots
+- [x] Move the `router.push(backHref)` for the "mark as unread" case to remain in `onSuccess` (user should only navigate after server confirms)
+- [x] Replace the remaining `onSuccess` invalidation logic with an `onSettled` callback that invalidates `mail.getMessage` and `mail.listMessages`
 
 ### Phase 4: Thread View — Move Message
 
