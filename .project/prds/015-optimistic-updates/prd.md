@@ -1,6 +1,6 @@
 ---
 title: "Optimistic Updates for Mail & Account Mutations"
-status: draft
+status: completed
 references:
   - type: prd
     url: .project/prds/011-mail-list-group-actions/prd.md
@@ -144,12 +144,12 @@ This PRD adds **optimistic updates** to all mutations where the expected outcome
 
 ## Acceptance Criteria
 
-- [ ] Marking messages as read/unread in the mail list toolbar or context menu instantly toggles the unread dot on affected messages without waiting for a server response
-- [ ] Deleting, reporting spam, or moving messages from the mail list instantly removes them from the visible list
-- [ ] Marking a message as read/unread in the thread view instantly updates the read state shown in the thread
-- [ ] Moving/deleting a message from the thread view removes it from the mail list cache so it is already gone when the user navigates back
-- [ ] Setting a default account in settings instantly swaps the "Default" badge to the selected account
-- [ ] Deleting an account in settings instantly removes the account card after confirmation
-- [ ] If any mutation fails, the UI rolls back to the previous state — the optimistic change is reverted and the user sees the original data
-- [ ] After every mutation (success or failure), queries are invalidated via `onSettled` to ensure eventual consistency with the server
-- [ ] No regressions in existing functionality — all actions still perform the same server-side operations as before
+- [x] Marking messages as read/unread in the mail list toolbar or context menu instantly toggles the unread dot on affected messages without waiting for a server response
+- [x] Deleting, reporting spam, or moving messages from the mail list instantly removes them from the visible list
+- [x] Marking a message as read/unread in the thread view instantly updates the read state shown in the thread
+- [x] Moving/deleting a message from the thread view removes it from the mail list cache so it is already gone when the user navigates back
+- [x] Setting a default account in settings instantly swaps the "Default" badge to the selected account
+- [x] Deleting an account in settings instantly removes the account card after confirmation
+- [x] If any mutation fails, the UI rolls back to the previous state — the optimistic change is reverted and the user sees the original data
+- [x] After every mutation (success or failure), queries are invalidated via `onSettled` to ensure eventual consistency with the server
+- [x] No regressions in existing functionality — all actions still perform the same server-side operations as before
