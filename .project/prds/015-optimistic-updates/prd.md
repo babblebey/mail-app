@@ -14,6 +14,9 @@ references:
   - type: prd
     url: .project/prds/010-thread-view-message-actions-dropdown/prd.md
     description: "Prior PRD — Thread view message actions dropdown (moveMessage, markAsRead mutations)"
+  - type: pull-request
+    url: https://github.com/babblebey/mail-app/pull/23
+    description: "Implementation PR — Optimistic updates across user interface"
 ---
 
 > **Instructions for AI Agents:**
