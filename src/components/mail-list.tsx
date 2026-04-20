@@ -250,8 +250,28 @@ export function MailList({ folder }: { folder: string }) {
   })
 
   const batchMoveMessages = api.mail.batchMoveMessages.useMutation({
-    onSuccess: () => {
+    onMutate: async (variables) => {
+      await utils.mail.listMessages.cancel()
+      const previousMessages = utils.mail.listMessages.getInfiniteData({ folder, limit: 50 })
+      utils.mail.listMessages.setInfiniteData({ folder, limit: 50 }, (oldData) => {
+        if (!oldData) return oldData
+        return {
+          ...oldData,
+          pages: oldData.pages.map((page) => ({
+            ...page,
+            messages: page.messages.filter((msg) => !variables.uids.includes(msg.uid)),
+          })),
+        }
+      })
       setSelected(new Set())
+      return { previousMessages }
+    },
+    onError: (_err, _variables, context) => {
+      if (context?.previousMessages) {
+        utils.mail.listMessages.setInfiniteData({ folder, limit: 50 }, context.previousMessages)
+      }
+    },
+    onSettled: () => {
       void utils.mail.listMessages.invalidate()
       void utils.mail.listFolders.invalidate()
     },

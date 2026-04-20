@@ -74,14 +74,14 @@ This PRD adds **optimistic updates** to all mutations where the expected outcome
 
 #### Tasks
 
-- [ ] In `src/components/mail-list.tsx`, refactor the `batchMoveMessages` mutation to add an `onMutate` callback that:
+- [x] In `src/components/mail-list.tsx`, refactor the `batchMoveMessages` mutation to add an `onMutate` callback that:
   1. Cancels any in-flight `listMessages` queries via `await utils.mail.listMessages.cancel()`
   2. Snapshots the current `listMessages` infinite query data via `utils.mail.listMessages.getInfiniteData({ folder, limit: 50 })`
   3. Calls `utils.mail.listMessages.setInfiniteData({ folder, limit: 50 }, (oldData) => ...)` to filter out all messages whose `uid` is in the `uids` array from every page
   4. Clears the selection via `setSelected(new Set())`
   5. Returns `{ previousMessages }` as context for rollback
-- [ ] Add an `onError` callback to the `batchMoveMessages` mutation that restores the snapshot via `utils.mail.listMessages.setInfiniteData({ folder, limit: 50 }, context.previousMessages)`
-- [ ] Replace the existing `onSuccess` callback with an `onSettled` callback that invalidates `mail.listMessages` and `mail.listFolders`
+- [x] Add an `onError` callback to the `batchMoveMessages` mutation that restores the snapshot via `utils.mail.listMessages.setInfiniteData({ folder, limit: 50 }, context.previousMessages)`
+- [x] Replace the existing `onSuccess` callback with an `onSettled` callback that invalidates `mail.listMessages` and `mail.listFolders`
 
 ### Phase 3: Thread View — Mark as Read/Unread
 
