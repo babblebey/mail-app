@@ -31,6 +31,10 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "~/components/ui/dropdown-menu"
+import {
+  PerformanceProfiler,
+  startInteractionTrace,
+} from "~/components/performance-profiler"
 
 interface Recipient {
   name: string
@@ -66,6 +70,19 @@ export function MailComposer({
 
   const fileInputRef = React.useRef<HTMLInputElement>(null)
 
+  const traceComposerInteraction = React.useCallback(
+    (
+      name: "mail-composer.typing" | "mail-composer.recipient-edit",
+      detail: string,
+      update: () => void,
+    ) => {
+      const finishTrace = startInteractionTrace(name, detail)
+      update()
+      finishTrace()
+    },
+    [],
+  )
+
   if (!open) return null
 
   function handleAddRecipient(
@@ -78,8 +95,10 @@ export function MailComposer({
     if (!trimmed) return
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
     if (emailRegex.test(trimmed)) {
-      setList([...list, { name: trimmed.split("@")[0] ?? trimmed, email: trimmed }])
-      setInput("")
+      traceComposerInteraction("mail-composer.recipient-edit", "add-recipient", () => {
+        setList([...list, { name: trimmed.split("@")[0] ?? trimmed, email: trimmed }])
+        setInput("")
+      })
     }
   }
 
@@ -95,7 +114,9 @@ export function MailComposer({
       handleAddRecipient(input, setInput, list, setList)
     }
     if (e.key === "Backspace" && !input && list.length > 0) {
-      setList(list.slice(0, -1))
+      traceComposerInteraction("mail-composer.recipient-edit", "remove-recipient-backspace", () => {
+        setList(list.slice(0, -1))
+      })
     }
   }
 
@@ -104,7 +125,9 @@ export function MailComposer({
     list: Recipient[],
     setList: (v: Recipient[]) => void
   ) {
-    setList(list.filter((_, i) => i !== index))
+    traceComposerInteraction("mail-composer.recipient-edit", "remove-recipient", () => {
+      setList(list.filter((_, i) => i !== index))
+    })
   }
 
   function handleFileAttach() {
@@ -127,7 +150,8 @@ export function MailComposer({
   }
 
   return (
-    <div
+    <PerformanceProfiler id="mail-composer.surface">
+      <div
       className={cn(
         "fixed z-50 flex flex-col rounded-xl border bg-background shadow-2xl transition-all",
         maximized
@@ -204,7 +228,11 @@ export function MailComposer({
               <input
                 type="text"
                 value={toInput}
-                onChange={(e) => setToInput(e.target.value)}
+                onChange={(e) =>
+                  traceComposerInteraction("mail-composer.recipient-edit", "to-input", () => {
+                    setToInput(e.target.value)
+                  })
+                }
                 onKeyDown={(e) =>
                   handleKeyDown(e, toInput, setToInput, recipients, setRecipients)
                 }
@@ -257,7 +285,11 @@ export function MailComposer({
                 <input
                   type="text"
                   value={ccInput}
-                  onChange={(e) => setCcInput(e.target.value)}
+                  onChange={(e) =>
+                    traceComposerInteraction("mail-composer.recipient-edit", "cc-input", () => {
+                      setCcInput(e.target.value)
+                    })
+                  }
                   onKeyDown={(e) =>
                     handleKeyDown(e, ccInput, setCcInput, ccRecipients, setCcRecipients)
                   }
@@ -293,7 +325,11 @@ export function MailComposer({
                 <input
                   type="text"
                   value={bccInput}
-                  onChange={(e) => setBccInput(e.target.value)}
+                  onChange={(e) =>
+                    traceComposerInteraction("mail-composer.recipient-edit", "bcc-input", () => {
+                      setBccInput(e.target.value)
+                    })
+                  }
                   onKeyDown={(e) =>
                     handleKeyDown(
                       e,
@@ -324,7 +360,11 @@ export function MailComposer({
             <input
               type="text"
               value={subject}
-              onChange={(e) => setSubject(e.target.value)}
+              onChange={(e) =>
+                traceComposerInteraction("mail-composer.typing", "subject", () => {
+                  setSubject(e.target.value)
+                })
+              }
               className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
               placeholder=""
             />
@@ -334,7 +374,11 @@ export function MailComposer({
           <div className="flex-1 overflow-y-auto px-4 py-3">
             <textarea
               value={body}
-              onChange={(e) => setBody(e.target.value)}
+              onChange={(e) =>
+                traceComposerInteraction("mail-composer.typing", "body", () => {
+                  setBody(e.target.value)
+                })
+              }
               className="size-full resize-none bg-transparent text-sm leading-relaxed outline-none placeholder:text-muted-foreground"
               placeholder="Write your message..."
             />
@@ -461,6 +505,7 @@ export function MailComposer({
           </div>
         </div>
       )}
-    </div>
+      </div>
+    </PerformanceProfiler>
   )
 }

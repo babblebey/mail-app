@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useRef, useCallback, useEffect } from "react"
+import { useState, useRef, useCallback, useEffect, useLayoutEffect } from "react"
 import {
   ArrowLeftIcon,
   Trash2Icon,
@@ -64,6 +64,10 @@ import {
   PopoverContent,
 } from "~/components/ui/popover"
 import { api } from "~/trpc/react"
+import {
+  PerformanceProfiler,
+  startInteractionTrace,
+} from "~/components/performance-profiler"
 
 function getInitials(name: string, email?: string) {
   if (name) {
@@ -152,10 +156,22 @@ function MessageBody({ message }: { message: MessageData }) {
   const htmlRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
+    const finishTrace = startInteractionTrace(
+      "mail-thread.image-heavy-render",
+      String(message.uid),
+    )
     const container = htmlRef.current
-    if (!container) return
+    if (!container) {
+      finishTrace()
+      return
+    }
 
     const imgs = container.querySelectorAll<HTMLImageElement>("img[src]")
+    if (imgs.length === 0) {
+      finishTrace()
+      return
+    }
+
     imgs.forEach((img) => {
       if (img.complete) return
 
@@ -199,27 +215,32 @@ function MessageBody({ message }: { message: MessageData }) {
         "@keyframes mail-img-shimmer{0%{transform:translateX(-100%)}100%{transform:translateX(100%)}}"
       document.head.appendChild(style)
     }
-  }, [message.htmlBody])
+    finishTrace()
+  }, [message.htmlBody, message.uid])
+
+  let bodyContent: React.ReactNode
 
   if (message.htmlBody) {
-    return (
+    bodyContent = (
       <div
         ref={htmlRef}
         className="prose prose-sm max-w-none text-foreground prose-blockquote:not-italic prose-tr:border-0 prose-td:text-sm prose-th:text-sm prose-td:p-1 prose-th:p-1"
         dangerouslySetInnerHTML={{ __html: message.htmlBody }}
       />
     )
-  }
-  if (message.textBody) {
-    return (
+  } else if (message.textBody) {
+    bodyContent = (
       <div className="whitespace-pre-line text-sm leading-relaxed text-foreground">
         {message.textBody}
       </div>
     )
+  } else {
+    bodyContent = (
+      <p className="text-sm italic text-muted-foreground">No content available</p>
+    )
   }
-  return (
-    <p className="text-sm italic text-muted-foreground">No content available</p>
-  )
+
+  return <PerformanceProfiler id="mail-thread.message-body">{bodyContent}</PerformanceProfiler>
 }
 
 function MessageView({
@@ -686,8 +707,29 @@ export function MailThreadView({ uid, folder }: { uid: number; folder: string })
   const [composerMode, setComposerMode] = useState<"inline" | "popout">("inline")
   const [replyBody, setReplyBody] = useState("")
   const inlineComposerRef = useRef<HTMLDivElement>(null)
+  const threadOpenTraceRef = useRef<(() => void) | null>(null)
 
   const backHref = `/dashboard?folder=${encodeURIComponent(folder)}`
+
+  useLayoutEffect(() => {
+    threadOpenTraceRef.current = startInteractionTrace(
+      "mail-thread.thread-open",
+      `${folder}:${uid}`,
+    )
+
+    return () => {
+      threadOpenTraceRef.current = null
+    }
+  }, [folder, uid])
+
+  useEffect(() => {
+    if (!message && !isError) {
+      return
+    }
+
+    threadOpenTraceRef.current?.()
+    threadOpenTraceRef.current = null
+  }, [isError, message])
 
   function openInlineComposer(action: "reply" | "reply-all" | "forward") {
     setReplyAction(action)
@@ -771,7 +813,8 @@ export function MailThreadView({ uid, folder }: { uid: number; folder: string })
   ].join(", ")
 
   return (
-    <div className="flex flex-1 flex-col">
+    <PerformanceProfiler id="mail-thread.surface">
+      <div className="flex flex-1 flex-col">
       {/* Thread toolbar */}
       <div className="flex items-center gap-2 border-b px-4 py-2">
         <Link href={backHref}>
@@ -1037,10 +1080,11 @@ export function MailThreadView({ uid, folder }: { uid: number; folder: string })
       </div>
 
       {/* Popout composer */}
-      <MailComposer
-        open={replyAction !== null && composerMode === "popout"}
-        onClose={handlePopIn}
-      />
-    </div>
+        <MailComposer
+          open={replyAction !== null && composerMode === "popout"}
+          onClose={handlePopIn}
+        />
+      </div>
+    </PerformanceProfiler>
   )
 }

@@ -49,6 +49,10 @@ import {
 } from "~/components/ui/context-menu"
 import { Skeleton } from "~/components/ui/skeleton"
 import { MailComposer } from "~/components/mail-composer"
+import {
+  PerformanceProfiler,
+  startInteractionTrace,
+} from "~/components/performance-profiler"
 import { api } from "~/trpc/react"
 
 function getInitials(name: string) {
@@ -303,6 +307,7 @@ export function MailList({ folder }: { folder: string }) {
   }, [handleObserver])
 
   function toggleSelect(id: string) {
+    const finishTrace = startInteractionTrace("mail-list.checkbox-toggle", id)
     setSelected((prev) => {
       const next = new Set(prev)
       if (next.has(id)) {
@@ -312,23 +317,26 @@ export function MailList({ folder }: { folder: string }) {
       }
       return next
     })
+    finishTrace()
   }
 
   function toggleSelectAll() {
+    const finishTrace = startInteractionTrace("mail-list.checkbox-toggle", "all")
     if (selected.size === messages.length) {
       setSelected(new Set())
     } else {
       setSelected(new Set(messages.map((m) => String(m.uid))))
     }
+    finishTrace()
   }
 
   const handleContextMenu = useCallback(
     (mailId: string) => {
-      if (!selected.has(mailId)) {
-        setSelected(new Set([mailId]))
-      }
+      const finishTrace = startInteractionTrace("mail-list.context-menu-open", mailId)
+      setSelected((prev) => (prev.has(mailId) ? prev : new Set([mailId])))
+      finishTrace()
     },
-    [selected],
+    [],
   )
 
   // Loading skeleton
@@ -406,7 +414,8 @@ export function MailList({ folder }: { folder: string }) {
   }
 
   return (
-    <div className="flex flex-1 flex-col">
+    <PerformanceProfiler id="mail-list.surface">
+      <div className="flex flex-1 flex-col">
       {/* Toolbar */}
       <div className="flex items-center gap-2 border-b px-4 py-2">
         <div className="flex items-center gap-1">
@@ -742,7 +751,8 @@ export function MailList({ folder }: { folder: string }) {
         </div>
       </div>
 
-      <MailComposer open={composerOpen} onClose={() => setComposerOpen(false)} />
-    </div>
+        <MailComposer open={composerOpen} onClose={() => setComposerOpen(false)} />
+      </div>
+    </PerformanceProfiler>
   )
 }
