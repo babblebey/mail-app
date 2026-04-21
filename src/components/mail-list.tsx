@@ -184,8 +184,6 @@ export function MailList({ folder }: { folder: string }) {
 
   const messages = data?.pages.flatMap((page) => page.messages) ?? []
 
-  console.log({ messages });
-
   // Folder list for batch actions (Trash, Junk, Move To)
   const { data: folders } = api.mail.listFolders.useQuery({})
   const trashFolder = folders?.find((f) => f.specialUse === "\\Trash")?.path
