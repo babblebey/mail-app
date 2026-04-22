@@ -1,6 +1,6 @@
 ---
 title: "Optimistic Read State and Folder Badge Consistency"
-status: in-progress
+status: completed
 references:
   - type: doc
     url: .project/brief.md
@@ -137,7 +137,7 @@ This PRD closes these gaps by making list rows and folder badges update immediat
 
 - [x] Add or extend unit tests in `tests/unit/mail-interactions.test.ts` for optimistic unread-count delta math, rollback restoration, and non-negative count guarantees.
 - [x] Add tests for thread mark-unread instant-navigation behavior and open-thread-then-back read-state consistency.
-- [ ] Run targeted test suite and perform manual verification scenarios:
+- [x] Run targeted test suite and perform manual verification scenarios:
   - list batch mark read/unread updates row + badge immediately
   - thread mark unread returns to list with row + badge correct immediately
   - open unread thread then back updates row + badge without lag
