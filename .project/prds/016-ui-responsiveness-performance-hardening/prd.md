@@ -148,7 +148,33 @@ The `actualDuration` vs `baseDuration` gap is the key signal: `baseDuration` rem
 - [ ] Verify the breadcrumb and header content (folder name, "Thread" label) still updates correctly when driven from the layout rather than the individual pages.
 - [ ] Confirm `AppSidebar` folder-active state updates correctly across navigations after the layout change.
 
-### Phase 6: Shared UI Primitive Tuning and Regression Guardrails
+### Phase 6: Mail List Toolbar Render Isolation
+
+**Goal:** Remove the toolbar as a source of rerender churn triggered by selection state changes, matching the row-level isolation already achieved in Phase 2.
+
+#### Root Cause Analysis
+
+The toolbar in `src/components/mail-list.tsx` lives directly inside `MailList`'s render function with no memoization boundary. Every checkbox toggle or selection change causes `MailList` to re-render (because `selected` state lives there), which re-renders the entire toolbar subtree alongside it. This is avoidable work — `MailRow` components bail out via `React.memo`, but the toolbar above them does not. Several compounding issues were identified:
+
+1. **No memoization boundary on the toolbar.** The toolbar JSX re-executes on every `selected` state change even when the visible toolbar content has not changed (e.g., toggling a row when no rows were previously selected, so the Sync button remains visible throughout).
+
+2. **Inline `onClick` handlers in toolbar dropdown items.** The `All`, `None`, `Read`, and `Unread` dropdown items each create new callback closures on every render: `() => setSelected(new Set(messages.map(...)))`, `() => setSelected(new Set(messages.filter(...).map(...)))`, etc. These are unstabilized, meaning they defeat any future memoization attempt on the dropdown subtree.
+
+3. **Inline `onClick` handlers on batch action buttons.** Each batch action button (`Report spam`, `Delete`, `Mark as read`, `Mark as unread`, `Move to` items) creates a new inline closure on every render that closes directly over `selectedUids`. While `selectedUids` is memoized, new function identities are still produced each render, preventing those buttons from being stable across rerenders.
+
+4. **`selected.size === 0` conditional causes subtree swap.** The toolbar conditionally mounts either the `Sync` button or the entire batch-actions region. The first selection change mounts a completely different subtree (all the batch action buttons), which is more expensive than simply showing/hiding existing nodes, and causes a layout reflow.
+
+5. **`checked` state derivation for the select-all checkbox is inline.** The ternary `selected.size === messages.length ? true : selected.size > 0 ? "indeterminate" : false` runs inside every render and is not memoized, causing the `Checkbox` component to always receive a newly computed primitive on every selection state change, even when the result did not change.
+
+#### Tasks
+
+- [ ] Extract the toolbar into a memoized `MailListToolbar` component (`React.memo`) with a stable, narrow prop interface that only receives the values it genuinely needs.
+- [ ] Stabilize all toolbar `onClick` callbacks — `onSelectAll`, `onSelectNone`, `onSelectRead`, `onSelectUnread`, and all batch action handlers — as `useCallback` closures reading mutable state through refs, so the toolbar never receives new function identities on selection changes.
+- [ ] Memoize the select-all `Checkbox` checked state derivation (`useMemo`) so the toolbar only re-renders when the result actually changes (i.e. unchecked → indeterminate → checked transitions), not on every individual row toggle.
+- [ ] Replace the `selected.size === 0` inline conditional that swaps between two subtrees with a visibility pattern that avoids full subtree mount/unmount on first selection.
+- [ ] Verify via React Profiler that toolbar `actualDuration` is negligible (< 5 ms) on individual row checkbox toggles after the changes, and that the toolbar only re-renders when its own visible state changes.
+
+### Phase 7: Shared UI Primitive Tuning and Regression Guardrails
 
 **Goal:** Improve perceived snappiness and prevent future regressions through repeatable checks.
 
