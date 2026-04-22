@@ -1,6 +1,6 @@
 ---
 title: "Optimistic Read State and Folder Badge Consistency"
-status: draft
+status: in-progress
 references:
   - type: doc
     url: .project/brief.md
@@ -56,9 +56,27 @@ This PRD closes these gaps by making list rows and folder badges update immediat
 
 #### Tasks
 
-- [ ] Audit read/unread entry points in `src/components/mail-list.tsx`, `src/components/mail-thread.tsx`, and `src/server/api/routers/mail.ts`.
-- [ ] Document per-entry cache responsibilities (`listMessages`, `getMessage`, `listFolders`) and rollback requirements in implementation notes.
-- [ ] Add a small shared helper (or local utility section) for unread-count delta application with non-negative clamping to avoid duplicated math and drift.
+- [x] Audit read/unread entry points in `src/components/mail-list.tsx`, `src/components/mail-thread.tsx`, and `src/server/api/routers/mail.ts`.
+- [x] Document per-entry cache responsibilities (`listMessages`, `getMessage`, `listFolders`) and rollback requirements in implementation notes.
+- [x] Add a small shared helper (or local utility section) for unread-count delta application with non-negative clamping to avoid duplicated math and drift.
+
+#### Phase 1 Implementation Notes (2026-04-22)
+
+- Audit findings (current behavior):
+  - `src/components/mail-list.tsx` `batchMarkAsRead`: optimistic update currently touches `listMessages` only; rollback restores `listMessages`; `onSettled` invalidates both `listMessages` and `listFolders`.
+  - `src/components/mail-thread.tsx` `markAsReadMutation`: `read: false` path navigates immediately and updates `listMessages` only; `read: true` path snapshots/updates `getMessage` + `listMessages`; rollback restores those caches; `onSettled` currently invalidates `getMessage` only for `read: true`.
+  - `src/components/mail-thread.tsx` `moveMessageMutation`: optimistic removal from `listMessages`; rollback restores `listMessages`; `onSettled` invalidates `getMessage` + `listMessages`.
+  - `src/server/api/routers/mail.ts` `markAsRead` + `batchMarkAsRead`: write-through updates message `read` and `\\Seen` flags; no direct folder unread-count write-through in these mutations.
+  - `src/server/api/routers/mail.ts` `getMessage`: auto-mark-as-read updates message cache row/flags asynchronously when a message is opened.
+- Cache contract established for all read-state entry points:
+  - `listMessages`: primary optimistic source for list row read/unread transitions.
+  - `getMessage`: optimistic source for thread pane state when viewing a specific message.
+  - `listFolders`: optimistic source for unread badge deltas with server-truth reconciliation via targeted invalidation.
+  - Rollback requirement: every optimistic cache touched in `onMutate` must be snapshot and restored in `onError`.
+  - Reconciliation requirement: keep targeted `onSettled` invalidation for all touched read-state surfaces to converge to server truth.
+- Shared helper added in `src/lib/mail-utils.ts`:
+  - `getUnreadDeltaForReadToggle(currentRead, nextRead)` for canonical transition delta math.
+  - `applyUnreadDeltaWithClamp(currentUnread, delta)` for non-negative unread count clamping while preserving `undefined`/`null` counts.
 
 ### Phase 2: Mail List Read/Unread Folder Badge Optimism
 
