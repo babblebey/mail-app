@@ -21,6 +21,10 @@ Chrome Performance panel traces were captured on 2026-04-22 for thread-open and 
 - `Trace-20260422T013642.json`
 - `Trace-20260422T013730.json`
 
+Chrome Performance panel trace was also captured on 2026-04-22 for composer interactions from:
+
+- `Trace-20260422T014504-composer.json`
+
 ## How To Capture
 
 1. Create a local `.env` from `.env.example` and configure the database/auth settings.
@@ -57,8 +61,8 @@ Record each scenario with at least 3 runs and fill in the median values below.
 | mail-list.context-menu-open | `847.9 ms` dominant commit (`926.6 ms` across initial 9-commit open cluster) | `9` commits in observed open cluster | `1206.2 ms` median (`1012.2 ms`, `1206.2 ms`, `1399.7 ms`) | Pending browser Performance trace | Initial commit was driven by `ContextMenu` + `MailList`; top fiber was `MailList` at `847.9 ms`, with two sibling fibers at `441.4 ms` and `441.2 ms`, followed by menu/presence commits from `6.3 ms` to `31.2 ms`. |
 | mail-thread.thread-open | `86.9 ms` dominant `mail-thread.surface` mount commit (`92.9 ms` median across mount+follow-up pairs) | `2` commits per observed open (`mount` + `nested-update`) | `657.7 ms` median (`187.8 ms`, `287.9 ms`, `1027.5 ms`, `1302.1 ms`) | Pending browser Performance trace | Render cost inside `mail-thread.surface` is moderate, but end-to-end open latency is high and highly variable, indicating non-render wait (data/navigation/network) dominates worst-case opens. |
 | mail-thread.image-heavy-render | `2.5 ms` dominant `mail-thread.message-body` mount commit (`0.8 ms`, `0.8 ms`, `2.5 ms`) | `1` commit per observed message-body mount | `48.1 ms` median (`40.5 ms`, `44.3 ms`, `47.4 ms`, `48.8 ms`, `181.3 ms`, `217.9 ms`) | Pending browser Performance trace | Median meets target, but high outliers (`181.3 ms`, `217.9 ms`) show occasional heavy-path stalls that need confirmation in browser Performance traces. |
-| mail-composer.typing | `~33-42 ms` typical `mail-composer.surface` update commits with spikes up to `~91.6 ms` | `1` composer update commit per keystroke (plus paired `mail-list.surface` update due to shared subtree) | Subject median `~81 ms`; body median `~84 ms`; body outliers up to `194.4 ms` | Pending browser Performance trace | Consistently above `<= 16 ms` target; recurrent `> 50 ms` durations indicate interaction-path pressure during rapid input. |
-| mail-composer.recipient-edit | `~19-46 ms` typical `mail-composer.surface` update commits with spikes up to `~116.9 ms` | `1` composer update commit per edit action (plus paired `mail-list.surface` update due to shared subtree) | `to-input` median `~82 ms` with outliers up to `285.8 ms`; `add-recipient` `~85.8-107.5 ms`; `remove-recipient` `49.1 ms` | Pending browser Performance trace | Misses `<= 50 ms` target on most add/type actions with multiple extreme spikes during recipient entry bursts. |
+| mail-composer.typing | `~33-42 ms` typical `mail-composer.surface` update commits with spikes up to `~91.6 ms` | `1` composer update commit per keystroke (plus paired `mail-list.surface` update due to shared subtree) | Subject median `~81 ms`; body median `~84 ms`; body outliers up to `194.4 ms` | Yes (`Trace-20260422T014504-composer.json`: renderer main `85` long tasks `>= 50 ms`, max `1676.4 ms`) | Consistently above `<= 16 ms` target; recurrent `> 50 ms` durations indicate interaction-path pressure during rapid input. |
+| mail-composer.recipient-edit | `~19-46 ms` typical `mail-composer.surface` update commits with spikes up to `~116.9 ms` | `1` composer update commit per edit action (plus paired `mail-list.surface` update due to shared subtree) | `to-input` median `~82 ms` with outliers up to `285.8 ms`; `add-recipient` `~85.8-107.5 ms`; `remove-recipient` `49.1 ms` | Yes (`Trace-20260422T014504-composer.json`: renderer main `85` long tasks `>= 50 ms`, max `1676.4 ms`) | Misses `<= 50 ms` target on most add/type actions with multiple extreme spikes during recipient entry bursts. |
 
 ## Browser Trace Snapshot (2026-04-22)
 
@@ -69,6 +73,7 @@ The table below summarizes the captured Chrome traces at file level.
 | `Trace-20260422T012824.json` | Mail-list / thread-open capture set | `21405` | `8` | `8` | `641.0 ms` | `15` |
 | `Trace-20260422T013642.json` | Mail-list / thread-open capture set | `10715` | `5` | `3` | `860.4 ms` | `58` |
 | `Trace-20260422T013730.json` | Mail-list / thread-open capture set | `8592` | `5` | `5` | `1112.1 ms` | `2` |
+| `Trace-20260422T014504-composer.json` | Composer typing + recipient-edit capture set | `35544` | `86` | `85` | `1676.4 ms` | `25` |
 
 All three traces show renderer-main long tasks well above the `>= 50 ms` threshold, confirming main-thread blocking during these captured interactions.
 
@@ -82,7 +87,8 @@ All three traces show renderer-main long tasks well above the `>= 50 ms` thresho
 - The composer typing capture materially misses the `<= 16 ms` target, with subject/body interaction medians around `~81-84 ms` and body outliers up to `194.4 ms`.
 - The composer recipient-edit capture materially misses the `<= 50 ms` target for `to-input` and `add-recipient` actions (`~82 ms` median `to-input`, outliers up to `285.8 ms`; adds up to `107.5 ms`), while `remove-recipient` was near-threshold (`49.1 ms`) in the observed run.
 - Browser traces for thread-open and mail-list interactions confirm severe main-thread blocking, with renderer-main long tasks from `641.0 ms` to `1112.1 ms` and non-zero dropped-frame events across runs.
-- Browser traces are still pending for thread image-heavy render and composer scenarios.
+- Browser trace for composer interactions also confirms severe main-thread blocking (`85` renderer-main long tasks `>= 50 ms`, max `1676.4 ms`, `25` dropped-frame events).
+- Browser traces are still pending for thread image-heavy render.
 
 ## Target Thresholds
 
@@ -99,4 +105,4 @@ These thresholds define the pass/fail bar for the follow-up optimization phases.
 
 ## Current Blocker
 
-The repository does not currently include a usable `.env` file or mailbox fixture data, so the remaining live traces required by Phase 1 cannot be captured in this workspace without local environment setup. Mail-list and thread-open browser traces plus mail-list/thread/composer `window.__MAIL_APP_PERF__` traces are now available, but browser traces for thread image-heavy render and composer scenarios are still required.
+The repository does not currently include a usable `.env` file or mailbox fixture data, so the remaining live traces required by Phase 1 cannot be captured in this workspace without local environment setup. Mail-list/thread-open/composer browser traces plus mail-list/thread/composer `window.__MAIL_APP_PERF__` traces are now available, but browser trace capture for thread image-heavy render is still required.
