@@ -78,6 +78,8 @@ Phase 1 instrumentation is implemented in code and the capture workflow/threshol
 - [x] Remove any render-time debug logging and other synchronous non-essential work from interaction paths.
 - [ ] Re-profile checkbox and context-menu scenarios to verify reduced rerenders for unaffected rows.
 
+**Post-implementation fix — `hasUnreadSelected` prop leak:** After the initial Phase 2 implementation, unread-mail rows were still noticeably slower to respond to checkbox toggles than read ones. Root cause: `hasUnreadSelected` was a plain boolean prop passed to every `MailRow`. Selecting the first unread mail flipped it `false → true`, updating the prop on all rows simultaneously and defeating `React.memo` across the entire list. Fixed by replacing the boolean prop with a stable `getHasUnreadSelected: () => boolean` getter backed by a `useRef` and created with `useCallback([], [])`. Its identity never changes between renders, so unaffected rows see no prop difference and skip re-rendering. The getter is only invoked inside `ContextMenuContent` at menu-open time, which is the only point where the value is actually needed.
+
 ### Phase 3: Query Invalidation and Sync Churn Optimization
 
 **Goal:** Reduce unnecessary network and state churn that degrades perceived responsiveness.

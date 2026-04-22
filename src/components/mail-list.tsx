@@ -187,7 +187,9 @@ interface MailRowProps {
   mail: MailEntry
   folder: string
   isSelected: boolean
-  hasUnreadSelected: boolean
+  // Stable getter backed by a ref — never changes identity, so unaffected rows
+  // skip re-rendering when the unread-selection state changes.
+  getHasUnreadSelected: () => boolean
   userEmails: string[]
   trashFolder: string | undefined
   folderOptions: Array<{ path: string; name: string }>
@@ -201,7 +203,7 @@ const MailRow = memo(function MailRow({
   mail,
   folder,
   isSelected,
-  hasUnreadSelected,
+  getHasUnreadSelected,
   userEmails,
   trashFolder,
   folderOptions,
@@ -414,7 +416,7 @@ const MailRow = memo(function MailRow({
             Delete
           </ContextMenuItem>
         )}
-        {hasUnreadSelected ? (
+        {getHasUnreadSelected() ? (
           <ContextMenuItem onClick={() => onMarkAsRead(true)}>
             <MailOpenIcon className="size-4" />
             Mark as read
@@ -574,10 +576,13 @@ export function MailList({ folder }: { folder: string }) {
   const selectedUids = useMemo(() => Array.from(selected).map(Number), [selected])
   selectedUidsRef.current = selectedUids
 
-  const hasUnreadSelected = useMemo(
+  const hasUnreadSelectedRef = useRef(false)
+  hasUnreadSelectedRef.current = useMemo(
     () => messages.some((m) => selected.has(String(m.uid)) && !m.read),
     [messages, selected],
   )
+  // Stable getter — identity never changes, reads current value from the ref.
+  const getHasUnreadSelected = useCallback(() => hasUnreadSelectedRef.current, [])
 
   const folderOptions = useMemo(
     () => folders?.filter((f) => f.path !== folder) ?? [],
@@ -843,7 +848,7 @@ export function MailList({ folder }: { folder: string }) {
               mail={mail}
               folder={folder}
               isSelected={selected.has(mailId)}
-              hasUnreadSelected={hasUnreadSelected}
+              getHasUnreadSelected={getHasUnreadSelected}
               userEmails={userEmails}
               trashFolder={trashFolder}
               folderOptions={folderOptions}
