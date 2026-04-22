@@ -11,7 +11,9 @@ Instrumentation is implemented in the client surfaces required for Phase 1:
 
 Live baseline capture is still pending a configured local `.env` file, an authenticated session, and mailbox data representative of normal usage.
 
-React Profiler results for the two mail-list scenarios were captured on 2026-04-21 from `profiling-data.04-21-2026.22-38-26.json`. Browser Performance panel traces and the thread/composer scenarios are still pending.
+React Profiler results for mail-list scenarios were captured on 2026-04-21 from `profiling-data.04-21-2026.22-38-26.json`.
+
+`window.__MAIL_APP_PERF__` interaction captures were also recorded for mail-list and thread scenarios, providing direct User Timing measurements for interaction latency.
 
 ## How To Capture
 
@@ -45,18 +47,21 @@ Record each scenario with at least 3 runs and fill in the median values below.
 
 | Scenario | React Profiler actualDuration | React Profiler commit count | User Timing interaction duration | Main-thread long task observed | Notes |
 | --- | --- | --- | --- | --- | --- |
-| mail-list.checkbox-toggle | `944.7 ms` dominant commit (`963.1 ms` across immediate 3-commit cluster) | `3` commits in observed cluster | Not available in React Profiler export | Not available in React Profiler export | Updater was `MailList`; top fiber was `MailList` itself at `944.7 ms`, with two sibling fibers at `454.3 ms` and `454.1 ms`, indicating broad rerender work rather than a row-local update. |
-| mail-list.context-menu-open | `847.9 ms` dominant commit (`926.6 ms` across initial 9-commit open cluster) | `9` commits in observed open cluster | Not available in React Profiler export | Not available in React Profiler export | Initial commit was driven by `ContextMenu` + `MailList`; top fiber was `MailList` at `847.9 ms`, with two sibling fibers at `441.4 ms` and `441.2 ms`, followed by menu/presence commits from `6.3 ms` to `31.2 ms`. |
-| mail-thread.thread-open | Pending local capture | Pending local capture | Pending local capture | Pending local capture | |
-| mail-thread.image-heavy-render | Pending local capture | Pending local capture | Pending local capture | Pending local capture | |
+| mail-list.checkbox-toggle | `944.7 ms` dominant commit (`963.1 ms` across immediate 3-commit cluster) | `3` commits in observed cluster | `936.6 ms` median (`877.1 ms`, `936.6 ms`, `977.8 ms`) | Pending browser Performance trace | Updater was `MailList`; top fiber was `MailList` itself at `944.7 ms`, with two sibling fibers at `454.3 ms` and `454.1 ms`, indicating broad rerender work rather than a row-local update. |
+| mail-list.context-menu-open | `847.9 ms` dominant commit (`926.6 ms` across initial 9-commit open cluster) | `9` commits in observed open cluster | `1206.2 ms` median (`1012.2 ms`, `1206.2 ms`, `1399.7 ms`) | Pending browser Performance trace | Initial commit was driven by `ContextMenu` + `MailList`; top fiber was `MailList` at `847.9 ms`, with two sibling fibers at `441.4 ms` and `441.2 ms`, followed by menu/presence commits from `6.3 ms` to `31.2 ms`. |
+| mail-thread.thread-open | `86.9 ms` dominant `mail-thread.surface` mount commit (`92.9 ms` median across mount+follow-up pairs) | `2` commits per observed open (`mount` + `nested-update`) | `657.7 ms` median (`187.8 ms`, `287.9 ms`, `1027.5 ms`, `1302.1 ms`) | Pending browser Performance trace | Render cost inside `mail-thread.surface` is moderate, but end-to-end open latency is high and highly variable, indicating non-render wait (data/navigation/network) dominates worst-case opens. |
+| mail-thread.image-heavy-render | `2.5 ms` dominant `mail-thread.message-body` mount commit (`0.8 ms`, `0.8 ms`, `2.5 ms`) | `1` commit per observed message-body mount | `48.1 ms` median (`40.5 ms`, `44.3 ms`, `47.4 ms`, `48.8 ms`, `181.3 ms`, `217.9 ms`) | Pending browser Performance trace | Median meets target, but high outliers (`181.3 ms`, `217.9 ms`) show occasional heavy-path stalls that need confirmation in browser Performance traces. |
 | mail-composer.typing | Pending local capture | Pending local capture | Pending local capture | Pending local capture | |
 | mail-composer.recipient-edit | Pending local capture | Pending local capture | Pending local capture | Pending local capture | |
 
 ## Current Findings
 
-- The checkbox-toggle capture materially misses the `<= 50 ms` target. The dominant `MailList` commit at `944.7 ms` is consistent with a full-list rerender rather than a row-level state update.
-- The context-menu-open capture also materially misses the `<= 50 ms` target. The initial `ContextMenu` + `MailList` commit at `847.9 ms` dominates the interaction before the expected menu/presence follow-up work begins.
-- This export is sufficient to establish the React-side baseline for the two mail-list scenarios, but it does not include the browser Performance panel data needed to confirm long-task behavior or compare User Timing interaction durations.
+- The checkbox-toggle capture materially misses the `<= 50 ms` target in both sources: React dominant commit (`944.7 ms`) and User Timing median (`936.6 ms`).
+- The context-menu-open capture materially misses the `<= 50 ms` target in both sources: React dominant commit (`847.9 ms`) and User Timing median (`1206.2 ms`).
+- The combined evidence strongly indicates full-surface rerender cost in the interaction path, not just menu animation overhead.
+- The thread-open capture materially misses the `<= 120 ms` target on User Timing median (`657.7 ms`) with wide variance (`187.8 ms` to `1302.1 ms`), even though the measured `mail-thread.surface` render commits are much smaller (`86.9 ms` dominant mount).
+- The image-heavy-render capture meets the `<= 120 ms` median target (`48.1 ms`) but has major outliers (`181.3 ms`, `217.9 ms`), so it is not yet stable.
+- Browser Performance panel traces are still required to confirm long-task distribution and main-thread blocking segments.
 
 ## Target Thresholds
 
@@ -73,4 +78,4 @@ These thresholds define the pass/fail bar for the follow-up optimization phases.
 
 ## Current Blocker
 
-The repository does not currently include a usable `.env` file or mailbox fixture data, so the remaining live traces required by Phase 1 cannot be captured in this workspace without local environment setup. Mail-list React Profiler traces are now available, but browser Performance traces plus thread/composer captures are still required.
+The repository does not currently include a usable `.env` file or mailbox fixture data, so the remaining live traces required by Phase 1 cannot be captured in this workspace without local environment setup. Mail-list and thread `window.__MAIL_APP_PERF__` interaction traces are now available, but browser Performance traces plus composer captures are still required.
