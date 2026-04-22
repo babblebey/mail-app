@@ -24,6 +24,21 @@ import {
 
 import { cn } from "~/lib/utils"
 import {
+  isSentFolder,
+  isDraftsFolder,
+  isTrashFolder,
+  isJunkFolder,
+  isRealRecipient,
+  getInitials,
+  getSenderName,
+  getRecipientName,
+  getRecipientLabel,
+  getDraftRecipientLabel,
+  classifyMixedFolderEmail,
+  computeSelectAllChecked,
+  toggleSelectItem,
+} from "~/lib/mail-utils"
+import {
   Avatar,
   AvatarFallback,
   AvatarGroup,
@@ -55,15 +70,6 @@ import {
 } from "~/components/performance-profiler"
 import { api } from "~/trpc/react"
 
-function getInitials(name: string) {
-  return name
-    .split(" ")
-    .map((n) => n[0])
-    .join("")
-    .slice(0, 2)
-    .toUpperCase()
-}
-
 function formatDate(isoDate: string) {
   const date = new Date(isoDate)
   const now = new Date()
@@ -78,88 +84,6 @@ function formatDate(isoDate: string) {
     month: "short",
     day: "numeric",
   })
-}
-
-function isSentFolder(folder: string): boolean {
-  return folder.toLowerCase().includes("sent")
-}
-
-function getRecipientName(contact: { name: string; address: string }): string {
-  if (contact.name.trim()) {
-    return contact.name.trim().split(/\s+/)[0]!
-  }
-  return contact.address.split("@")[0] ?? contact.address
-}
-
-function getSenderName(contact: { name: string; address: string }): string {
-  if (contact.name.trim()) {
-    return contact.name.trim()
-  }
-  return contact.address.split("@")[0] ?? contact.address
-}
-
-function getRecipientLabel(
-  to: { name: string; address: string }[],
-  cc: { name: string; address: string }[],
-  bcc: { name: string; address: string }[],
-): string {
-  return `To: ${[...to, ...cc, ...bcc].map(getRecipientName).join(", ")}`
-}
-
-function isDraftsFolder(folder: string): boolean {
-  return folder.toLowerCase().includes("draft")
-}
-
-function isTrashFolder(folder: string): boolean {
-  const lower = folder.toLowerCase()
-  return lower.includes("trash") || lower.includes("deleted")
-}
-
-function isJunkFolder(folder: string): boolean {
-  const lower = folder.toLowerCase()
-  return lower.includes("junk") || lower.includes("spam")
-}
-
-function isRealRecipient(contact: { name: string; address: string }): boolean {
-  const addr = contact.address.toLowerCase()
-  return !addr.startsWith("undisclosed-recipients")
-}
-
-function getDraftRecipientLabel(
-  to: { name: string; address: string }[],
-  cc: { name: string; address: string }[],
-  bcc: { name: string; address: string }[],
-): string | null {
-  const allRecipients = [...to, ...cc, ...bcc].filter(isRealRecipient)
-  if (allRecipients.length === 0) {
-    return null
-  }
-  return allRecipients.map(getRecipientName).join(", ")
-}
-
-function classifyMixedFolderEmail(
-  mail: {
-    flags: string[]
-    from: { name: string; address: string }
-    to: { name: string; address: string }[]
-    cc: { name: string; address: string }[]
-    bcc: { name: string; address: string }[]
-  },
-  userEmails: string[],
-): "inbox" | "sent" | "drafts" {
-  if (mail.flags.includes("\\Draft")) {
-    return "drafts"
-  }
-  const fromLower = mail.from.address.toLowerCase()
-  if (userEmails.includes(fromLower)) {
-    const hasRealRecipients =
-      [...mail.to, ...mail.cc, ...mail.bcc].filter(isRealRecipient).length > 0
-    if (!hasRealRecipients) {
-      return "drafts"
-    }
-    return "sent"
-  }
-  return "inbox"
 }
 
 // ---------------------------------------------------------------------------
@@ -902,12 +826,7 @@ export function MailList({ folder }: { folder: string }) {
   // MailListToolbar skips re-rendering when the result is unchanged.
   // -----------------------------------------------------------------------
   const selectAllChecked = useMemo<true | "indeterminate" | false>(
-    () =>
-      selected.size === messages.length
-        ? true
-        : selected.size > 0
-          ? "indeterminate"
-          : false,
+    () => computeSelectAllChecked(selected.size, messages.length),
     [selected.size, messages.length],
   )
 
@@ -938,15 +857,7 @@ export function MailList({ folder }: { folder: string }) {
 
   const toggleSelect = useCallback((id: string) => {
     const finishTrace = startInteractionTrace("mail-list.checkbox-toggle", id)
-    setSelected((prev) => {
-      const next = new Set(prev)
-      if (next.has(id)) {
-        next.delete(id)
-      } else {
-        next.add(id)
-      }
-      return next
-    })
+    setSelected((prev) => toggleSelectItem(prev, id))
     finishTrace()
   }, [])
 
