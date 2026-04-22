@@ -128,10 +128,24 @@ This PRD closes these gaps by making list rows and folder badges update immediat
 
 - [ ] Add or extend unit tests in `tests/unit/mail-interactions.test.ts` for optimistic unread-count delta math, rollback restoration, and non-negative count guarantees.
 - [ ] Add tests for thread mark-unread instant-navigation behavior and open-thread-then-back read-state consistency.
+- [x] Add or extend unit tests in `tests/unit/mail-interactions.test.ts` for optimistic unread-count delta math, rollback restoration, and non-negative count guarantees.
+- [x] Add tests for thread mark-unread instant-navigation behavior and open-thread-then-back read-state consistency.
 - [ ] Run targeted test suite and perform manual verification scenarios:
   - list batch mark read/unread updates row + badge immediately
   - thread mark unread returns to list with row + badge correct immediately
   - open unread thread then back updates row + badge without lag
+
+#### Phase 5 Implementation Notes (2026-04-22)
+
+- Extended `tests/unit/mail-interactions.test.ts` with coverage for:
+  - `getUnreadDeltaForReadToggle` transition math contract.
+  - `applyUnreadDeltaWithClamp` non-negative clamping and `undefined` preservation.
+  - Thread mark-unread fast-path contract (instant navigation ordering + optimistic list/folder updates).
+  - Thread read/unread rollback restoration across `getMessage`, `listMessages`, and `listFolders` snapshots.
+  - Thread-open auto-read cache sync contract for back-nav consistency, including scoped invalidation when row is absent.
+- Targeted suite executed successfully:
+  - Command: `pnpm vitest run tests/unit/mail-interactions.test.ts`
+  - Result: 1 file passed, 51 tests passed.
 
 ## Acceptance Criteria
 
@@ -141,5 +155,5 @@ This PRD closes these gaps by making list rows and folder badges update immediat
 - [x] Opening unread mail then navigating back updates list row read state without delayed or missing transition.
 - [x] `markAsReadMutation` invalidates `getMessage`, `listMessages`, and `listFolders` in `onSettled` for both read/unread branches.
 - [x] `moveMessageMutation` invalidates `listFolders` in `onSettled` from thread view actions.
-- [ ] No negative unread badge counts occur under optimistic delta updates.
-- [ ] New/updated tests covering optimistic read/badge consistency pass in `tests/unit/mail-interactions.test.ts`.
+- [x] No negative unread badge counts occur under optimistic delta updates.
+- [x] New/updated tests covering optimistic read/badge consistency pass in `tests/unit/mail-interactions.test.ts`.
