@@ -60,7 +60,7 @@ The goal is not to change product behavior, but to make existing behavior feel i
 - [ ] Capture browser Performance panel traces for the same scenarios to identify main-thread blocking segments.
 - [ ] Document baseline metrics and target thresholds for interaction latency and render counts in PR notes for this PRD implementation.
 
-Phase 1 instrumentation is implemented in code and the capture workflow/thresholds are documented in `.project/prds/016-ui-responsiveness-performance-hardening/phase-1-baseline-notes.md`. Live baseline trace capture remains pending local environment setup (`.env`, auth, and mailbox data), so the capture tasks above remain open.
+Phase 1 instrumentation is implemented in code and the capture workflow/thresholds are documented in `.project/prds/016-ui-responsiveness-performance-hardening/phase-1-baseline-notes.md`. React Profiler baseline data has now been captured for the two mail-list scenarios and shows severe misses against the `<= 50 ms` interaction target (`944.7 ms` checkbox-toggle dominant commit, `847.9 ms` context-menu dominant commit). Browser Performance traces plus thread/composer captures are still pending, so the capture tasks above remain open.
 
 ### Phase 2: Mail List Render-Path Hardening
 
