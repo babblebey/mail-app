@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useRef, useCallback, useEffect } from "react"
+import { useState, useRef, useCallback, useEffect, useLayoutEffect, useMemo, memo } from "react"
 import {
   ArrowLeftIcon,
   Trash2Icon,
@@ -64,6 +64,10 @@ import {
   PopoverContent,
 } from "~/components/ui/popover"
 import { api } from "~/trpc/react"
+import {
+  PerformanceProfiler,
+  startInteractionTrace,
+} from "~/components/performance-profiler"
 
 function getInitials(name: string, email?: string) {
   if (name) {
@@ -148,79 +152,104 @@ type MessageData = {
   attachments: { filename: string; contentType: string; size: number; cid?: string }[]
 }
 
-function MessageBody({ message }: { message: MessageData }) {
+const MessageBody = memo(function MessageBody({ message }: { message: MessageData }) {
   const htmlRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     const container = htmlRef.current
     if (!container) return
 
-    const imgs = container.querySelectorAll<HTMLImageElement>("img[src]")
-    imgs.forEach((img) => {
-      if (img.complete) return
+    const setupShimmer = () => {
+      const finishTrace = startInteractionTrace(
+        "mail-thread.image-heavy-render",
+        String(message.uid),
+      )
 
-      // Wrap the image in a relative container for the placeholder
-      const wrapper = document.createElement("span")
-      wrapper.style.display = "inline-block"
-      wrapper.style.position = "relative"
-      wrapper.style.overflow = "hidden"
-      wrapper.style.borderRadius = "4px"
-      wrapper.style.backgroundColor = "var(--muted, #f3f4f6)"
-      wrapper.style.minWidth = img.width ? `${img.width}px` : "80px"
-      wrapper.style.minHeight = img.height ? `${img.height}px` : "40px"
-
-      // Add a shimmer animation
-      const shimmer = document.createElement("span")
-      shimmer.style.cssText =
-        "position:absolute;inset:0;background:linear-gradient(90deg,transparent 0%,rgba(255,255,255,0.4) 50%,transparent 100%);animation:mail-img-shimmer 1.5s infinite;"
-      wrapper.appendChild(shimmer)
-
-      img.parentNode?.insertBefore(wrapper, img)
-      wrapper.appendChild(img)
-      img.style.opacity = "0"
-      img.style.transition = "opacity 0.2s ease-in"
-
-      const reveal = () => {
-        img.style.opacity = "1"
-        shimmer.remove()
-        wrapper.style.backgroundColor = ""
-        wrapper.style.minWidth = ""
-        wrapper.style.minHeight = ""
+      const imgs = container.querySelectorAll<HTMLImageElement>("img[src]")
+      if (imgs.length === 0) {
+        finishTrace()
+        return
       }
-      img.addEventListener("load", reveal, { once: true })
-      img.addEventListener("error", reveal, { once: true })
-    })
 
-    // Inject the shimmer keyframes once
-    if (!document.getElementById("mail-img-shimmer-style")) {
-      const style = document.createElement("style")
-      style.id = "mail-img-shimmer-style"
-      style.textContent =
-        "@keyframes mail-img-shimmer{0%{transform:translateX(-100%)}100%{transform:translateX(100%)}}"
-      document.head.appendChild(style)
+      imgs.forEach((img) => {
+        if (img.complete) return
+
+        // Wrap the image in a relative container for the placeholder
+        const wrapper = document.createElement("span")
+        wrapper.style.display = "inline-block"
+        wrapper.style.position = "relative"
+        wrapper.style.overflow = "hidden"
+        wrapper.style.borderRadius = "4px"
+        wrapper.style.backgroundColor = "var(--muted, #f3f4f6)"
+        wrapper.style.minWidth = img.width ? `${img.width}px` : "80px"
+        wrapper.style.minHeight = img.height ? `${img.height}px` : "40px"
+
+        // Add a shimmer animation
+        const shimmer = document.createElement("span")
+        shimmer.style.cssText =
+          "position:absolute;inset:0;background:linear-gradient(90deg,transparent 0%,rgba(255,255,255,0.4) 50%,transparent 100%);animation:mail-img-shimmer 1.5s infinite;"
+        wrapper.appendChild(shimmer)
+
+        img.parentNode?.insertBefore(wrapper, img)
+        wrapper.appendChild(img)
+        img.style.opacity = "0"
+        img.style.transition = "opacity 0.2s ease-in"
+
+        const reveal = () => {
+          img.style.opacity = "1"
+          shimmer.remove()
+          wrapper.style.backgroundColor = ""
+          wrapper.style.minWidth = ""
+          wrapper.style.minHeight = ""
+        }
+        img.addEventListener("load", reveal, { once: true })
+        img.addEventListener("error", reveal, { once: true })
+      })
+
+      // Inject the shimmer keyframes once
+      if (!document.getElementById("mail-img-shimmer-style")) {
+        const style = document.createElement("style")
+        style.id = "mail-img-shimmer-style"
+        style.textContent =
+          "@keyframes mail-img-shimmer{0%{transform:translateX(-100%)}100%{transform:translateX(100%)}}"
+        document.head.appendChild(style)
+      }
+
+      finishTrace()
     }
-  }, [message.htmlBody])
+
+    if (typeof requestIdleCallback !== "undefined") {
+      const handle = requestIdleCallback(setupShimmer)
+      return () => cancelIdleCallback(handle)
+    }
+    const handle = window.setTimeout(setupShimmer, 0)
+    return () => window.clearTimeout(handle)
+  }, [message.htmlBody, message.uid])
+
+  let bodyContent: React.ReactNode
 
   if (message.htmlBody) {
-    return (
+    bodyContent = (
       <div
         ref={htmlRef}
         className="prose prose-sm max-w-none text-foreground prose-blockquote:not-italic prose-tr:border-0 prose-td:text-sm prose-th:text-sm prose-td:p-1 prose-th:p-1"
         dangerouslySetInnerHTML={{ __html: message.htmlBody }}
       />
     )
-  }
-  if (message.textBody) {
-    return (
+  } else if (message.textBody) {
+    bodyContent = (
       <div className="whitespace-pre-line text-sm leading-relaxed text-foreground">
         {message.textBody}
       </div>
     )
+  } else {
+    bodyContent = (
+      <p className="text-sm italic text-muted-foreground">No content available</p>
+    )
   }
-  return (
-    <p className="text-sm italic text-muted-foreground">No content available</p>
-  )
-}
+
+  return <PerformanceProfiler id="mail-thread.message-body">{bodyContent}</PerformanceProfiler>
+})
 
 function MessageView({
   message,
@@ -274,11 +303,32 @@ function MessageView({
     }
   }, [])
 
-  const toList = message.to.map((a) => a.name || a.address).join(", ")
-  const ccList = message.cc.map((a) => a.name || a.address).join(", ")
-  const recipients = ccList
-    ? `${toList}, cc: ${ccList}`
-    : toList
+  const toList = useMemo(
+    () => message.to.map((a) => a.name || a.address).join(", "),
+    [message.to],
+  )
+  const ccList = useMemo(
+    () => message.cc.map((a) => a.name || a.address).join(", "),
+    [message.cc],
+  )
+  const recipients = useMemo(
+    () => (ccList ? `${toList}, cc: ${ccList}` : toList),
+    [toList, ccList],
+  )
+  const toDisplay = useMemo(
+    () =>
+      message.to
+        .map((a) => (a.name ? `${a.name} <${a.address}>` : a.address))
+        .join(", "),
+    [message.to],
+  )
+  const ccDisplay = useMemo(
+    () =>
+      message.cc
+        .map((a) => (a.name ? `${a.name} <${a.address}>` : a.address))
+        .join(", "),
+    [message.cc],
+  )
 
   return (
     <div>
@@ -318,17 +368,13 @@ function MessageView({
                       </span>
                       <span className="text-right text-sm text-muted-foreground">to:</span>
                       <span className="text-sm text-foreground">
-                        {message.to
-                          .map((a) => (a.name ? `${a.name} <${a.address}>` : a.address))
-                          .join(", ")}
+                        {toDisplay}
                       </span>
                       {message.cc.length > 0 && (
                         <>
                           <span className="text-right text-sm text-muted-foreground">cc:</span>
                           <span className="text-sm text-foreground">
-                            {message.cc
-                              .map((a) => (a.name ? `${a.name} <${a.address}>` : a.address))
-                              .join(", ")}
+                            {ccDisplay}
                           </span>
                         </>
                       )}
@@ -647,7 +693,6 @@ export function MailThreadView({ uid, folder }: { uid: number; folder: string })
     onSettled: (_data, _error, variables) => {
       if (variables.read) {
         void utils.mail.getMessage.invalidate({ folder, uid })
-        void utils.mail.listMessages.invalidate()
       }
     },
   })
@@ -677,8 +722,8 @@ export function MailThreadView({ uid, folder }: { uid: number; folder: string })
       }
     },
     onSettled: () => {
-      void utils.mail.getMessage.invalidate()
-      void utils.mail.listMessages.invalidate()
+      void utils.mail.getMessage.invalidate({ folder, uid })
+      void utils.mail.listMessages.invalidate({ folder, limit: 50 })
     },
   })
 
@@ -686,8 +731,34 @@ export function MailThreadView({ uid, folder }: { uid: number; folder: string })
   const [composerMode, setComposerMode] = useState<"inline" | "popout">("inline")
   const [replyBody, setReplyBody] = useState("")
   const inlineComposerRef = useRef<HTMLDivElement>(null)
+  const threadOpenTraceRef = useRef<(() => void) | null>(null)
 
   const backHref = `/dashboard?folder=${encodeURIComponent(folder)}`
+
+  const replyRecipients = useMemo(
+    () => (message ? message.to.map((a) => a.name || a.address).join(", ") : ""),
+    [message],
+  )
+
+  useLayoutEffect(() => {
+    threadOpenTraceRef.current = startInteractionTrace(
+      "mail-thread.thread-open",
+      `${folder}:${uid}`,
+    )
+
+    return () => {
+      threadOpenTraceRef.current = null
+    }
+  }, [folder, uid])
+
+  useEffect(() => {
+    if (!message && !isError) {
+      return
+    }
+
+    threadOpenTraceRef.current?.()
+    threadOpenTraceRef.current = null
+  }, [isError, message])
 
   function openInlineComposer(action: "reply" | "reply-all" | "forward") {
     setReplyAction(action)
@@ -766,12 +837,9 @@ export function MailThreadView({ uid, folder }: { uid: number; folder: string })
 
   if (!message) return null
 
-  const replyRecipients = [
-    ...message.to.map((a) => a.name || a.address),
-  ].join(", ")
-
   return (
-    <div className="flex flex-1 flex-col">
+    <PerformanceProfiler id="mail-thread.surface">
+      <div className="flex flex-1 flex-col">
       {/* Thread toolbar */}
       <div className="flex items-center gap-2 border-b px-4 py-2">
         <Link href={backHref}>
@@ -1037,10 +1105,11 @@ export function MailThreadView({ uid, folder }: { uid: number; folder: string })
       </div>
 
       {/* Popout composer */}
-      <MailComposer
-        open={replyAction !== null && composerMode === "popout"}
-        onClose={handlePopIn}
-      />
-    </div>
+        <MailComposer
+          open={replyAction !== null && composerMode === "popout"}
+          onClose={handlePopIn}
+        />
+      </div>
+    </PerformanceProfiler>
   )
 }

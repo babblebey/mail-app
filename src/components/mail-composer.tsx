@@ -31,6 +31,10 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "~/components/ui/dropdown-menu"
+import {
+  PerformanceProfiler,
+  startInteractionTrace,
+} from "~/components/performance-profiler"
 
 interface Recipient {
   name: string
@@ -42,6 +46,116 @@ interface Attachment {
   size: string
 }
 
+// ---------------------------------------------------------------------------
+// Composer state reducer
+// ---------------------------------------------------------------------------
+
+interface ComposerState {
+  minimized: boolean
+  maximized: boolean
+  showCc: boolean
+  showBcc: boolean
+  recipients: Recipient[]
+  ccRecipients: Recipient[]
+  bccRecipients: Recipient[]
+  toInput: string
+  ccInput: string
+  bccInput: string
+  subject: string
+  body: string
+  attachments: Attachment[]
+}
+
+type ComposerAction =
+  | { type: "TOGGLE_MINIMIZED" }
+  | { type: "TOGGLE_MAXIMIZED" }
+  | { type: "SHOW_CC" }
+  | { type: "SHOW_BCC" }
+  | { type: "SET_TO_INPUT"; value: string }
+  | { type: "SET_CC_INPUT"; value: string }
+  | { type: "SET_BCC_INPUT"; value: string }
+  | { type: "ADD_RECIPIENT"; field: "to" | "cc" | "bcc" }
+  | { type: "REMOVE_RECIPIENT"; field: "to" | "cc" | "bcc"; index: number }
+  | { type: "REMOVE_LAST_RECIPIENT"; field: "to" | "cc" | "bcc" }
+  | { type: "SET_SUBJECT"; value: string }
+  | { type: "SET_BODY"; value: string }
+  | { type: "ADD_ATTACHMENTS"; files: Attachment[] }
+  | { type: "REMOVE_ATTACHMENT"; index: number }
+
+const initialComposerState: ComposerState = {
+  minimized: false,
+  maximized: false,
+  showCc: false,
+  showBcc: false,
+  recipients: [],
+  ccRecipients: [],
+  bccRecipients: [],
+  toInput: "",
+  ccInput: "",
+  bccInput: "",
+  subject: "",
+  body: "",
+  attachments: [],
+}
+
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+
+function composerReducer(state: ComposerState, action: ComposerAction): ComposerState {
+  switch (action.type) {
+    case "TOGGLE_MINIMIZED":
+      return { ...state, minimized: !state.minimized, maximized: false }
+    case "TOGGLE_MAXIMIZED":
+      return { ...state, maximized: !state.maximized, minimized: false }
+    case "SHOW_CC":
+      return { ...state, showCc: true }
+    case "SHOW_BCC":
+      return { ...state, showBcc: true }
+    case "SET_TO_INPUT":
+      return { ...state, toInput: action.value }
+    case "SET_CC_INPUT":
+      return { ...state, ccInput: action.value }
+    case "SET_BCC_INPUT":
+      return { ...state, bccInput: action.value }
+    case "ADD_RECIPIENT": {
+      const inputKey = action.field === "to" ? "toInput" : action.field === "cc" ? "ccInput" : "bccInput"
+      const listKey = action.field === "to" ? "recipients" : action.field === "cc" ? "ccRecipients" : "bccRecipients"
+      const trimmed = (state[inputKey] as string).trim()
+      if (!trimmed || !EMAIL_REGEX.test(trimmed)) return state
+      return {
+        ...state,
+        [listKey]: [
+          ...(state[listKey] as Recipient[]),
+          { name: trimmed.split("@")[0] ?? trimmed, email: trimmed },
+        ],
+        [inputKey]: "",
+      }
+    }
+    case "REMOVE_RECIPIENT": {
+      const listKey = action.field === "to" ? "recipients" : action.field === "cc" ? "ccRecipients" : "bccRecipients"
+      return {
+        ...state,
+        [listKey]: (state[listKey] as Recipient[]).filter((_, i) => i !== action.index),
+      }
+    }
+    case "REMOVE_LAST_RECIPIENT": {
+      const listKey = action.field === "to" ? "recipients" : action.field === "cc" ? "ccRecipients" : "bccRecipients"
+      const list = state[listKey] as Recipient[]
+      if (list.length === 0) return state
+      return { ...state, [listKey]: list.slice(0, -1) }
+    }
+    case "SET_SUBJECT":
+      return { ...state, subject: action.value }
+    case "SET_BODY":
+      return { ...state, body: action.value }
+    case "ADD_ATTACHMENTS":
+      return { ...state, attachments: [...state.attachments, ...action.files] }
+    case "REMOVE_ATTACHMENT":
+      return { ...state, attachments: state.attachments.filter((_, i) => i !== action.index) }
+    default:
+      return state
+  }
+}
+
 export function MailComposer({
   open,
   onClose,
@@ -49,90 +163,130 @@ export function MailComposer({
   open: boolean
   onClose: () => void
 }) {
-  const [minimized, setMinimized] = React.useState(false)
-  const [maximized, setMaximized] = React.useState(false)
-  const [showCc, setShowCc] = React.useState(false)
-  const [showBcc, setShowBcc] = React.useState(false)
-
-  const [recipients, setRecipients] = React.useState<Recipient[]>([])
-  const [ccRecipients, setCcRecipients] = React.useState<Recipient[]>([])
-  const [bccRecipients, setBccRecipients] = React.useState<Recipient[]>([])
-  const [toInput, setToInput] = React.useState("")
-  const [ccInput, setCcInput] = React.useState("")
-  const [bccInput, setBccInput] = React.useState("")
-  const [subject, setSubject] = React.useState("")
-  const [body, setBody] = React.useState("")
-  const [attachments, setAttachments] = React.useState<Attachment[]>([])
+  const [state, dispatch] = React.useReducer(composerReducer, initialComposerState)
 
   const fileInputRef = React.useRef<HTMLInputElement>(null)
 
-  if (!open) return null
+  const traceComposerInteraction = React.useCallback(
+    (
+      name: "mail-composer.typing" | "mail-composer.recipient-edit",
+      detail: string,
+      update: () => void,
+    ) => {
+      const finishTrace = startInteractionTrace(name, detail)
+      update()
+      finishTrace()
+    },
+    [],
+  )
 
-  function handleAddRecipient(
-    input: string,
-    setInput: (v: string) => void,
-    list: Recipient[],
-    setList: (v: Recipient[]) => void
-  ) {
-    const trimmed = input.trim()
-    if (!trimmed) return
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-    if (emailRegex.test(trimmed)) {
-      setList([...list, { name: trimmed.split("@")[0] ?? trimmed, email: trimmed }])
-      setInput("")
-    }
-  }
+  const handleAddRecipient = React.useCallback(
+    (field: "to" | "cc" | "bcc") => {
+      traceComposerInteraction("mail-composer.recipient-edit", "add-recipient", () => {
+        dispatch({ type: "ADD_RECIPIENT", field })
+      })
+    },
+    [traceComposerInteraction],
+  )
 
-  function handleKeyDown(
-    e: React.KeyboardEvent<HTMLInputElement>,
-    input: string,
-    setInput: (v: string) => void,
-    list: Recipient[],
-    setList: (v: Recipient[]) => void
-  ) {
-    if (e.key === "Enter" || e.key === "Tab" || e.key === ",") {
-      e.preventDefault()
-      handleAddRecipient(input, setInput, list, setList)
-    }
-    if (e.key === "Backspace" && !input && list.length > 0) {
-      setList(list.slice(0, -1))
-    }
-  }
+  const handleKeyDown = React.useCallback(
+    (e: React.KeyboardEvent<HTMLInputElement>, field: "to" | "cc" | "bcc") => {
+      if (e.key === "Enter" || e.key === "Tab" || e.key === ",") {
+        e.preventDefault()
+        handleAddRecipient(field)
+      }
+      if (e.key === "Backspace" && !e.currentTarget.value) {
+        traceComposerInteraction("mail-composer.recipient-edit", "remove-recipient-backspace", () => {
+          dispatch({ type: "REMOVE_LAST_RECIPIENT", field })
+        })
+      }
+    },
+    [handleAddRecipient, traceComposerInteraction],
+  )
 
-  function removeRecipient(
-    index: number,
-    list: Recipient[],
-    setList: (v: Recipient[]) => void
-  ) {
-    setList(list.filter((_, i) => i !== index))
-  }
+  const removeRecipient = React.useCallback(
+    (field: "to" | "cc" | "bcc", index: number) => {
+      traceComposerInteraction("mail-composer.recipient-edit", "remove-recipient", () => {
+        dispatch({ type: "REMOVE_RECIPIENT", field, index })
+      })
+    },
+    [traceComposerInteraction],
+  )
 
-  function handleFileAttach() {
+  const handleFileAttach = React.useCallback(() => {
     fileInputRef.current?.click()
-  }
+  }, [])
 
-  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+  const handleFileChange = React.useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files
     if (!files) return
     const newAttachments: Attachment[] = Array.from(files).map((f) => ({
       name: f.name,
       size: f.size < 1024 ? `${f.size} B` : `${(f.size / 1024).toFixed(0)} KB`,
     }))
-    setAttachments((prev) => [...prev, ...newAttachments])
+    dispatch({ type: "ADD_ATTACHMENTS", files: newAttachments })
     e.target.value = ""
-  }
+  }, [])
 
-  function removeAttachment(index: number) {
-    setAttachments((prev) => prev.filter((_, i) => i !== index))
-  }
+  const removeAttachment = React.useCallback((index: number) => {
+    dispatch({ type: "REMOVE_ATTACHMENT", index })
+  }, [])
+
+  const handleToInputChange = React.useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      traceComposerInteraction("mail-composer.recipient-edit", "to-input", () => {
+        dispatch({ type: "SET_TO_INPUT", value: e.target.value })
+      })
+    },
+    [traceComposerInteraction],
+  )
+
+  const handleCcInputChange = React.useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      traceComposerInteraction("mail-composer.recipient-edit", "cc-input", () => {
+        dispatch({ type: "SET_CC_INPUT", value: e.target.value })
+      })
+    },
+    [traceComposerInteraction],
+  )
+
+  const handleBccInputChange = React.useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      traceComposerInteraction("mail-composer.recipient-edit", "bcc-input", () => {
+        dispatch({ type: "SET_BCC_INPUT", value: e.target.value })
+      })
+    },
+    [traceComposerInteraction],
+  )
+
+  const handleSubjectChange = React.useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      traceComposerInteraction("mail-composer.typing", "subject", () => {
+        dispatch({ type: "SET_SUBJECT", value: e.target.value })
+      })
+    },
+    [traceComposerInteraction],
+  )
+
+  const handleBodyChange = React.useCallback(
+    (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+      traceComposerInteraction("mail-composer.typing", "body", () => {
+        dispatch({ type: "SET_BODY", value: e.target.value })
+      })
+    },
+    [traceComposerInteraction],
+  )
+
+  if (!open) return null
 
   return (
-    <div
+    <PerformanceProfiler id="mail-composer.surface">
+      <div
       className={cn(
         "fixed z-50 flex flex-col rounded-xl border bg-background shadow-2xl transition-all",
-        maximized
+        state.maximized
           ? "inset-4 rounded-xl"
-          : minimized
+          : state.minimized
             ? "bottom-0 right-6 h-12 w-120"
             : "bottom-6 right-6 h-130 w-120"
       )}
@@ -140,15 +294,14 @@ export function MailComposer({
       {/* Header */}
       <div
         className="flex h-12 shrink-0 cursor-pointer items-center justify-between rounded-t-xl bg-amber-400 px-4"
-        onClick={() => minimized && setMinimized(false)}
+        onClick={() => state.minimized && dispatch({ type: "TOGGLE_MINIMIZED" })}
       >
         <span className="text-sm font-semibold text-amber-950">New Message</span>
         <div className="flex items-center gap-1">
           <button
             onClick={(e) => {
               e.stopPropagation()
-              setMinimized(!minimized)
-              if (maximized) setMaximized(false)
+              dispatch({ type: "TOGGLE_MINIMIZED" })
             }}
             className="rounded p-1 text-amber-950 hover:bg-amber-500/50"
           >
@@ -157,12 +310,11 @@ export function MailComposer({
           <button
             onClick={(e) => {
               e.stopPropagation()
-              setMaximized(!maximized)
-              if (minimized) setMinimized(false)
+              dispatch({ type: "TOGGLE_MAXIMIZED" })
             }}
             className="rounded p-1 text-amber-950 hover:bg-amber-500/50"
           >
-            {maximized ? (
+            {state.maximized ? (
               <MinimizeIcon className="size-4" />
             ) : (
               <MaximizeIcon className="size-4" />
@@ -181,20 +333,20 @@ export function MailComposer({
       </div>
 
       {/* Body - hidden when minimized */}
-      {!minimized && (
+      {!state.minimized && (
         <div className="flex min-h-0 flex-1 flex-col">
           {/* To field */}
           <div className="flex items-center gap-2 border-b px-4 py-2">
             <span className="shrink-0 text-sm text-muted-foreground">To</span>
             <div className="flex min-w-0 flex-1 flex-wrap items-center gap-1">
-              {recipients.map((r, i) => (
+              {state.recipients.map((r, i) => (
                 <span
-                  key={i}
+                  key={r.email}
                   className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-xs font-medium"
                 >
                   {r.name}
                   <button
-                    onClick={() => removeRecipient(i, recipients, setRecipients)}
+                    onClick={() => removeRecipient("to", i)}
                     className="text-muted-foreground hover:text-foreground"
                   >
                     <XIcon className="size-3" />
@@ -203,30 +355,26 @@ export function MailComposer({
               ))}
               <input
                 type="text"
-                value={toInput}
-                onChange={(e) => setToInput(e.target.value)}
-                onKeyDown={(e) =>
-                  handleKeyDown(e, toInput, setToInput, recipients, setRecipients)
-                }
-                onBlur={() =>
-                  handleAddRecipient(toInput, setToInput, recipients, setRecipients)
-                }
+                value={state.toInput}
+                onChange={handleToInputChange}
+                onKeyDown={(e) => handleKeyDown(e, "to")}
+                onBlur={() => handleAddRecipient("to")}
                 className="min-w-30 flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
-                placeholder={recipients.length === 0 ? "Recipients" : ""}
+                placeholder={state.recipients.length === 0 ? "Recipients" : ""}
               />
             </div>
             <div className="flex shrink-0 items-center gap-1">
-              {!showCc && (
+              {!state.showCc && (
                 <button
-                  onClick={() => setShowCc(true)}
+                  onClick={() => dispatch({ type: "SHOW_CC" })}
                   className="text-xs font-medium text-muted-foreground hover:text-foreground"
                 >
                   CC
                 </button>
               )}
-              {!showBcc && (
+              {!state.showBcc && (
                 <button
-                  onClick={() => setShowBcc(true)}
+                  onClick={() => dispatch({ type: "SHOW_BCC" })}
                   className="text-xs font-medium text-muted-foreground hover:text-foreground"
                 >
                   BCC
@@ -236,18 +384,18 @@ export function MailComposer({
           </div>
 
           {/* CC field */}
-          {showCc && (
+          {state.showCc && (
             <div className="flex items-center gap-2 border-b px-4 py-2">
               <span className="shrink-0 text-sm text-muted-foreground">Cc</span>
               <div className="flex min-w-0 flex-1 flex-wrap items-center gap-1">
-                {ccRecipients.map((r, i) => (
+                {state.ccRecipients.map((r, i) => (
                   <span
-                    key={i}
+                    key={r.email}
                     className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-xs font-medium"
                   >
                     {r.name}
                     <button
-                      onClick={() => removeRecipient(i, ccRecipients, setCcRecipients)}
+                      onClick={() => removeRecipient("cc", i)}
                       className="text-muted-foreground hover:text-foreground"
                     >
                       <XIcon className="size-3" />
@@ -256,14 +404,10 @@ export function MailComposer({
                 ))}
                 <input
                   type="text"
-                  value={ccInput}
-                  onChange={(e) => setCcInput(e.target.value)}
-                  onKeyDown={(e) =>
-                    handleKeyDown(e, ccInput, setCcInput, ccRecipients, setCcRecipients)
-                  }
-                  onBlur={() =>
-                    handleAddRecipient(ccInput, setCcInput, ccRecipients, setCcRecipients)
-                  }
+                  value={state.ccInput}
+                  onChange={handleCcInputChange}
+                  onKeyDown={(e) => handleKeyDown(e, "cc")}
+                  onBlur={() => handleAddRecipient("cc")}
                   className="min-w-30 flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
                   placeholder=""
                 />
@@ -272,18 +416,18 @@ export function MailComposer({
           )}
 
           {/* BCC field */}
-          {showBcc && (
+          {state.showBcc && (
             <div className="flex items-center gap-2 border-b px-4 py-2">
               <span className="shrink-0 text-sm text-muted-foreground">Bcc</span>
               <div className="flex min-w-0 flex-1 flex-wrap items-center gap-1">
-                {bccRecipients.map((r, i) => (
+                {state.bccRecipients.map((r, i) => (
                   <span
-                    key={i}
+                    key={r.email}
                     className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-xs font-medium"
                   >
                     {r.name}
                     <button
-                      onClick={() => removeRecipient(i, bccRecipients, setBccRecipients)}
+                      onClick={() => removeRecipient("bcc", i)}
                       className="text-muted-foreground hover:text-foreground"
                     >
                       <XIcon className="size-3" />
@@ -292,25 +436,10 @@ export function MailComposer({
                 ))}
                 <input
                   type="text"
-                  value={bccInput}
-                  onChange={(e) => setBccInput(e.target.value)}
-                  onKeyDown={(e) =>
-                    handleKeyDown(
-                      e,
-                      bccInput,
-                      setBccInput,
-                      bccRecipients,
-                      setBccRecipients
-                    )
-                  }
-                  onBlur={() =>
-                    handleAddRecipient(
-                      bccInput,
-                      setBccInput,
-                      bccRecipients,
-                      setBccRecipients
-                    )
-                  }
+                  value={state.bccInput}
+                  onChange={handleBccInputChange}
+                  onKeyDown={(e) => handleKeyDown(e, "bcc")}
+                  onBlur={() => handleAddRecipient("bcc")}
                   className="min-w-30 flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
                   placeholder=""
                 />
@@ -323,8 +452,8 @@ export function MailComposer({
             <span className="shrink-0 text-sm text-muted-foreground">Subject</span>
             <input
               type="text"
-              value={subject}
-              onChange={(e) => setSubject(e.target.value)}
+              value={state.subject}
+              onChange={handleSubjectChange}
               className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
               placeholder=""
             />
@@ -333,19 +462,19 @@ export function MailComposer({
           {/* Text body */}
           <div className="flex-1 overflow-y-auto px-4 py-3">
             <textarea
-              value={body}
-              onChange={(e) => setBody(e.target.value)}
+              value={state.body}
+              onChange={handleBodyChange}
               className="size-full resize-none bg-transparent text-sm leading-relaxed outline-none placeholder:text-muted-foreground"
               placeholder="Write your message..."
             />
           </div>
 
           {/* Attachments */}
-          {attachments.length > 0 && (
+          {state.attachments.length > 0 && (
             <div className="flex flex-wrap gap-2 border-t px-4 py-2">
-              {attachments.map((att, i) => (
+              {state.attachments.map((att, i) => (
                 <div
-                  key={i}
+                  key={att.name}
                   className="flex items-center gap-2 rounded-lg border bg-muted/50 px-3 py-1.5"
                 >
                   <FileTextIcon className="size-4 text-primary" />
@@ -461,6 +590,7 @@ export function MailComposer({
           </div>
         </div>
       )}
-    </div>
+      </div>
+    </PerformanceProfiler>
   )
 }

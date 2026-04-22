@@ -1,21 +1,6 @@
 "use client"
 
 import * as React from "react"
-import { AppSidebar } from "~/components/app-sidebar"
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
-} from "~/components/ui/breadcrumb"
-import { Separator } from "~/components/ui/separator"
-import {
-  SidebarInset,
-  SidebarProvider,
-  SidebarTrigger,
-} from "~/components/ui/sidebar"
 import {
   Card,
   CardContent,
@@ -133,31 +118,7 @@ export default function SettingsPage() {
   }
 
   return (
-    <SidebarProvider>
-      <AppSidebar />
-      <SidebarInset>
-        <header className="flex h-12 shrink-0 items-center gap-2 border-b">
-          <div className="flex items-center gap-2 px-4">
-            <SidebarTrigger className="-ml-1" />
-            <Separator
-              orientation="vertical"
-              className="mr-2 data-vertical:h-4 data-vertical:self-auto"
-            />
-            <Breadcrumb>
-              <BreadcrumbList>
-                <BreadcrumbItem className="hidden md:block">
-                  <BreadcrumbLink href="/dashboard">Dashboard</BreadcrumbLink>
-                </BreadcrumbItem>
-                <BreadcrumbSeparator className="hidden md:block" />
-                <BreadcrumbItem>
-                  <BreadcrumbPage>Settings</BreadcrumbPage>
-                </BreadcrumbItem>
-              </BreadcrumbList>
-            </Breadcrumb>
-          </div>
-        </header>
-
-        <div className="flex flex-1 flex-col gap-6 p-6">
+    <div className="flex flex-1 flex-col gap-6 p-6">
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-2xl font-semibold">Mail Accounts</h1>
@@ -338,8 +299,6 @@ export default function SettingsPage() {
               </div>
             )}
         </div>
-      </SidebarInset>
-    </SidebarProvider>
   )
 }
 
@@ -360,7 +319,7 @@ function AccountSyncStatus({ accountId }: { accountId: string }) {
     {
       refetchInterval: (query) => {
         const status = query.state.data?.status
-        return status === "syncing" || status === "pending" ? 2000 : 30000
+        return status === "syncing" || status === "pending" ? 3000 : 30000
       },
     },
   )

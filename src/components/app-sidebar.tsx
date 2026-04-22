@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from "react"
+import { useSearchParams } from "next/navigation"
 
 import { NavMain } from "~/components/nav-main"
 import { NavProjects } from "~/components/nav-projects"
@@ -84,8 +85,9 @@ const data = {
   ],
 }
 
-export function AppSidebar({ folder, ...props }: React.ComponentProps<typeof Sidebar> & { folder?: string }) {
-  const currentFolder = folder ?? "INBOX"
+export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
+  const searchParams = useSearchParams()
+  const currentFolder = searchParams.get("folder") ?? "INBOX"
 
   const foldersQuery = api.mail.listFolders.useQuery({})
 
