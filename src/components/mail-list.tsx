@@ -199,6 +199,240 @@ interface MailRowProps {
   onMoveMessages: (destinationFolder: string) => void
 }
 
+// ---------------------------------------------------------------------------
+// MailRowContent — the heavy inner body of each row: unread dot, folder icon,
+// avatar, and text content.  None of these depend on `isSelected`, so this
+// component always bails out via React.memo when the parent MailRow re-renders
+// purely because isSelected changed (e.g. during select-all which would
+// otherwise cause O(n) expensive re-renders of the full row tree).
+// ---------------------------------------------------------------------------
+
+interface MailRowContentProps {
+  mail: MailEntry
+  folder: string
+  displayMode: "inbox" | "sent" | "drafts"
+  realRecipients: { name: string; address: string }[]
+  allRecipients: { name: string; address: string }[]
+}
+
+const MailRowContent = memo(function MailRowContent({
+  mail,
+  folder,
+  displayMode,
+  realRecipients,
+  allRecipients,
+}: MailRowContentProps) {
+  return (
+    <>
+      {/* Unread indicator */}
+      <div className="flex w-2 shrink-0 justify-center">
+        {!mail.read && (
+          <span className="size-2 rounded-full bg-primary" />
+        )}
+      </div>
+
+      {/* Trash indicator */}
+      {isTrashFolder(folder) && (
+        <Trash2Icon className="size-4 shrink-0 text-muted-foreground" />
+      )}
+
+      {/* Junk indicator */}
+      {isJunkFolder(folder) && (
+        <AlertOctagonIcon className="size-4 shrink-0 text-muted-foreground" />
+      )}
+
+      {/* Avatar */}
+      {displayMode === "drafts" ? (
+        realRecipients.length > 0 ? (
+          <AvatarGroup className="shrink-0">
+            {realRecipients.slice(0, 2).map((contact, i) => (
+              <Avatar key={i} size="default">
+                <AvatarFallback className="text-sm font-semibold">
+                  {getInitials(getRecipientName(contact))}
+                </AvatarFallback>
+              </Avatar>
+            ))}
+            {realRecipients.length > 2 && (
+              <AvatarGroupCount className="text-sm">
+                +{realRecipients.length - 2}
+              </AvatarGroupCount>
+            )}
+          </AvatarGroup>
+        ) : (
+          <Avatar className="size-9 shrink-0">
+            <AvatarFallback className="text-sm font-semibold">
+              <PenSquareIcon className="size-4" />
+            </AvatarFallback>
+          </Avatar>
+        )
+      ) : displayMode === "sent" && allRecipients.length > 0 ? (
+        <AvatarGroup className="shrink-0">
+          {allRecipients.slice(0, 2).map((contact, i) => (
+            <Avatar key={i} size="default">
+              <AvatarFallback className="text-sm font-semibold">
+                {getInitials(getRecipientName(contact))}
+              </AvatarFallback>
+            </Avatar>
+          ))}
+          {allRecipients.length > 2 && (
+            <AvatarGroupCount className="text-sm">
+              +{allRecipients.length - 2}
+            </AvatarGroupCount>
+          )}
+        </AvatarGroup>
+      ) : (
+        <Avatar className="size-9 shrink-0">
+          <AvatarFallback className="text-sm font-semibold">
+            {getInitials(getSenderName(mail.from))}
+          </AvatarFallback>
+        </Avatar>
+      )}
+
+      {/* Content */}
+      <div className="flex min-w-0 flex-1 flex-col gap-0.5 md:flex-row md:items-center md:gap-6">
+        <div className="flex min-w-0 items-center justify-between gap-2 md:w-44 md:shrink-0">
+          <div className="flex min-w-0 items-center gap-2">
+            {displayMode === "drafts" ? (
+              <span className={cn(
+                "flex min-w-0 items-baseline gap-0 text-sm",
+                !mail.read ? "font-semibold" : "",
+              )}>
+                <span className="truncate text-foreground">
+                  {getDraftRecipientLabel(mail.to, mail.cc, mail.bcc) ?? "No recipient"}
+                </span>
+                <span className="shrink-0">
+                  ,{" "}
+                  <span className="text-destructive">Draft</span>
+                </span>
+              </span>
+            ) : (
+              <span
+                className={cn(
+                  "truncate text-sm",
+                  !mail.read ? "font-semibold text-foreground" : "text-foreground",
+                )}
+              >
+                {displayMode === "sent" && allRecipients.length > 0
+                  ? getRecipientLabel(mail.to, mail.cc, mail.bcc)
+                  : getSenderName(mail.from)}
+              </span>
+            )}
+            {mail.starred && (
+              <StarIcon className="size-3.5 shrink-0 fill-yellow-400 text-yellow-400" />
+            )}
+          </div>
+          {/* Date on mobile */}
+          <span className="shrink-0 text-xs text-muted-foreground md:hidden">
+            {formatDate(mail.date)}
+          </span>
+        </div>
+        <div className="flex min-w-0 flex-1 items-center gap-1">
+          <span
+            className={cn(
+              "shrink-0 truncate text-sm",
+              !mail.snippet?.trim() ? "" : "max-w-[50%]",
+              !mail.read ? "font-semibold text-foreground" : "text-foreground",
+            )}
+          >
+            {mail.subject}
+          </span>
+          {mail.snippet?.trim() && !(
+            displayMode === "drafts" && !mail.snippet?.trim()
+          ) && (
+            <span className="min-w-0 truncate text-sm text-muted-foreground">
+              - {mail.snippet}
+            </span>
+          )}
+        </div>
+
+        {/* Attachments */}
+        <span className="size-5 shrink-0 flex items-center">
+          {mail.hasAttachments && (
+            <PaperclipIcon className="size-4 shrink-0 text-muted-foreground" />
+          )}
+        </span>
+
+        {/* Date on desktop */}
+        <span className="hidden shrink-0 text-xs text-muted-foreground md:block">
+          {formatDate(mail.date)}
+        </span>
+      </div>
+    </>
+  )
+})
+
+// ---------------------------------------------------------------------------
+// MailRowMenu — the ContextMenuContent for each row.
+// All props are stable (ref-backed getter, stable memoized arrays, stable
+// useCallback handlers), so React.memo bails out on every selection change.
+// ---------------------------------------------------------------------------
+
+interface MailRowMenuProps {
+  trashFolder: string | undefined
+  folderOptions: Array<{ path: string; name: string }>
+  getHasUnreadSelected: () => boolean
+  onMarkAsRead: (read: boolean) => void
+  onMoveMessages: (destinationFolder: string) => void
+}
+
+const MailRowMenu = memo(function MailRowMenu({
+  trashFolder,
+  folderOptions,
+  getHasUnreadSelected,
+  onMarkAsRead,
+  onMoveMessages,
+}: MailRowMenuProps) {
+  return (
+    <ContextMenuContent>
+      <ContextMenuItem>
+        <ReplyIcon className="size-4" />
+        Reply
+      </ContextMenuItem>
+      <ContextMenuItem>
+        <ReplyAllIcon className="size-4" />
+        Reply all
+      </ContextMenuItem>
+      <ContextMenuItem>
+        <ForwardIcon className="size-4" />
+        Forward
+      </ContextMenuItem>
+      <ContextMenuSeparator />
+      {trashFolder && (
+        <ContextMenuItem onClick={() => onMoveMessages(trashFolder)}>
+          <Trash2Icon className="size-4" />
+          Delete
+        </ContextMenuItem>
+      )}
+      {getHasUnreadSelected() ? (
+        <ContextMenuItem onClick={() => onMarkAsRead(true)}>
+          <MailOpenIcon className="size-4" />
+          Mark as read
+        </ContextMenuItem>
+      ) : (
+        <ContextMenuItem onClick={() => onMarkAsRead(false)}>
+          <MailIcon className="size-4" />
+          Mark as unread
+        </ContextMenuItem>
+      )}
+      <ContextMenuSeparator />
+      <ContextMenuSub>
+        <ContextMenuSubTrigger>
+          <FolderInputIcon className="size-4" />
+          Move to
+        </ContextMenuSubTrigger>
+        <ContextMenuSubContent>
+          {folderOptions.map((f) => (
+            <ContextMenuItem key={f.path} onClick={() => onMoveMessages(f.path)}>
+              <FolderIcon className="size-4" />
+              {f.name === "INBOX" ? "Inbox" : f.name}
+            </ContextMenuItem>
+          ))}
+        </ContextMenuSubContent>
+      </ContextMenuSub>
+    </ContextMenuContent>
+  )
+})
+
 const MailRow = memo(function MailRow({
   mail,
   folder,
@@ -260,190 +494,190 @@ const MailRow = memo(function MailRow({
               className="shrink-0"
             />
           </div>
-
-          {/* Unread indicator */}
-          <div className="flex w-2 shrink-0 justify-center">
-            {!mail.read && (
-              <span className="size-2 rounded-full bg-primary" />
-            )}
-          </div>
-
-          {/* Trash indicator */}
-          {isTrashFolder(folder) && (
-            <Trash2Icon className="size-4 shrink-0 text-muted-foreground" />
-          )}
-
-          {/* Junk indicator */}
-          {isJunkFolder(folder) && (
-            <AlertOctagonIcon className="size-4 shrink-0 text-muted-foreground" />
-          )}
-
-          {/* Avatar */}
-          {displayMode === "drafts" ? (
-            realRecipients.length > 0 ? (
-              <AvatarGroup className="shrink-0">
-                {realRecipients.slice(0, 2).map((contact, i) => (
-                  <Avatar key={i} size="default">
-                    <AvatarFallback className="text-sm font-semibold">
-                      {getInitials(getRecipientName(contact))}
-                    </AvatarFallback>
-                  </Avatar>
-                ))}
-                {realRecipients.length > 2 && (
-                  <AvatarGroupCount className="text-sm">
-                    +{realRecipients.length - 2}
-                  </AvatarGroupCount>
-                )}
-              </AvatarGroup>
-            ) : (
-              <Avatar className="size-9 shrink-0">
-                <AvatarFallback className="text-sm font-semibold">
-                  <PenSquareIcon className="size-4" />
-                </AvatarFallback>
-              </Avatar>
-            )
-          ) : displayMode === "sent" && allRecipients.length > 0 ? (
-            <AvatarGroup className="shrink-0">
-              {allRecipients.slice(0, 2).map((contact, i) => (
-                <Avatar key={i} size="default">
-                  <AvatarFallback className="text-sm font-semibold">
-                    {getInitials(getRecipientName(contact))}
-                  </AvatarFallback>
-                </Avatar>
-              ))}
-              {allRecipients.length > 2 && (
-                <AvatarGroupCount className="text-sm">
-                  +{allRecipients.length - 2}
-                </AvatarGroupCount>
-              )}
-            </AvatarGroup>
-          ) : (
-            <Avatar className="size-9 shrink-0">
-              <AvatarFallback className="text-sm font-semibold">
-                {getInitials(getSenderName(mail.from))}
-              </AvatarFallback>
-            </Avatar>
-          )}
-
-          {/* Content */}
-          <div className="flex min-w-0 flex-1 flex-col gap-0.5 md:flex-row md:items-center md:gap-6">
-            <div className="flex min-w-0 items-center justify-between gap-2 md:w-44 md:shrink-0">
-              <div className="flex min-w-0 items-center gap-2">
-                {displayMode === "drafts" ? (
-                  <span className={cn(
-                    "flex min-w-0 items-baseline gap-0 text-sm",
-                    !mail.read ? "font-semibold" : "",
-                  )}>
-                    <span className="truncate text-foreground">
-                      {getDraftRecipientLabel(mail.to, mail.cc, mail.bcc) ?? "No recipient"}
-                    </span>
-                    <span className="shrink-0">
-                      ,{" "}
-                      <span className="text-destructive">Draft</span>
-                    </span>
-                  </span>
-                ) : (
-                  <span
-                    className={cn(
-                      "truncate text-sm",
-                      !mail.read ? "font-semibold text-foreground" : "text-foreground",
-                    )}
-                  >
-                    {displayMode === "sent" && allRecipients.length > 0
-                      ? getRecipientLabel(mail.to, mail.cc, mail.bcc)
-                      : getSenderName(mail.from)}
-                  </span>
-                )}
-                {mail.starred && (
-                  <StarIcon className="size-3.5 shrink-0 fill-yellow-400 text-yellow-400" />
-                )}
-              </div>
-              {/* Date on mobile */}
-              <span className="shrink-0 text-xs text-muted-foreground md:hidden">
-                {formatDate(mail.date)}
-              </span>
-            </div>
-            <div className="flex min-w-0 flex-1 items-center gap-1">
-              <span
-                className={cn(
-                  "shrink-0 truncate text-sm",
-                  !mail.snippet?.trim() ? "" : "max-w-[50%]",
-                  !mail.read ? "font-semibold text-foreground" : "text-foreground",
-                )}
-              >
-                {mail.subject}
-              </span>
-              {mail.snippet?.trim() && !(
-                displayMode === "drafts" && !mail.snippet?.trim()
-              ) && (
-                <span className="min-w-0 truncate text-sm text-muted-foreground">
-                  - {mail.snippet}
-                </span>
-              )}
-            </div>
-
-            {/* Attachments */}
-            <span className="size-5 shrink-0 flex items-center">
-              {mail.hasAttachments && (
-                <PaperclipIcon className="size-4 shrink-0 text-muted-foreground" />
-              )}
-            </span>
-
-            {/* Date on desktop */}
-            <span className="hidden shrink-0 text-xs text-muted-foreground md:block">
-              {formatDate(mail.date)}
-            </span>
-          </div>
+          <MailRowContent
+            mail={mail}
+            folder={folder}
+            displayMode={displayMode}
+            realRecipients={realRecipients}
+            allRecipients={allRecipients}
+          />
         </Link>
       </ContextMenuTrigger>
-      <ContextMenuContent>
-        <ContextMenuItem>
-          <ReplyIcon className="size-4" />
-          Reply
-        </ContextMenuItem>
-        <ContextMenuItem>
-          <ReplyAllIcon className="size-4" />
-          Reply all
-        </ContextMenuItem>
-        <ContextMenuItem>
-          <ForwardIcon className="size-4" />
-          Forward
-        </ContextMenuItem>
-        <ContextMenuSeparator />
-        {trashFolder && (
-          <ContextMenuItem onClick={() => onMoveMessages(trashFolder)}>
-            <Trash2Icon className="size-4" />
-            Delete
-          </ContextMenuItem>
-        )}
-        {getHasUnreadSelected() ? (
-          <ContextMenuItem onClick={() => onMarkAsRead(true)}>
+      <MailRowMenu
+        trashFolder={trashFolder}
+        folderOptions={folderOptions}
+        getHasUnreadSelected={getHasUnreadSelected}
+        onMarkAsRead={onMarkAsRead}
+        onMoveMessages={onMoveMessages}
+      />
+    </ContextMenu>
+  )
+})
+
+// -------------------------------------------------------------------------
+// MailListToolbar – memoized toolbar component with a stable, narrow prop
+// interface. All callbacks passed to this component are stable useCallback
+// closures that read mutable state through refs, so their identities never
+// change between renders. The two state-derived props (selectAllChecked and
+// hasSelection) only change at natural transition boundaries, not on every
+// individual row checkbox toggle. This means MailListToolbar re-renders only
+// when the toolbar's own visible content actually changes.
+// -------------------------------------------------------------------------
+
+interface MailListToolbarProps {
+  /** Changes only at false → "indeterminate" → true boundaries. */
+  selectAllChecked: true | "indeterminate" | false
+  /** Changes only at the 0 ↔ non-zero boundary. */
+  hasSelection: boolean
+  folder: string
+  folderOptions: Array<{ path: string; name: string }>
+  trashFolder: string | undefined
+  junkFolder: string | undefined
+  isSyncing: boolean
+  isSyncPending: boolean
+  onToggleSelectAll: () => void
+  onSelectAll: () => void
+  onSelectNone: () => void
+  onSelectRead: () => void
+  onSelectUnread: () => void
+  onSync: () => void
+  onReportSpam: () => void
+  onDelete: () => void
+  onMarkAsRead: () => void
+  onMarkAsUnread: () => void
+  onMoveTo: (destinationFolder: string) => void
+  onCompose: () => void
+}
+
+const MailListToolbar = memo(function MailListToolbar({
+  selectAllChecked,
+  hasSelection,
+  folder,
+  folderOptions,
+  trashFolder,
+  junkFolder,
+  isSyncing,
+  isSyncPending,
+  onToggleSelectAll,
+  onSelectAll,
+  onSelectNone,
+  onSelectRead,
+  onSelectUnread,
+  onSync,
+  onReportSpam,
+  onDelete,
+  onMarkAsRead,
+  onMarkAsUnread,
+  onMoveTo,
+  onCompose,
+}: MailListToolbarProps) {
+  return (
+    <div className="flex items-center gap-2 border-b px-4 py-2">
+      <div className="flex items-center gap-1">
+        <Checkbox
+          checked={selectAllChecked}
+          onCheckedChange={onToggleSelectAll}
+          aria-label="Select all"
+        />
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="icon-xs">
+              <ChevronDownIcon className="size-3.5" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="start">
+            <DropdownMenuItem onClick={onSelectAll}>All</DropdownMenuItem>
+            <DropdownMenuItem onClick={onSelectNone}>None</DropdownMenuItem>
+            <DropdownMenuItem onClick={onSelectRead}>Read</DropdownMenuItem>
+            <DropdownMenuItem onClick={onSelectUnread}>Unread</DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
+
+      <div className="flex items-center gap-1">
+        {/*
+          Both the Sync button and batch-action region are always kept in the
+          DOM. Using className="hidden" instead of conditional rendering avoids
+          the mount/unmount expense (and resulting layout reflow) that occurs
+          when the first row is selected or the last row is deselected.
+        */}
+        <Button
+          variant="ghost"
+          size="sm"
+          className={cn("gap-1.5 text-muted-foreground", hasSelection && "hidden")}
+          disabled={isSyncing || isSyncPending}
+          onClick={onSync}
+        >
+          <RefreshCwIcon className={cn("size-4", isSyncing && "animate-spin")} />
+          {isSyncing ? "Syncing…" : "Sync"}
+        </Button>
+
+        <div className={cn("flex items-center gap-1", !hasSelection && "hidden")}>
+          {junkFolder && !isDraftsFolder(folder) && !isTrashFolder(folder) && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="gap-1.5 text-muted-foreground"
+              onClick={onReportSpam}
+            >
+              <AlertOctagonIcon className="size-4" />
+              Report spam
+            </Button>
+          )}
+          {trashFolder && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="gap-1.5 text-muted-foreground"
+              onClick={onDelete}
+            >
+              <Trash2Icon className="size-4" />
+              Delete
+            </Button>
+          )}
+          <Button
+            variant="ghost"
+            size="sm"
+            className="gap-1.5 text-muted-foreground"
+            onClick={onMarkAsRead}
+          >
             <MailOpenIcon className="size-4" />
             Mark as read
-          </ContextMenuItem>
-        ) : (
-          <ContextMenuItem onClick={() => onMarkAsRead(false)}>
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="gap-1.5 text-muted-foreground"
+            onClick={onMarkAsUnread}
+          >
             <MailIcon className="size-4" />
             Mark as unread
-          </ContextMenuItem>
-        )}
-        <ContextMenuSeparator />
-        <ContextMenuSub>
-          <ContextMenuSubTrigger>
-            <FolderInputIcon className="size-4" />
-            Move to
-          </ContextMenuSubTrigger>
-          <ContextMenuSubContent>
-            {folderOptions.map((f) => (
-              <ContextMenuItem key={f.path} onClick={() => onMoveMessages(f.path)}>
-                <FolderIcon className="size-4" />
-                {f.name === "INBOX" ? "Inbox" : f.name}
-              </ContextMenuItem>
-            ))}
-          </ContextMenuSubContent>
-        </ContextMenuSub>
-      </ContextMenuContent>
-    </ContextMenu>
+          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="sm" className="gap-1.5 text-muted-foreground">
+                <FolderInputIcon className="size-4" />
+                Move to
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent>
+              {folderOptions.map((f) => (
+                <DropdownMenuItem key={f.path} onClick={() => onMoveTo(f.path)}>
+                  {f.name === "INBOX" ? "Inbox" : f.name}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      </div>
+
+      <div className="ml-auto">
+        <Button size="lg" className="gap-1.5" onClick={onCompose}>
+          <PenSquareIcon className="size-4" />
+          Write Message
+        </Button>
+      </div>
+    </div>
   )
 })
 
@@ -609,6 +843,78 @@ export function MailList({ folder }: { folder: string }) {
     [moveMessagesMutate, folder],
   )
 
+  // -----------------------------------------------------------------------
+  // Refs for stable toolbar callbacks — keep mutable values accessible to
+  // zero-dep useCallback closures without widening their dependency arrays.
+  // -----------------------------------------------------------------------
+  const messagesRef = useRef(messages)
+  messagesRef.current = messages
+
+  const junkFolderRef = useRef(junkFolder)
+  junkFolderRef.current = junkFolder
+
+  const trashFolderRef = useRef(trashFolder)
+  trashFolderRef.current = trashFolder
+
+  // Stable toolbar selection callbacks — read from refs so identities never
+  // change, preventing MailListToolbar from re-rendering on selection changes.
+  const handleSelectAll = useCallback(
+    () => setSelected(new Set(messagesRef.current.map((m) => String(m.uid)))),
+    [],
+  )
+  const handleSelectNone = useCallback(() => setSelected(new Set()), [])
+  const handleSelectRead = useCallback(
+    () => setSelected(new Set(messagesRef.current.filter((m) => m.read).map((m) => String(m.uid)))),
+    [],
+  )
+  const handleSelectUnread = useCallback(
+    () => setSelected(new Set(messagesRef.current.filter((m) => !m.read).map((m) => String(m.uid)))),
+    [],
+  )
+
+  // Stable toolbar batch action callbacks.
+  const handleBatchMarkAsRead = useCallback(
+    () => markAsReadMutate({ folder, uids: selectedUidsRef.current, read: true }),
+    [markAsReadMutate, folder],
+  )
+  const handleBatchMarkAsUnread = useCallback(
+    () => markAsReadMutate({ folder, uids: selectedUidsRef.current, read: false }),
+    [markAsReadMutate, folder],
+  )
+  const handleReportSpam = useCallback(() => {
+    if (junkFolderRef.current) {
+      moveMessagesMutate({ folder, uids: selectedUidsRef.current, destinationFolder: junkFolderRef.current })
+    }
+  }, [moveMessagesMutate, folder])
+  const handleDeleteMail = useCallback(() => {
+    if (trashFolderRef.current) {
+      moveMessagesMutate({ folder, uids: selectedUidsRef.current, destinationFolder: trashFolderRef.current })
+    }
+  }, [moveMessagesMutate, folder])
+  const handleSync = useCallback(() => triggerSync.mutate({}), [triggerSync])
+  const handleCompose = useCallback(() => setComposerOpen(true), [])
+
+  // -----------------------------------------------------------------------
+  // Coarse-grained toolbar state — changes only at transition boundaries
+  // (false → "indeterminate" → true), not on every individual row toggle.
+  // useMemo recomputes when selected.size changes, but returns the same
+  // primitive string for most mid-list toggles, so React.memo on
+  // MailListToolbar skips re-rendering when the result is unchanged.
+  // -----------------------------------------------------------------------
+  const selectAllChecked = useMemo<true | "indeterminate" | false>(
+    () =>
+      selected.size === messages.length
+        ? true
+        : selected.size > 0
+          ? "indeterminate"
+          : false,
+    [selected.size, messages.length],
+  )
+
+  // Only changes at the 0 ↔ non-zero boundary — stable during all
+  // mid-list multi-selects (going from 2→3 selected keeps this true).
+  const hasSelection = selected.size > 0
+
   // Infinite scroll: observe the sentinel element
   const handleObserver = useCallback(
     (entries: IntersectionObserverEntry[]) => {
@@ -644,14 +950,15 @@ export function MailList({ folder }: { folder: string }) {
     finishTrace()
   }, [])
 
-  const toggleSelectAll = useCallback(() => {
+  const handleToggleSelectAll = useCallback(() => {
     const finishTrace = startInteractionTrace("mail-list.checkbox-toggle", "all")
     setSelected((prev) => {
-      if (prev.size === messages.length) return new Set()
-      return new Set(messages.map((m) => String(m.uid)))
+      if (prev.size === messagesRef.current.length) return new Set()
+      return new Set(messagesRef.current.map((m) => String(m.uid)))
     })
     finishTrace()
-  }, [messages])
+    // No deps — reads messages through messagesRef so identity never changes.
+  }, [])
 
   const handleContextMenu = useCallback(
     (mailId: string) => {
@@ -740,104 +1047,28 @@ export function MailList({ folder }: { folder: string }) {
     <PerformanceProfiler id="mail-list.surface">
       <div className="flex flex-1 flex-col">
       {/* Toolbar */}
-      <div className="flex items-center gap-2 border-b px-4 py-2">
-        <div className="flex items-center gap-1">
-          <Checkbox
-            checked={
-              selected.size === messages.length
-                ? true
-                : selected.size > 0
-                  ? "indeterminate"
-                  : false
-            }
-            onCheckedChange={toggleSelectAll}
-            aria-label="Select all"
-          />
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon-xs">
-                <ChevronDownIcon className="size-3.5" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="start">
-              <DropdownMenuItem onClick={() => setSelected(new Set(messages.map((m) => String(m.uid))))}>
-                All
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setSelected(new Set())}>
-                None
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setSelected(new Set(messages.filter((m) => m.read).map((m) => String(m.uid))))}>
-                Read
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setSelected(new Set(messages.filter((m) => !m.read).map((m) => String(m.uid))))}>
-                Unread
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
-
-        <div className="flex items-center gap-1">
-          {selected.size === 0 ? (
-            <Button
-              variant="ghost"
-              size="sm"
-              className="gap-1.5 text-muted-foreground"
-              disabled={isSyncing || triggerSync.isPending}
-              onClick={() => triggerSync.mutate({})}
-            >
-              <RefreshCwIcon className={cn("size-4", isSyncing && "animate-spin")} />
-              {isSyncing ? "Syncing…" : "Sync"}
-            </Button>
-          ) : (
-            <>
-              {junkFolder && !isDraftsFolder(folder) && !isTrashFolder(folder) && (
-                <Button variant="ghost" size="sm" className="gap-1.5 text-muted-foreground" onClick={() => batchMoveMessages.mutate({ folder, uids: selectedUids, destinationFolder: junkFolder })}>
-                  <AlertOctagonIcon className="size-4" />
-                  Report spam
-                </Button>
-              )}
-              {trashFolder && (
-                <Button variant="ghost" size="sm" className="gap-1.5 text-muted-foreground" onClick={() => batchMoveMessages.mutate({ folder, uids: selectedUids, destinationFolder: trashFolder })}>
-                  <Trash2Icon className="size-4" />
-                  Delete
-                </Button>
-              )}
-              <Button variant="ghost" size="sm" className="gap-1.5 text-muted-foreground" onClick={() => batchMarkAsRead.mutate({ folder, uids: selectedUids, read: true })}>
-                <MailOpenIcon className="size-4" />
-                Mark as read
-              </Button>
-              <Button variant="ghost" size="sm" className="gap-1.5 text-muted-foreground" onClick={() => batchMarkAsRead.mutate({ folder, uids: selectedUids, read: false })}>
-                <MailIcon className="size-4" />
-                Mark as unread
-              </Button>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="sm" className="gap-1.5 text-muted-foreground">
-                    <FolderInputIcon className="size-4" />
-                    Move to
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent>
-                  {folders
-                    ?.filter((f) => f.path !== folder)
-                    .map((f) => (
-                      <DropdownMenuItem key={f.path} onClick={() => batchMoveMessages.mutate({ folder, uids: selectedUids, destinationFolder: f.path })}>
-                        {f.name === "INBOX" ? "Inbox" : f.name}
-                      </DropdownMenuItem>
-                    ))}
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </>
-          )}
-        </div>
-
-        <div className="ml-auto">
-          <Button size="lg" className="gap-1.5" onClick={() => setComposerOpen(true)}>
-            <PenSquareIcon className="size-4" />
-            Write Message
-          </Button>
-        </div>
-      </div>
+      <MailListToolbar
+        selectAllChecked={selectAllChecked}
+        hasSelection={hasSelection}
+        folder={folder}
+        folderOptions={folderOptions}
+        trashFolder={trashFolder}
+        junkFolder={junkFolder}
+        isSyncing={isSyncing}
+        isSyncPending={triggerSync.isPending}
+        onToggleSelectAll={handleToggleSelectAll}
+        onSelectAll={handleSelectAll}
+        onSelectNone={handleSelectNone}
+        onSelectRead={handleSelectRead}
+        onSelectUnread={handleSelectUnread}
+        onSync={handleSync}
+        onReportSpam={handleReportSpam}
+        onDelete={handleDeleteMail}
+        onMarkAsRead={handleBatchMarkAsRead}
+        onMarkAsUnread={handleBatchMarkAsUnread}
+        onMoveTo={handleMoveMessages}
+        onCompose={handleCompose}
+      />
 
       {/* Mail list */}
       <div className="flex-1 overflow-y-auto">

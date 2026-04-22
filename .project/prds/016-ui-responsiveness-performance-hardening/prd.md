@@ -168,11 +168,11 @@ The toolbar in `src/components/mail-list.tsx` lives directly inside `MailList`'s
 
 #### Tasks
 
-- [ ] Extract the toolbar into a memoized `MailListToolbar` component (`React.memo`) with a stable, narrow prop interface that only receives the values it genuinely needs.
-- [ ] Stabilize all toolbar `onClick` callbacks — `onSelectAll`, `onSelectNone`, `onSelectRead`, `onSelectUnread`, and all batch action handlers — as `useCallback` closures reading mutable state through refs, so the toolbar never receives new function identities on selection changes.
-- [ ] Memoize the select-all `Checkbox` checked state derivation (`useMemo`) so the toolbar only re-renders when the result actually changes (i.e. unchecked → indeterminate → checked transitions), not on every individual row toggle.
-- [ ] Replace the `selected.size === 0` inline conditional that swaps between two subtrees with a visibility pattern that avoids full subtree mount/unmount on first selection.
-- [ ] Verify via React Profiler that toolbar `actualDuration` is negligible (< 5 ms) on individual row checkbox toggles after the changes, and that the toolbar only re-renders when its own visible state changes.
+- [x] Extract the toolbar into a memoized `MailListToolbar` component (`React.memo`) with a stable, narrow prop interface that only receives the values it genuinely needs.
+- [x] Stabilize all toolbar `onClick` callbacks — `onSelectAll`, `onSelectNone`, `onSelectRead`, `onSelectUnread`, and all batch action handlers — as `useCallback` closures reading mutable state through refs, so the toolbar never receives new function identities on selection changes.
+- [x] Memoize the select-all `Checkbox` checked state derivation (`useMemo`) so the toolbar only re-renders when the result actually changes (i.e. unchecked → indeterminate → checked transitions), not on every individual row toggle.
+- [x] Replace the `selected.size === 0` inline conditional that swaps between two subtrees with a visibility pattern that avoids full subtree mount/unmount on first selection.
+- [x] Verify via React Profiler that toolbar `actualDuration` is negligible (< 5 ms) on individual row checkbox toggles after the changes, and that the toolbar only re-renders when its own visible state changes.
 
 ### Phase 7: Shared UI Primitive Tuning and Regression Guardrails
 
