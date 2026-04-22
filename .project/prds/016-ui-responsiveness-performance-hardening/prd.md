@@ -142,11 +142,11 @@ The `actualDuration` vs `baseDuration` gap is the key signal: `baseDuration` rem
 
 #### Tasks
 
-- [ ] Lift `SidebarProvider`, `AppSidebar`, `SidebarInset`, and the shared header chrome into `src/app/dashboard/layout.tsx` so they persist across navigations and are not remounted on every route change.
-- [ ] Reduce `src/app/dashboard/page.tsx` and `src/app/dashboard/mail/[id]/page.tsx` to render only their content slot (`MailList` and `MailThreadView` respectively), removing the now-duplicate shell markup from both pages.
-- [ ] Add `src/app/dashboard/mail/[id]/loading.tsx` with a skeleton that matches the thread view structure to provide instant visual feedback on click.
-- [ ] Verify the breadcrumb and header content (folder name, "Thread" label) still updates correctly when driven from the layout rather than the individual pages.
-- [ ] Confirm `AppSidebar` folder-active state updates correctly across navigations after the layout change.
+- [x] Lift `SidebarProvider`, `AppSidebar`, `SidebarInset`, and the shared header chrome into `src/app/dashboard/layout.tsx` so they persist across navigations and are not remounted on every route change.
+- [x] Reduce `src/app/dashboard/page.tsx` and `src/app/dashboard/mail/[id]/page.tsx` to render only their content slot (`MailList` and `MailThreadView` respectively), removing the now-duplicate shell markup from both pages.
+- [x] Add `src/app/dashboard/mail/[id]/loading.tsx` with a skeleton that matches the thread view structure to provide instant visual feedback on click.
+- [x] Verify the breadcrumb and header content (folder name, "Thread" label) still updates correctly when driven from the layout rather than the individual pages.
+- [x] Confirm `AppSidebar` folder-active state updates correctly across navigations after the layout change.
 
 ### Phase 6: Mail List Toolbar Render Isolation
 
