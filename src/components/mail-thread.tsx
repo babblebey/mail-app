@@ -801,6 +801,7 @@ export function MailThreadView({ uid, folder }: { uid: number; folder: string })
   const [replyBody, setReplyBody] = useState("")
   const inlineComposerRef = useRef<HTMLDivElement>(null)
   const threadOpenTraceRef = useRef<(() => void) | null>(null)
+  const autoReadSyncKeyRef = useRef<string | null>(null)
 
   const backHref = `/dashboard?folder=${encodeURIComponent(folder)}`
 
@@ -828,6 +829,72 @@ export function MailThreadView({ uid, folder }: { uid: number; folder: string })
     threadOpenTraceRef.current?.()
     threadOpenTraceRef.current = null
   }, [isError, message])
+
+  useEffect(() => {
+    // Thread-open auto-read cache sync:
+    // when server marks unread thread as read during getMessage,
+    // immediately sync list row + active folder badge for fast back-nav.
+    if (!message?.autoMarkedRead) return
+
+    const syncKey = `${folder}:${message.uid}`
+    if (autoReadSyncKeyRef.current === syncKey) return
+    autoReadSyncKeyRef.current = syncKey
+
+    const listKey = { folder, limit: 50 }
+    const currentList = utils.mail.listMessages.getInfiniteData(listKey)
+    if (!currentList) return
+
+    let targetFound = false
+    let targetWasUnread = false
+
+    for (const page of currentList.pages) {
+      for (const row of page.messages) {
+        if (row.uid !== message.uid) continue
+        targetFound = true
+        targetWasUnread = !row.read
+        break
+      }
+      if (targetFound) break
+    }
+
+    if (!targetFound) {
+      // Keep fallback reconciliation scoped to the active folder list only.
+      void utils.mail.listMessages.invalidate(listKey)
+      return
+    }
+
+    if (!targetWasUnread) return
+
+    utils.mail.listMessages.setInfiniteData(listKey, (oldData) => {
+      if (!oldData) return oldData
+      return {
+        ...oldData,
+        pages: oldData.pages.map((page) => ({
+          ...page,
+          messages: page.messages.map((row) =>
+            row.uid === message.uid ? { ...row, read: true } : row
+          ),
+        })),
+      }
+    })
+
+    const unreadDelta = getUnreadDeltaForReadToggle(false, true)
+    if (unreadDelta === 0) return
+
+    utils.mail.listFolders.setData({}, (oldFolders) => {
+      if (!oldFolders) return oldFolders
+      return oldFolders.map((folderData) => {
+        if (folderData.path !== folder) return folderData
+        if (typeof folderData.unseenMessages !== "number") return folderData
+        return {
+          ...folderData,
+          unseenMessages:
+            applyUnreadDeltaWithClamp(folderData.unseenMessages, unreadDelta) ??
+            folderData.unseenMessages,
+        }
+      }) as typeof oldFolders
+    })
+  }, [folder, message, utils])
 
   function openInlineComposer(action: "reply" | "reply-all" | "forward") {
     setReplyAction(action)

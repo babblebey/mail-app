@@ -116,9 +116,9 @@ This PRD closes these gaps by making list rows and folder badges update immediat
 
 #### Tasks
 
-- [ ] In `src/components/mail-thread.tsx`, add a cache-sync path tied to successful thread-open/read state so backing to list shows updated read state without delay.
-- [ ] Validate server-side auto-read behavior in `src/server/api/routers/mail.ts` for timing/consistency with client cache updates.
-- [ ] Ensure any fallback invalidation remains folder-scoped/targeted and does not reintroduce broad rerender churn.
+- [x] In `src/components/mail-thread.tsx`, add a cache-sync path tied to successful thread-open/read state so backing to list shows updated read state without delay.
+- [x] Validate server-side auto-read behavior in `src/server/api/routers/mail.ts` for timing/consistency with client cache updates.
+- [x] Ensure any fallback invalidation remains folder-scoped/targeted and does not reintroduce broad rerender churn.
 
 ### Phase 5: Regression Coverage and Verification
 
@@ -138,7 +138,7 @@ This PRD closes these gaps by making list rows and folder badges update immediat
 - [x] Folder unread badge in sidebar updates optimistically when list batch mark read/unread is triggered.
 - [x] Folder unread badge updates optimistically when thread-level mark read/unread is triggered.
 - [x] Marking unread from thread view keeps instant navigation behavior and remains rollback-safe on failure.
-- [ ] Opening unread mail then navigating back updates list row read state without delayed or missing transition.
+- [x] Opening unread mail then navigating back updates list row read state without delayed or missing transition.
 - [x] `markAsReadMutation` invalidates `getMessage`, `listMessages`, and `listFolders` in `onSettled` for both read/unread branches.
 - [x] `moveMessageMutation` invalidates `listFolders` in `onSettled` from thread view actions.
 - [ ] No negative unread badge counts occur under optimistic delta updates.
