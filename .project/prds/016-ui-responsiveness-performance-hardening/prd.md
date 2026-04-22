@@ -103,7 +103,9 @@ Phase 1 instrumentation is implemented in code and the capture workflow/threshol
 #### Tasks
 
 - [ ] In `src/components/mail-thread.tsx`, defer or gate synchronous DOM-intensive image/shimmer setup to avoid blocking interaction frames.
+- [ ] In `src/components/mail-thread.tsx`, prevent inline image subtree teardown/remount when attachment preview dialogs open/close to eliminate visible image flicker.
 - [ ] In `src/components/mail-thread.tsx`, memoize repeated recipient/display derivations used during rerenders.
+- [ ] In `src/components/mail-thread.tsx` and related mutation handlers, make thread-route read/unread updates apply with narrowly scoped cache updates/invalidation to avoid broad rerender when toggling unread from thread view.
 - [ ] In `src/components/mail-composer.tsx`, reduce state fragmentation (single reducer or isolated memoized subcomponents).
 - [ ] Stabilize composer event handlers for recipient edits, attachment interactions, and body/subject updates.
 - [ ] Replace unstable list keys (where applicable) with deterministic keys for recipient chips and similar collections.
@@ -133,6 +135,8 @@ Phase 1 instrumentation is implemented in code and the capture workflow/threshol
 - [ ] Mail/thread/settings mutations no longer trigger unnecessary broad query invalidations when targeted invalidation is sufficient.
 - [ ] Sync status UI remains correct after polling/invalidation tuning, without stale terminal states.
 - [ ] Thread rendering of image-heavy messages avoids interaction-blocking main-thread spikes caused by synchronous DOM setup.
+- [ ] Closing attachment preview in thread view does not cause inline images to disappear and re-render.
+- [ ] Marking a thread unread from thread view does not trigger broad rerender behavior beyond the thread state that changed.
 - [ ] Composer typing and recipient editing remain smooth under rapid input and repeated edits.
 - [ ] Shared UI primitive transition tuning preserves visual quality while reducing lag perception.
 - [ ] Existing behavior for read/unread, move, delete, spam reporting, and account actions remains functionally unchanged.
