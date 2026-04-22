@@ -112,7 +112,23 @@ Phase 1 instrumentation is implemented in code and the capture workflow/threshol
 - [ ] Stabilize composer event handlers for recipient edits, attachment interactions, and body/subject updates.
 - [ ] Replace unstable list keys (where applicable) with deterministic keys for recipient chips and similar collections.
 
-### Phase 5: Shared UI Primitive Tuning and Regression Guardrails
+### Phase 5: Navigation Shell Persistence and Immediate Feedback
+
+**Goal:** Eliminate the full-tree remount that occurs when navigating between the mail list and a thread, and add instant visual feedback on click so the navigation feels immediate.
+
+#### Root Cause
+
+`/dashboard/page.tsx` and `/dashboard/mail/[id]/page.tsx` each render the complete UI shell — `SidebarProvider`, `AppSidebar`, `SidebarInset`, and the header — independently. Because there is no shared React subtree between these two routes, every click on a mail row causes Next.js to fully unmount the `/dashboard` page tree and mount a brand-new `/dashboard/mail/[id]` tree from scratch. This full remount is the primary source of the perceived navigation delay. Compounding it, there is no `loading.tsx` for the thread route, so the user sees zero visual feedback between click and content render.
+
+#### Tasks
+
+- [ ] Lift `SidebarProvider`, `AppSidebar`, `SidebarInset`, and the shared header chrome into `src/app/dashboard/layout.tsx` so they persist across navigations and are not remounted on every route change.
+- [ ] Reduce `src/app/dashboard/page.tsx` and `src/app/dashboard/mail/[id]/page.tsx` to render only their content slot (`MailList` and `MailThreadView` respectively), removing the now-duplicate shell markup from both pages.
+- [ ] Add `src/app/dashboard/mail/[id]/loading.tsx` with a skeleton that matches the thread view structure to provide instant visual feedback on click.
+- [ ] Verify the breadcrumb and header content (folder name, "Thread" label) still updates correctly when driven from the layout rather than the individual pages.
+- [ ] Confirm `AppSidebar` folder-active state updates correctly across navigations after the layout change.
+
+### Phase 6: Shared UI Primitive Tuning and Regression Guardrails
 
 **Goal:** Improve perceived snappiness and prevent future regressions through repeatable checks.
 
