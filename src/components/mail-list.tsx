@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useCallback, useRef, useEffect } from "react"
+import { useState, useCallback, useRef, useEffect, useMemo, memo } from "react"
 import Link from "next/link"
 import {
   AlertOctagonIcon,
@@ -162,13 +162,299 @@ function classifyMixedFolderEmail(
   return "inbox"
 }
 
+// ---------------------------------------------------------------------------
+// MailRow – memoized single message row with a stable prop interface.
+// Isolating per-row rendering prevents unaffected rows from re-rendering
+// when the selected Set changes for a single item.
+// ---------------------------------------------------------------------------
+
+type MailEntry = {
+  uid: number
+  subject: string
+  date: string
+  snippet?: string | null
+  from: { name: string; address: string }
+  to: { name: string; address: string }[]
+  cc: { name: string; address: string }[]
+  bcc: { name: string; address: string }[]
+  flags: string[]
+  read: boolean
+  starred: boolean
+  hasAttachments: boolean
+}
+
+interface MailRowProps {
+  mail: MailEntry
+  folder: string
+  isSelected: boolean
+  hasUnreadSelected: boolean
+  userEmails: string[]
+  trashFolder: string | undefined
+  folderOptions: Array<{ path: string; name: string }>
+  onToggleSelect: (id: string) => void
+  onContextMenu: (id: string) => void
+  onMarkAsRead: (read: boolean) => void
+  onMoveMessages: (destinationFolder: string) => void
+}
+
+const MailRow = memo(function MailRow({
+  mail,
+  folder,
+  isSelected,
+  hasUnreadSelected,
+  userEmails,
+  trashFolder,
+  folderOptions,
+  onToggleSelect,
+  onContextMenu,
+  onMarkAsRead,
+  onMoveMessages,
+}: MailRowProps) {
+  const mailId = String(mail.uid)
+
+  const displayMode = useMemo<"inbox" | "sent" | "drafts">(() => {
+    if (isTrashFolder(folder) || isJunkFolder(folder)) {
+      return classifyMixedFolderEmail(mail, userEmails)
+    }
+    if (isDraftsFolder(folder)) return "drafts"
+    if (isSentFolder(folder)) return "sent"
+    return "inbox"
+  }, [folder, mail, userEmails])
+
+  const realRecipients = useMemo(
+    () => [...mail.to, ...mail.cc, ...mail.bcc].filter(isRealRecipient),
+    [mail],
+  )
+
+  const allRecipients = useMemo(
+    () => [...mail.to, ...mail.cc, ...mail.bcc],
+    [mail],
+  )
+
+  return (
+    <ContextMenu>
+      <ContextMenuTrigger asChild>
+        <Link
+          href={`/dashboard/mail/${mail.uid}?folder=${encodeURIComponent(folder)}`}
+          className={cn(
+            "group flex items-center gap-3 border-b px-4 py-3 transition-colors hover:bg-muted/50",
+            isSelected && "bg-muted/50",
+          )}
+          onContextMenu={() => onContextMenu(mailId)}
+        >
+          <div onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}>
+            <Checkbox
+              checked={isSelected}
+              onCheckedChange={() => onToggleSelect(mailId)}
+              aria-label={
+                displayMode === "drafts"
+                  ? realRecipients.length > 0
+                    ? `Select draft to ${realRecipients.map(getRecipientName).join(", ")}`
+                    : "Select draft with no recipient"
+                  : displayMode === "sent" && allRecipients.length > 0
+                    ? `Select mail to ${getRecipientLabel(mail.to, mail.cc, mail.bcc)}`
+                    : `Select mail from ${getSenderName(mail.from)}`
+              }
+              className="shrink-0"
+            />
+          </div>
+
+          {/* Unread indicator */}
+          <div className="flex w-2 shrink-0 justify-center">
+            {!mail.read && (
+              <span className="size-2 rounded-full bg-primary" />
+            )}
+          </div>
+
+          {/* Trash indicator */}
+          {isTrashFolder(folder) && (
+            <Trash2Icon className="size-4 shrink-0 text-muted-foreground" />
+          )}
+
+          {/* Junk indicator */}
+          {isJunkFolder(folder) && (
+            <AlertOctagonIcon className="size-4 shrink-0 text-muted-foreground" />
+          )}
+
+          {/* Avatar */}
+          {displayMode === "drafts" ? (
+            realRecipients.length > 0 ? (
+              <AvatarGroup className="shrink-0">
+                {realRecipients.slice(0, 2).map((contact, i) => (
+                  <Avatar key={i} size="default">
+                    <AvatarFallback className="text-sm font-semibold">
+                      {getInitials(getRecipientName(contact))}
+                    </AvatarFallback>
+                  </Avatar>
+                ))}
+                {realRecipients.length > 2 && (
+                  <AvatarGroupCount className="text-sm">
+                    +{realRecipients.length - 2}
+                  </AvatarGroupCount>
+                )}
+              </AvatarGroup>
+            ) : (
+              <Avatar className="size-9 shrink-0">
+                <AvatarFallback className="text-sm font-semibold">
+                  <PenSquareIcon className="size-4" />
+                </AvatarFallback>
+              </Avatar>
+            )
+          ) : displayMode === "sent" && allRecipients.length > 0 ? (
+            <AvatarGroup className="shrink-0">
+              {allRecipients.slice(0, 2).map((contact, i) => (
+                <Avatar key={i} size="default">
+                  <AvatarFallback className="text-sm font-semibold">
+                    {getInitials(getRecipientName(contact))}
+                  </AvatarFallback>
+                </Avatar>
+              ))}
+              {allRecipients.length > 2 && (
+                <AvatarGroupCount className="text-sm">
+                  +{allRecipients.length - 2}
+                </AvatarGroupCount>
+              )}
+            </AvatarGroup>
+          ) : (
+            <Avatar className="size-9 shrink-0">
+              <AvatarFallback className="text-sm font-semibold">
+                {getInitials(getSenderName(mail.from))}
+              </AvatarFallback>
+            </Avatar>
+          )}
+
+          {/* Content */}
+          <div className="flex min-w-0 flex-1 flex-col gap-0.5 md:flex-row md:items-center md:gap-6">
+            <div className="flex min-w-0 items-center justify-between gap-2 md:w-44 md:shrink-0">
+              <div className="flex min-w-0 items-center gap-2">
+                {displayMode === "drafts" ? (
+                  <span className={cn(
+                    "flex min-w-0 items-baseline gap-0 text-sm",
+                    !mail.read ? "font-semibold" : "",
+                  )}>
+                    <span className="truncate text-foreground">
+                      {getDraftRecipientLabel(mail.to, mail.cc, mail.bcc) ?? "No recipient"}
+                    </span>
+                    <span className="shrink-0">
+                      ,{" "}
+                      <span className="text-destructive">Draft</span>
+                    </span>
+                  </span>
+                ) : (
+                  <span
+                    className={cn(
+                      "truncate text-sm",
+                      !mail.read ? "font-semibold text-foreground" : "text-foreground",
+                    )}
+                  >
+                    {displayMode === "sent" && allRecipients.length > 0
+                      ? getRecipientLabel(mail.to, mail.cc, mail.bcc)
+                      : getSenderName(mail.from)}
+                  </span>
+                )}
+                {mail.starred && (
+                  <StarIcon className="size-3.5 shrink-0 fill-yellow-400 text-yellow-400" />
+                )}
+              </div>
+              {/* Date on mobile */}
+              <span className="shrink-0 text-xs text-muted-foreground md:hidden">
+                {formatDate(mail.date)}
+              </span>
+            </div>
+            <div className="flex min-w-0 flex-1 items-center gap-1">
+              <span
+                className={cn(
+                  "shrink-0 truncate text-sm",
+                  !mail.snippet?.trim() ? "" : "max-w-[50%]",
+                  !mail.read ? "font-semibold text-foreground" : "text-foreground",
+                )}
+              >
+                {mail.subject}
+              </span>
+              {mail.snippet?.trim() && !(
+                displayMode === "drafts" && !mail.snippet?.trim()
+              ) && (
+                <span className="min-w-0 truncate text-sm text-muted-foreground">
+                  - {mail.snippet}
+                </span>
+              )}
+            </div>
+
+            {/* Attachments */}
+            <span className="size-5 shrink-0 flex items-center">
+              {mail.hasAttachments && (
+                <PaperclipIcon className="size-4 shrink-0 text-muted-foreground" />
+              )}
+            </span>
+
+            {/* Date on desktop */}
+            <span className="hidden shrink-0 text-xs text-muted-foreground md:block">
+              {formatDate(mail.date)}
+            </span>
+          </div>
+        </Link>
+      </ContextMenuTrigger>
+      <ContextMenuContent>
+        <ContextMenuItem>
+          <ReplyIcon className="size-4" />
+          Reply
+        </ContextMenuItem>
+        <ContextMenuItem>
+          <ReplyAllIcon className="size-4" />
+          Reply all
+        </ContextMenuItem>
+        <ContextMenuItem>
+          <ForwardIcon className="size-4" />
+          Forward
+        </ContextMenuItem>
+        <ContextMenuSeparator />
+        {trashFolder && (
+          <ContextMenuItem onClick={() => onMoveMessages(trashFolder)}>
+            <Trash2Icon className="size-4" />
+            Delete
+          </ContextMenuItem>
+        )}
+        {hasUnreadSelected ? (
+          <ContextMenuItem onClick={() => onMarkAsRead(true)}>
+            <MailOpenIcon className="size-4" />
+            Mark as read
+          </ContextMenuItem>
+        ) : (
+          <ContextMenuItem onClick={() => onMarkAsRead(false)}>
+            <MailIcon className="size-4" />
+            Mark as unread
+          </ContextMenuItem>
+        )}
+        <ContextMenuSeparator />
+        <ContextMenuSub>
+          <ContextMenuSubTrigger>
+            <FolderInputIcon className="size-4" />
+            Move to
+          </ContextMenuSubTrigger>
+          <ContextMenuSubContent>
+            {folderOptions.map((f) => (
+              <ContextMenuItem key={f.path} onClick={() => onMoveMessages(f.path)}>
+                <FolderIcon className="size-4" />
+                {f.name === "INBOX" ? "Inbox" : f.name}
+              </ContextMenuItem>
+            ))}
+          </ContextMenuSubContent>
+        </ContextMenuSub>
+      </ContextMenuContent>
+    </ContextMenu>
+  )
+})
+
 export function MailList({ folder }: { folder: string }) {
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [composerOpen, setComposerOpen] = useState(false)
   const loadMoreRef = useRef<HTMLDivElement>(null)
 
   const { data: accounts } = api.mailAccount.list.useQuery()
-  const userEmails = (accounts ?? []).map((a) => a.email.toLowerCase())
+  const userEmails = useMemo(
+    () => (accounts ?? []).map((a) => a.email.toLowerCase()),
+    [accounts],
+  )
 
   const {
     data,
@@ -186,7 +472,10 @@ export function MailList({ folder }: { folder: string }) {
     },
   )
 
-  const messages = data?.pages.flatMap((page) => page.messages) ?? []
+  const messages = useMemo(
+    () => data?.pages.flatMap((page) => page.messages) ?? [],
+    [data],
+  )
 
   // Folder list for batch actions (Trash, Junk, Move To)
   const { data: folders } = api.mail.listFolders.useQuery({})
@@ -279,10 +568,39 @@ export function MailList({ folder }: { folder: string }) {
     },
   })
 
-  const selectedUids = Array.from(selected).map(Number)
+  // Stable ref so mutation callbacks can read the current UIDs without
+  // including the full selected Set in their dependency arrays.
+  const selectedUidsRef = useRef<number[]>([])
+  const selectedUids = useMemo(() => Array.from(selected).map(Number), [selected])
+  selectedUidsRef.current = selectedUids
 
-  const hasUnreadSelected = messages.some(
-    (m) => selected.has(String(m.uid)) && !m.read,
+  const hasUnreadSelected = useMemo(
+    () => messages.some((m) => selected.has(String(m.uid)) && !m.read),
+    [messages, selected],
+  )
+
+  const folderOptions = useMemo(
+    () => folders?.filter((f) => f.path !== folder) ?? [],
+    [folders, folder],
+  )
+
+  // Stable mutation handlers — read selectedUids through the ref so the
+  // callbacks do not need to be recreated whenever selection changes.
+  const markAsReadMutate = batchMarkAsRead.mutate
+  const moveMessagesMutate = batchMoveMessages.mutate
+
+  const handleMarkAsRead = useCallback(
+    (read: boolean) => {
+      markAsReadMutate({ folder, uids: selectedUidsRef.current, read })
+    },
+    [markAsReadMutate, folder],
+  )
+
+  const handleMoveMessages = useCallback(
+    (destinationFolder: string) => {
+      moveMessagesMutate({ folder, uids: selectedUidsRef.current, destinationFolder })
+    },
+    [moveMessagesMutate, folder],
   )
 
   // Infinite scroll: observe the sentinel element
@@ -306,7 +624,7 @@ export function MailList({ folder }: { folder: string }) {
     return () => observer.disconnect()
   }, [handleObserver])
 
-  function toggleSelect(id: string) {
+  const toggleSelect = useCallback((id: string) => {
     const finishTrace = startInteractionTrace("mail-list.checkbox-toggle", id)
     setSelected((prev) => {
       const next = new Set(prev)
@@ -318,17 +636,16 @@ export function MailList({ folder }: { folder: string }) {
       return next
     })
     finishTrace()
-  }
+  }, [])
 
-  function toggleSelectAll() {
+  const toggleSelectAll = useCallback(() => {
     const finishTrace = startInteractionTrace("mail-list.checkbox-toggle", "all")
-    if (selected.size === messages.length) {
-      setSelected(new Set())
-    } else {
-      setSelected(new Set(messages.map((m) => String(m.uid))))
-    }
+    setSelected((prev) => {
+      if (prev.size === messages.length) return new Set()
+      return new Set(messages.map((m) => String(m.uid)))
+    })
     finishTrace()
-  }
+  }, [messages])
 
   const handleContextMenu = useCallback(
     (mailId: string) => {
@@ -520,226 +837,21 @@ export function MailList({ folder }: { folder: string }) {
       <div className="flex-1 overflow-y-auto">
         {messages.map((mail) => {
           const mailId = String(mail.uid)
-          const displayMode: "inbox" | "sent" | "drafts" = isTrashFolder(folder) || isJunkFolder(folder)
-            ? classifyMixedFolderEmail(mail, userEmails)
-            : isDraftsFolder(folder)
-              ? "drafts"
-              : isSentFolder(folder)
-                ? "sent"
-                : "inbox"
-          const realRecipients = [...mail.to, ...mail.cc, ...mail.bcc].filter(isRealRecipient)
-          const allRecipients = [...mail.to, ...mail.cc, ...mail.bcc]
           return (
-            <ContextMenu key={mailId}>
-              <ContextMenuTrigger asChild>
-                <Link
-                  href={`/dashboard/mail/${mail.uid}?folder=${encodeURIComponent(folder)}`}
-                  className={cn(
-                    "group flex items-center gap-3 border-b px-4 py-3 transition-colors hover:bg-muted/50",
-                    selected.has(mailId) && "bg-muted/50",
-                  )}
-                  onContextMenu={() => handleContextMenu(mailId)}
-                >
-              <div onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}>
-                <Checkbox
-                  checked={selected.has(mailId)}
-                  onCheckedChange={() => toggleSelect(mailId)}
-                  aria-label={
-                    displayMode === "drafts"
-                      ? realRecipients.length > 0
-                        ? `Select draft to ${realRecipients.map(getRecipientName).join(", ")}`
-                        : "Select draft with no recipient"
-                      : displayMode === "sent" && allRecipients.length > 0
-                        ? `Select mail to ${getRecipientLabel(mail.to, mail.cc, mail.bcc)}`
-                        : `Select mail from ${getSenderName(mail.from)}`
-                  }
-                  className="shrink-0"
-                />
-              </div>
-
-              {/* Unread indicator */}
-              <div className="flex w-2 shrink-0 justify-center">
-                {!mail.read && (
-                  <span className="size-2 rounded-full bg-primary" />
-                )}
-              </div>
-
-              {/* Trash indicator */}
-              {isTrashFolder(folder) && (
-                <Trash2Icon className="size-4 shrink-0 text-muted-foreground" />
-              )}
-
-              {/* Junk indicator */}
-              {isJunkFolder(folder) && (
-                <AlertOctagonIcon className="size-4 shrink-0 text-muted-foreground" />
-              )}
-
-              {/* Avatar */}
-              {displayMode === "drafts" ? (
-                realRecipients.length > 0 ? (
-                  <AvatarGroup className="shrink-0">
-                    {realRecipients.slice(0, 2).map((contact, i) => (
-                      <Avatar key={i} size="default">
-                        <AvatarFallback className="text-sm font-semibold">
-                          {getInitials(getRecipientName(contact))}
-                        </AvatarFallback>
-                      </Avatar>
-                    ))}
-                    {realRecipients.length > 2 && (
-                      <AvatarGroupCount className="text-sm">
-                        +{realRecipients.length - 2}
-                      </AvatarGroupCount>
-                    )}
-                  </AvatarGroup>
-                ) : (
-                  <Avatar className="size-9 shrink-0">
-                    <AvatarFallback className="text-sm font-semibold">
-                      <PenSquareIcon className="size-4" />
-                    </AvatarFallback>
-                  </Avatar>
-                )
-              ) : displayMode === "sent" && allRecipients.length > 0 ? (
-                <AvatarGroup className="shrink-0">
-                  {allRecipients.slice(0, 2).map((contact, i) => (
-                    <Avatar key={i} size="default">
-                      <AvatarFallback className="text-sm font-semibold">
-                        {getInitials(getRecipientName(contact))}
-                      </AvatarFallback>
-                    </Avatar>
-                  ))}
-                  {allRecipients.length > 2 && (
-                    <AvatarGroupCount className="text-sm">
-                      +{allRecipients.length - 2}
-                    </AvatarGroupCount>
-                  )}
-                </AvatarGroup>
-              ) : (
-                <Avatar className="size-9 shrink-0">
-                  <AvatarFallback className="text-sm font-semibold">
-                    {getInitials(getSenderName(mail.from))}
-                  </AvatarFallback>
-                </Avatar>
-              )}
-
-              {/* Content */}
-              <div className="flex min-w-0 flex-1 flex-col gap-0.5 md:flex-row md:items-center md:gap-6">
-                <div className="flex min-w-0 items-center justify-between gap-2 md:w-44 md:shrink-0">
-                  <div className="flex min-w-0 items-center gap-2">
-                    {displayMode === "drafts" ? (
-                      <span className={cn(
-                        "flex min-w-0 items-baseline gap-0 text-sm",
-                        !mail.read ? "font-semibold" : "",
-                      )}>
-                        <span className="truncate text-foreground">
-                          {getDraftRecipientLabel(mail.to, mail.cc, mail.bcc) ?? "No recipient"}
-                        </span>
-                        <span className="shrink-0">
-                          ,{" "}
-                          <span className="text-destructive">Draft</span>
-                        </span>
-                      </span>
-                    ) : (
-                      <span
-                        className={cn(
-                          "truncate text-sm",
-                          !mail.read ? "font-semibold text-foreground" : "text-foreground",
-                        )}
-                      >
-                        {displayMode === "sent" && allRecipients.length > 0
-                          ? getRecipientLabel(mail.to, mail.cc, mail.bcc)
-                          : getSenderName(mail.from)}
-                      </span>
-                    )}
-                    {mail.starred && (
-                      <StarIcon className="size-3.5 shrink-0 fill-yellow-400 text-yellow-400" />
-                    )}
-                  </div>
-                  {/* Date on mobile */}
-                  <span className="shrink-0 text-xs text-muted-foreground md:hidden">
-                    {formatDate(mail.date)}
-                  </span>
-                </div>
-                <div className="flex min-w-0 flex-1 items-center gap-1">
-                  <span
-                    className={cn(
-                      "shrink-0 truncate text-sm",
-                      !mail.snippet?.trim() ? "" : "max-w-[50%]",
-                      !mail.read ? "font-semibold text-foreground" : "text-foreground",
-                    )}
-                  >
-                    {mail.subject}
-                  </span>
-                  {mail.snippet?.trim() && !(displayMode === "drafts" && !mail.snippet?.trim()) && (
-                    <span className="min-w-0 truncate text-sm text-muted-foreground">
-                      - {mail.snippet}
-                    </span>
-                  )}
-                </div>
-
-                {/* Attachments */}
-                <span className="size-5 shrink-0 flex items-center">
-                  {mail.hasAttachments && (
-                    <PaperclipIcon className="size-4 shrink-0 text-muted-foreground" />
-                  )}
-                </span>
-
-                {/* Date on desktop */}
-                <span className="hidden shrink-0 text-xs text-muted-foreground md:block">
-                  {formatDate(mail.date)}
-                </span>
-              </div>
-            </Link>
-              </ContextMenuTrigger>
-              <ContextMenuContent>
-                <ContextMenuItem>
-                  <ReplyIcon className="size-4" />
-                  Reply
-                </ContextMenuItem>
-                <ContextMenuItem>
-                  <ReplyAllIcon className="size-4" />
-                  Reply all
-                </ContextMenuItem>
-                <ContextMenuItem>
-                  <ForwardIcon className="size-4" />
-                  Forward
-                </ContextMenuItem>
-                <ContextMenuSeparator />
-                {trashFolder && (
-                  <ContextMenuItem onClick={() => batchMoveMessages.mutate({ folder, uids: Array.from(selected).map(Number), destinationFolder: trashFolder })}>
-                    <Trash2Icon className="size-4" />
-                    Delete
-                  </ContextMenuItem>
-                )}
-                {hasUnreadSelected ? (
-                  <ContextMenuItem onClick={() => batchMarkAsRead.mutate({ folder, uids: Array.from(selected).map(Number), read: true })}>
-                    <MailOpenIcon className="size-4" />
-                    Mark as read
-                  </ContextMenuItem>
-                ) : (
-                  <ContextMenuItem onClick={() => batchMarkAsRead.mutate({ folder, uids: Array.from(selected).map(Number), read: false })}>
-                    <MailIcon className="size-4" />
-                    Mark as unread
-                  </ContextMenuItem>
-                )}
-                <ContextMenuSeparator />
-                <ContextMenuSub>
-                  <ContextMenuSubTrigger>
-                    <FolderInputIcon className="size-4" />
-                    Move to
-                  </ContextMenuSubTrigger>
-                  <ContextMenuSubContent>
-                    {folders
-                      ?.filter((f) => f.path !== folder)
-                      .map((f) => (
-                        <ContextMenuItem key={f.path} onClick={() => batchMoveMessages.mutate({ folder, uids: Array.from(selected).map(Number), destinationFolder: f.path })}>
-                          <FolderIcon className="size-4" />
-                          {f.name === "INBOX" ? "Inbox" : f.name}
-                        </ContextMenuItem>
-                      ))}
-                  </ContextMenuSubContent>
-                </ContextMenuSub>
-              </ContextMenuContent>
-            </ContextMenu>
+            <MailRow
+              key={mailId}
+              mail={mail}
+              folder={folder}
+              isSelected={selected.has(mailId)}
+              hasUnreadSelected={hasUnreadSelected}
+              userEmails={userEmails}
+              trashFolder={trashFolder}
+              folderOptions={folderOptions}
+              onToggleSelect={toggleSelect}
+              onContextMenu={handleContextMenu}
+              onMarkAsRead={handleMarkAsRead}
+              onMoveMessages={handleMoveMessages}
+            />
           )
         })}
 

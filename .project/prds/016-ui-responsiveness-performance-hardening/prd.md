@@ -68,14 +68,14 @@ Phase 1 instrumentation is implemented in code and the capture workflow/threshol
 
 #### Tasks
 
-- [ ] In `src/components/mail-list.tsx`, extract message row rendering into a memoized row component (e.g., `React.memo`) with stable props.
-- [ ] Memoize high-frequency derived values, including:
+- [x] In `src/components/mail-list.tsx`, extract message row rendering into a memoized row component (e.g., `React.memo`) with stable props.
+- [x] Memoize high-frequency derived values, including:
   - Flattened messages array
   - Selected UID numeric array
   - Selected unread-state checks
   - Folder options used by move menus
-- [ ] Replace callback patterns that depend on mutable `Set` references with stable updater forms to reduce handler recreation.
-- [ ] Remove any render-time debug logging and other synchronous non-essential work from interaction paths.
+- [x] Replace callback patterns that depend on mutable `Set` references with stable updater forms to reduce handler recreation.
+- [x] Remove any render-time debug logging and other synchronous non-essential work from interaction paths.
 - [ ] Re-profile checkbox and context-menu scenarios to verify reduced rerenders for unaffected rows.
 
 ### Phase 3: Query Invalidation and Sync Churn Optimization
