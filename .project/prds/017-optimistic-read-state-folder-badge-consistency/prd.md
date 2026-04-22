@@ -11,6 +11,9 @@ references:
   - type: prd
     url: .project/prds/016-ui-responsiveness-performance-hardening/prd.md
     description: "Follow-up responsiveness hardening where read/unread consistency regressions were observed"
+  - type: pr
+    url: https://github.com/babblebey/mail-app/pull/25
+    description: "Implementation PR — optimistic read state and folder badge consistency"
 ---
 
 > **Instructions for AI Agents:**
