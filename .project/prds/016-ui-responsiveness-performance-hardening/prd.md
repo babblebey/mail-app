@@ -106,17 +106,17 @@ The `actualDuration` vs `baseDuration` gap is the key signal: `baseDuration` rem
 
 #### Tasks
 
-- [ ] Narrow invalidation scopes for mail mutations in:
+- [x] Narrow invalidation scopes for mail mutations in:
   - `src/components/mail-list.tsx`
   - `src/components/mail-thread.tsx`
   - `src/app/dashboard/settings/page.tsx`
-- [ ] Replace broad invalidations with targeted invalidation keys where possible (e.g., folder-scoped list invalidation).
-- [ ] Revisit sync status polling cadence in:
+- [x] Replace broad invalidations with targeted invalidation keys where possible (e.g., folder-scoped list invalidation).
+- [x] Revisit sync status polling cadence in:
   - `src/components/mail-list.tsx`
   - `src/app/dashboard/settings/page.tsx`
   to reduce refetch pressure during active sync without stale UX.
-- [ ] Eliminate duplicate refetch/invalidation pathways tied to sync-completion effects.
-- [ ] Validate that folder counts and read states remain eventually consistent after scope narrowing.
+- [x] Eliminate duplicate refetch/invalidation pathways tied to sync-completion effects.
+- [x] Validate that folder counts and read states remain eventually consistent after scope narrowing.
 
 ### Phase 4: Thread and Composer Responsiveness
 

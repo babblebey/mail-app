@@ -360,7 +360,7 @@ function AccountSyncStatus({ accountId }: { accountId: string }) {
     {
       refetchInterval: (query) => {
         const status = query.state.data?.status
-        return status === "syncing" || status === "pending" ? 2000 : 30000
+        return status === "syncing" || status === "pending" ? 3000 : 30000
       },
     },
   )

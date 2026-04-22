@@ -489,7 +489,7 @@ export function MailList({ folder }: { folder: string }) {
   const syncStatus = api.mail.getSyncStatus.useQuery({}, {
     refetchInterval: (query) => {
       const status = query.state.data?.status
-      return status === "syncing" || status === "pending" ? 2000 : 30000
+      return status === "syncing" || status === "pending" ? 3000 : 30000
     },
   })
   const isSyncing = syncStatus.data?.status === "syncing" || syncStatus.data?.status === "pending"
@@ -500,17 +500,17 @@ export function MailList({ folder }: { folder: string }) {
     },
   })
 
-  // When sync finishes, refetch messages and folders
+  // When sync finishes, refetch messages for the visible folder and update folder counts
   const prevSyncStatus = useRef(syncStatus.data?.status)
   useEffect(() => {
     const prev = prevSyncStatus.current
     const curr = syncStatus.data?.status
     prevSyncStatus.current = curr
     if ((prev === "syncing" || prev === "pending") && curr !== "syncing" && curr !== "pending") {
-      void utils.mail.listMessages.invalidate()
+      void utils.mail.listMessages.invalidate({ folder, limit: 50 })
       void utils.mail.listFolders.invalidate()
     }
-  }, [syncStatus.data?.status, utils])
+  }, [syncStatus.data?.status, utils, folder])
 
   const batchMarkAsRead = api.mail.batchMarkAsRead.useMutation({
     onMutate: async (variables) => {
@@ -537,7 +537,7 @@ export function MailList({ folder }: { folder: string }) {
       }
     },
     onSettled: () => {
-      void utils.mail.listMessages.invalidate()
+      void utils.mail.listMessages.invalidate({ folder, limit: 50 })
       void utils.mail.listFolders.invalidate()
     },
   })
@@ -564,8 +564,9 @@ export function MailList({ folder }: { folder: string }) {
         utils.mail.listMessages.setInfiniteData({ folder, limit: 50 }, context.previousMessages)
       }
     },
-    onSettled: () => {
-      void utils.mail.listMessages.invalidate()
+    onSettled: (_data, _error, variables) => {
+      void utils.mail.listMessages.invalidate({ folder, limit: 50 })
+      void utils.mail.listMessages.invalidate({ folder: variables.destinationFolder, limit: 50 })
       void utils.mail.listFolders.invalidate()
     },
   })

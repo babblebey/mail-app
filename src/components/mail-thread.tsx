@@ -668,7 +668,7 @@ export function MailThreadView({ uid, folder }: { uid: number; folder: string })
     onSettled: (_data, _error, variables) => {
       if (variables.read) {
         void utils.mail.getMessage.invalidate({ folder, uid })
-        void utils.mail.listMessages.invalidate()
+        void utils.mail.listMessages.invalidate({ folder, limit: 50 })
       }
     },
   })
@@ -698,8 +698,8 @@ export function MailThreadView({ uid, folder }: { uid: number; folder: string })
       }
     },
     onSettled: () => {
-      void utils.mail.getMessage.invalidate()
-      void utils.mail.listMessages.invalidate()
+      void utils.mail.getMessage.invalidate({ folder, uid })
+      void utils.mail.listMessages.invalidate({ folder, limit: 50 })
     },
   })
 
