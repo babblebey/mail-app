@@ -105,10 +105,10 @@ This PRD closes these gaps by making list rows and folder badges update immediat
 
 #### Tasks
 
-- [ ] In `src/components/mail-thread.tsx`, extend `markAsReadMutation.onMutate` to snapshot and optimistically update `listFolders` alongside existing caches.
-- [ ] Preserve instant navigation on mark-unread, but guarantee optimistic write ordering and rollback coverage for that path.
-- [ ] Update `markAsReadMutation.onSettled` to always invalidate `getMessage`, `listMessages`, and `listFolders` for both `read: true` and `read: false`.
-- [ ] Extend `moveMessageMutation.onSettled` to include `listFolders` invalidation so folder badges reconcile after move/delete/spam actions from thread.
+- [x] In `src/components/mail-thread.tsx`, extend `markAsReadMutation.onMutate` to snapshot and optimistically update `listFolders` alongside existing caches.
+- [x] Preserve instant navigation on mark-unread, but guarantee optimistic write ordering and rollback coverage for that path.
+- [x] Update `markAsReadMutation.onSettled` to always invalidate `getMessage`, `listMessages`, and `listFolders` for both `read: true` and `read: false`.
+- [x] Extend `moveMessageMutation.onSettled` to include `listFolders` invalidation so folder badges reconcile after move/delete/spam actions from thread.
 
 ### Phase 4: Thread-Open Auto-Read Back-Nav Reliability
 
@@ -136,10 +136,10 @@ This PRD closes these gaps by making list rows and folder badges update immediat
 ## Acceptance Criteria
 
 - [x] Folder unread badge in sidebar updates optimistically when list batch mark read/unread is triggered.
-- [ ] Folder unread badge updates optimistically when thread-level mark read/unread is triggered.
-- [ ] Marking unread from thread view keeps instant navigation behavior and remains rollback-safe on failure.
+- [x] Folder unread badge updates optimistically when thread-level mark read/unread is triggered.
+- [x] Marking unread from thread view keeps instant navigation behavior and remains rollback-safe on failure.
 - [ ] Opening unread mail then navigating back updates list row read state without delayed or missing transition.
-- [ ] `markAsReadMutation` invalidates `getMessage`, `listMessages`, and `listFolders` in `onSettled` for both read/unread branches.
-- [ ] `moveMessageMutation` invalidates `listFolders` in `onSettled` from thread view actions.
+- [x] `markAsReadMutation` invalidates `getMessage`, `listMessages`, and `listFolders` in `onSettled` for both read/unread branches.
+- [x] `moveMessageMutation` invalidates `listFolders` in `onSettled` from thread view actions.
 - [ ] No negative unread badge counts occur under optimistic delta updates.
 - [ ] New/updated tests covering optimistic read/badge consistency pass in `tests/unit/mail-interactions.test.ts`.
