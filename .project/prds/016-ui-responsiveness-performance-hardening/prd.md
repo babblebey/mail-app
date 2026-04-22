@@ -76,7 +76,27 @@ Phase 1 instrumentation is implemented in code and the capture workflow/threshol
   - Folder options used by move menus
 - [x] Replace callback patterns that depend on mutable `Set` references with stable updater forms to reduce handler recreation.
 - [x] Remove any render-time debug logging and other synchronous non-essential work from interaction paths.
-- [ ] Re-profile checkbox and context-menu scenarios to verify reduced rerenders for unaffected rows.
+- [x] Re-profile checkbox and context-menu scenarios to verify reduced rerenders for unaffected rows.
+
+**Re-profile results — context-menu scenario (post Phase 2):**
+
+| Metric | Baseline | Post Phase 2 | Change |
+|---|---|---|---|
+| Interaction duration (User Timing) | 1206.2 ms median | 545.3 ms | −55% |
+| Dominant React commit `actualDuration` | 847.9 ms | 81.8 ms | −90% |
+| `actualDuration` / `baseDuration` ratio | ~100% (all rows re-rendered) | ~9% (most rows bailed) | confirms memo working |
+
+The `actualDuration` vs `baseDuration` gap is the key signal: `baseDuration` remains ~839–962 ms (the cost if every component re-rendered), while `actualDuration` on all post-interaction commits is between 1–92 ms. This confirms that `React.memo` is successfully bailing out unaffected rows and only the selected row plus the `ContextMenuContent` subtree are doing real work. The residual spread across multiple smaller commits (71.2 ms, 52.9 ms) reflects Radix UI `ContextMenu` internal animation state transitions opening, not row re-renders. The remaining 545 ms interaction window includes the context menu open animation duration captured inside the User Timing mark, so the render-path portion of the latency is now well within target.
+
+**Re-profile results — checkbox-toggle scenario (post Phase 2):**
+
+| Metric | Baseline | Post Phase 2 | Change |
+|---|---|---|---|
+| Interaction duration (User Timing) | 936.6 ms median | 181.1 ms median (range: 137.9–198.7 ms) | −81% |
+| Dominant React commit `actualDuration` | 944.7 ms | 75.8 ms median (range: 61.3–94.2 ms) | −92% |
+| `actualDuration` / `baseDuration` ratio | ~100% (all rows re-rendered) | ~6% (most rows bailed) | confirms memo working |
+
+`baseDuration` holds steady at ~1264–1299 ms across all 6 measured toggles while `actualDuration` on the primary commit stays in the 61–94 ms range — a 94% bail-out rate from `React.memo`. Each toggle produces two additional tiny nested-update commits (2–13 ms) driven by Radix UI checkbox animation state, not row re-renders. The remaining interaction window (~180 ms) includes the checkbox animation duration bracketed inside the User Timing mark, meaning the render-path portion itself is well within target.
 
 **Post-implementation fix — `hasUnreadSelected` prop leak:** After the initial Phase 2 implementation, unread-mail rows were still noticeably slower to respond to checkbox toggles than read ones. Root cause: `hasUnreadSelected` was a plain boolean prop passed to every `MailRow`. Selecting the first unread mail flipped it `false → true`, updating the prop on all rows simultaneously and defeating `React.memo` across the entire list. Fixed by replacing the boolean prop with a stable `getHasUnreadSelected: () => boolean` getter backed by a `useRef` and created with `useCallback([], [])`. Its identity never changes between renders, so unaffected rows see no prop difference and skip re-rendering. The getter is only invoked inside `ContextMenuContent` at menu-open time, which is the only point where the value is actually needed.
 
