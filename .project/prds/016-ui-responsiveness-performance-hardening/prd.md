@@ -11,6 +11,9 @@ references:
   - type: prd
     url: .project/prds/015-optimistic-updates/prd.md
     description: "Related PRD — Optimistic updates that improved server-wait latency but still require render-path optimizations"
+  - type: pr
+    url: https://github.com/babblebey/mail-app/pull/24
+    description: "Implementation PR — UI Responsiveness and Interaction Performance Hardening"
 ---
 
 > **Instructions for AI Agents:**
