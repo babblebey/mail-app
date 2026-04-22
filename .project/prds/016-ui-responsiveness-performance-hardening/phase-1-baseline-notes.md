@@ -51,8 +51,8 @@ Record each scenario with at least 3 runs and fill in the median values below.
 | mail-list.context-menu-open | `847.9 ms` dominant commit (`926.6 ms` across initial 9-commit open cluster) | `9` commits in observed open cluster | `1206.2 ms` median (`1012.2 ms`, `1206.2 ms`, `1399.7 ms`) | Pending browser Performance trace | Initial commit was driven by `ContextMenu` + `MailList`; top fiber was `MailList` at `847.9 ms`, with two sibling fibers at `441.4 ms` and `441.2 ms`, followed by menu/presence commits from `6.3 ms` to `31.2 ms`. |
 | mail-thread.thread-open | `86.9 ms` dominant `mail-thread.surface` mount commit (`92.9 ms` median across mount+follow-up pairs) | `2` commits per observed open (`mount` + `nested-update`) | `657.7 ms` median (`187.8 ms`, `287.9 ms`, `1027.5 ms`, `1302.1 ms`) | Pending browser Performance trace | Render cost inside `mail-thread.surface` is moderate, but end-to-end open latency is high and highly variable, indicating non-render wait (data/navigation/network) dominates worst-case opens. |
 | mail-thread.image-heavy-render | `2.5 ms` dominant `mail-thread.message-body` mount commit (`0.8 ms`, `0.8 ms`, `2.5 ms`) | `1` commit per observed message-body mount | `48.1 ms` median (`40.5 ms`, `44.3 ms`, `47.4 ms`, `48.8 ms`, `181.3 ms`, `217.9 ms`) | Pending browser Performance trace | Median meets target, but high outliers (`181.3 ms`, `217.9 ms`) show occasional heavy-path stalls that need confirmation in browser Performance traces. |
-| mail-composer.typing | Pending local capture | Pending local capture | Pending local capture | Pending local capture | |
-| mail-composer.recipient-edit | Pending local capture | Pending local capture | Pending local capture | Pending local capture | |
+| mail-composer.typing | `~33-42 ms` typical `mail-composer.surface` update commits with spikes up to `~91.6 ms` | `1` composer update commit per keystroke (plus paired `mail-list.surface` update due to shared subtree) | Subject median `~81 ms`; body median `~84 ms`; body outliers up to `194.4 ms` | Pending browser Performance trace | Consistently above `<= 16 ms` target; recurrent `> 50 ms` durations indicate interaction-path pressure during rapid input. |
+| mail-composer.recipient-edit | `~19-46 ms` typical `mail-composer.surface` update commits with spikes up to `~116.9 ms` | `1` composer update commit per edit action (plus paired `mail-list.surface` update due to shared subtree) | `to-input` median `~82 ms` with outliers up to `285.8 ms`; `add-recipient` `~85.8-107.5 ms`; `remove-recipient` `49.1 ms` | Pending browser Performance trace | Misses `<= 50 ms` target on most add/type actions with multiple extreme spikes during recipient entry bursts. |
 
 ## Current Findings
 
@@ -61,6 +61,8 @@ Record each scenario with at least 3 runs and fill in the median values below.
 - The combined evidence strongly indicates full-surface rerender cost in the interaction path, not just menu animation overhead.
 - The thread-open capture materially misses the `<= 120 ms` target on User Timing median (`657.7 ms`) with wide variance (`187.8 ms` to `1302.1 ms`), even though the measured `mail-thread.surface` render commits are much smaller (`86.9 ms` dominant mount).
 - The image-heavy-render capture meets the `<= 120 ms` median target (`48.1 ms`) but has major outliers (`181.3 ms`, `217.9 ms`), so it is not yet stable.
+- The composer typing capture materially misses the `<= 16 ms` target, with subject/body interaction medians around `~81-84 ms` and body outliers up to `194.4 ms`.
+- The composer recipient-edit capture materially misses the `<= 50 ms` target for `to-input` and `add-recipient` actions (`~82 ms` median `to-input`, outliers up to `285.8 ms`; adds up to `107.5 ms`), while `remove-recipient` was near-threshold (`49.1 ms`) in the observed run.
 - Browser Performance panel traces are still required to confirm long-task distribution and main-thread blocking segments.
 
 ## Target Thresholds
@@ -78,4 +80,4 @@ These thresholds define the pass/fail bar for the follow-up optimization phases.
 
 ## Current Blocker
 
-The repository does not currently include a usable `.env` file or mailbox fixture data, so the remaining live traces required by Phase 1 cannot be captured in this workspace without local environment setup. Mail-list and thread `window.__MAIL_APP_PERF__` interaction traces are now available, but browser Performance traces plus composer captures are still required.
+The repository does not currently include a usable `.env` file or mailbox fixture data, so the remaining live traces required by Phase 1 cannot be captured in this workspace without local environment setup. Mail-list, thread, and composer `window.__MAIL_APP_PERF__` interaction traces are now available, but browser Performance traces are still required.
