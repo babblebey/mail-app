@@ -54,12 +54,29 @@ function getPerfStore(): MailAppPerfStore | null {
     return null
   }
 
-  window.__MAIL_APP_PERF__ ??= {
-    interactions: [],
-    renders: [],
+  const existingStore = window.__MAIL_APP_PERF__
+  let store: MailAppPerfStore
+
+  // Harden against partial/invalid globals set manually in DevTools or stale scripts.
+  if (!existingStore) {
+    store = {
+      interactions: [],
+      renders: [],
+    }
+    window.__MAIL_APP_PERF__ = store
+  } else {
+    store = existingStore
+
+    if (!Array.isArray(existingStore.interactions)) {
+      existingStore.interactions = []
+    }
+
+    if (!Array.isArray(existingStore.renders)) {
+      existingStore.renders = []
+    }
   }
 
-  return window.__MAIL_APP_PERF__
+  return store
 }
 
 export function startInteractionTrace(name: string, detail?: string): () => void {
