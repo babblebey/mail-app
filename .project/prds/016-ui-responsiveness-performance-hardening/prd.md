@@ -124,13 +124,13 @@ The `actualDuration` vs `baseDuration` gap is the key signal: `baseDuration` rem
 
 #### Tasks
 
-- [ ] In `src/components/mail-thread.tsx`, defer or gate synchronous DOM-intensive image/shimmer setup to avoid blocking interaction frames.
-- [ ] In `src/components/mail-thread.tsx`, prevent inline image subtree teardown/remount when attachment preview dialogs open/close to eliminate visible image flicker.
-- [ ] In `src/components/mail-thread.tsx`, memoize repeated recipient/display derivations used during rerenders.
-- [ ] In `src/components/mail-thread.tsx` and related mutation handlers, make thread-route read/unread updates apply with narrowly scoped cache updates/invalidation to avoid broad rerender when toggling unread from thread view.
-- [ ] In `src/components/mail-composer.tsx`, reduce state fragmentation (single reducer or isolated memoized subcomponents).
-- [ ] Stabilize composer event handlers for recipient edits, attachment interactions, and body/subject updates.
-- [ ] Replace unstable list keys (where applicable) with deterministic keys for recipient chips and similar collections.
+- [x] In `src/components/mail-thread.tsx`, defer or gate synchronous DOM-intensive image/shimmer setup to avoid blocking interaction frames.
+- [x] In `src/components/mail-thread.tsx`, prevent inline image subtree teardown/remount when attachment preview dialogs open/close to eliminate visible image flicker.
+- [x] In `src/components/mail-thread.tsx`, memoize repeated recipient/display derivations used during rerenders.
+- [x] In `src/components/mail-thread.tsx` and related mutation handlers, make thread-route read/unread updates apply with narrowly scoped cache updates/invalidation to avoid broad rerender when toggling unread from thread view.
+- [x] In `src/components/mail-composer.tsx`, reduce state fragmentation (single reducer or isolated memoized subcomponents).
+- [x] Stabilize composer event handlers for recipient edits, attachment interactions, and body/subject updates.
+- [x] Replace unstable list keys (where applicable) with deterministic keys for recipient chips and similar collections.
 
 ### Phase 5: Navigation Shell Persistence and Immediate Feedback
 
