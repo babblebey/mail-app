@@ -831,12 +831,12 @@ export function MailThreadView({ uid, folder }: { uid: number; folder: string })
   }, [isError, message])
 
   useEffect(() => {
-    // Thread-open auto-read cache sync:
-    // when server marks unread thread as read during getMessage,
-    // immediately sync list row + active folder badge for fast back-nav.
-    if (!message?.autoMarkedRead) return
+    // Thread-open read-truth sync:
+    // when thread payload is read=true, align list row immediately for back-nav.
+    // This also covers stale list cache when autoMarkedRead=false.
+    if (!message?.read) return
 
-    const syncKey = `${folder}:${message.uid}`
+    const syncKey = `${folder}:${message.uid}:read-sync`
     if (autoReadSyncKeyRef.current === syncKey) return
     autoReadSyncKeyRef.current = syncKey
 
@@ -878,22 +878,27 @@ export function MailThreadView({ uid, folder }: { uid: number; folder: string })
       }
     })
 
-    const unreadDelta = getUnreadDeltaForReadToggle(false, true)
-    if (unreadDelta === 0) return
-
-    utils.mail.listFolders.setData({}, (oldFolders) => {
-      if (!oldFolders) return oldFolders
-      return oldFolders.map((folderData) => {
-        if (folderData.path !== folder) return folderData
-        if (typeof folderData.unseenMessages !== "number") return folderData
-        return {
-          ...folderData,
-          unseenMessages:
-            applyUnreadDeltaWithClamp(folderData.unseenMessages, unreadDelta) ??
-            folderData.unseenMessages,
-        }
-      }) as typeof oldFolders
-    })
+    if (message.autoMarkedRead) {
+      const unreadDelta = getUnreadDeltaForReadToggle(false, true)
+      if (unreadDelta !== 0) {
+        utils.mail.listFolders.setData({}, (oldFolders) => {
+          if (!oldFolders) return oldFolders
+          return oldFolders.map((folderData) => {
+            if (folderData.path !== folder) return folderData
+            if (typeof folderData.unseenMessages !== "number") return folderData
+            return {
+              ...folderData,
+              unseenMessages:
+                applyUnreadDeltaWithClamp(folderData.unseenMessages, unreadDelta) ??
+                folderData.unseenMessages,
+            }
+          }) as typeof oldFolders
+        })
+      }
+    } else {
+      // Keep folder badges server-truth when read state was already applied upstream.
+      void utils.mail.listFolders.invalidate()
+    }
   }, [folder, message, utils])
 
   function openInlineComposer(action: "reply" | "reply-all" | "forward") {

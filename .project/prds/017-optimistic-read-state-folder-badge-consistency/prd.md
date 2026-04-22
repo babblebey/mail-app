@@ -120,14 +120,21 @@ This PRD closes these gaps by making list rows and folder badges update immediat
 - [x] Validate server-side auto-read behavior in `src/server/api/routers/mail.ts` for timing/consistency with client cache updates.
 - [x] Ensure any fallback invalidation remains folder-scoped/targeted and does not reintroduce broad rerender churn.
 
+#### Phase 4 Implementation Notes (2026-04-22)
+
+- Observed race in production behavior: folder badge could reconcile to server truth before list-row cache, resulting in temporary mismatch (for example badge `2` while visible list rows still imply `3` unread).
+- Root cause: thread-open cache sync previously gated on `autoMarkedRead`; when message payload was already `read: true` but `autoMarkedRead` was `false`, stale list rows could remain unread until later invalidation.
+- Fix implemented in `src/components/mail-thread.tsx`:
+  - Sync list-row read state from thread payload truth (`message.read === true`) regardless of `autoMarkedRead`.
+  - Keep fallback list invalidation scoped to active folder list query when row is absent.
+  - For `autoMarkedRead === false`, invalidate folder list instead of applying an additional optimistic decrement, avoiding double-decrement drift.
+
 ### Phase 5: Regression Coverage and Verification
 
 **Goal:** Prevent reintroduction of stale read-state or badge inconsistencies.
 
 #### Tasks
 
-- [ ] Add or extend unit tests in `tests/unit/mail-interactions.test.ts` for optimistic unread-count delta math, rollback restoration, and non-negative count guarantees.
-- [ ] Add tests for thread mark-unread instant-navigation behavior and open-thread-then-back read-state consistency.
 - [x] Add or extend unit tests in `tests/unit/mail-interactions.test.ts` for optimistic unread-count delta math, rollback restoration, and non-negative count guarantees.
 - [x] Add tests for thread mark-unread instant-navigation behavior and open-thread-then-back read-state consistency.
 - [ ] Run targeted test suite and perform manual verification scenarios:
@@ -145,7 +152,7 @@ This PRD closes these gaps by making list rows and folder badges update immediat
   - Thread-open auto-read cache sync contract for back-nav consistency, including scoped invalidation when row is absent.
 - Targeted suite executed successfully:
   - Command: `pnpm vitest run tests/unit/mail-interactions.test.ts`
-  - Result: 1 file passed, 51 tests passed.
+  - Result: 1 file passed, 52 tests passed.
 
 ## Acceptance Criteria
 

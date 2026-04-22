@@ -528,10 +528,12 @@ describe("thread-open auto-read back-nav sync", () => {
     folders: Folder[],
     folderPath: string,
     uid: number,
+    autoMarkedRead: boolean,
   ): {
     nextList: InfiniteData<Row>
     nextFolders: Folder[]
     shouldInvalidateActiveList: boolean
+    shouldInvalidateFolders: boolean
   } {
     let targetFound = false
     let targetWasUnread = false
@@ -551,6 +553,7 @@ describe("thread-open auto-read back-nav sync", () => {
         nextList: listMessages,
         nextFolders: folders,
         shouldInvalidateActiveList: true,
+        shouldInvalidateFolders: false,
       }
     }
 
@@ -559,6 +562,7 @@ describe("thread-open auto-read back-nav sync", () => {
         nextList: listMessages,
         nextFolders: folders,
         shouldInvalidateActiveList: false,
+        shouldInvalidateFolders: false,
       }
     }
 
@@ -570,6 +574,15 @@ describe("thread-open auto-read back-nav sync", () => {
           row.uid === uid ? { ...row, read: true } : row,
         ),
       })),
+    }
+
+    if (!autoMarkedRead) {
+      return {
+        nextList,
+        nextFolders: folders,
+        shouldInvalidateActiveList: false,
+        shouldInvalidateFolders: true,
+      }
     }
 
     const unreadDelta = getUnreadDeltaForReadToggle(false, true)
@@ -584,7 +597,12 @@ describe("thread-open auto-read back-nav sync", () => {
         : f,
     )
 
-    return { nextList, nextFolders, shouldInvalidateActiveList: false }
+    return {
+      nextList,
+      nextFolders,
+      shouldInvalidateActiveList: false,
+      shouldInvalidateFolders: false,
+    }
   }
 
   it("marks row as read and decrements active-folder badge when row was unread", () => {
@@ -593,11 +611,26 @@ describe("thread-open auto-read back-nav sync", () => {
     }
     const folders: Folder[] = [{ path: "INBOX", unseenMessages: 4 }]
 
-    const result = applyAutoReadSync(listMessages, folders, "INBOX", 7)
+    const result = applyAutoReadSync(listMessages, folders, "INBOX", 7, true)
 
     expect(result.shouldInvalidateActiveList).toBe(false)
+    expect(result.shouldInvalidateFolders).toBe(false)
     expect(result.nextList.pages[0]!.messages[0]!.read).toBe(true)
     expect(result.nextFolders[0]!.unseenMessages).toBe(3)
+  })
+
+  it("keeps badge unchanged and requests folder refetch when autoMarkedRead is false", () => {
+    const listMessages: InfiniteData<Row> = {
+      pages: [{ messages: [{ uid: 7, read: false }], nextCursor: null }],
+    }
+    const folders: Folder[] = [{ path: "INBOX", unseenMessages: 2 }]
+
+    const result = applyAutoReadSync(listMessages, folders, "INBOX", 7, false)
+
+    expect(result.shouldInvalidateActiveList).toBe(false)
+    expect(result.shouldInvalidateFolders).toBe(true)
+    expect(result.nextList.pages[0]!.messages[0]!.read).toBe(true)
+    expect(result.nextFolders[0]!.unseenMessages).toBe(2)
   })
 
   it("keeps badge unchanged when row is already read", () => {
@@ -606,9 +639,10 @@ describe("thread-open auto-read back-nav sync", () => {
     }
     const folders: Folder[] = [{ path: "INBOX", unseenMessages: 0 }]
 
-    const result = applyAutoReadSync(listMessages, folders, "INBOX", 7)
+    const result = applyAutoReadSync(listMessages, folders, "INBOX", 7, true)
 
     expect(result.shouldInvalidateActiveList).toBe(false)
+    expect(result.shouldInvalidateFolders).toBe(false)
     expect(result.nextFolders[0]!.unseenMessages).toBe(0)
   })
 
@@ -618,9 +652,10 @@ describe("thread-open auto-read back-nav sync", () => {
     }
     const folders: Folder[] = [{ path: "INBOX", unseenMessages: 2 }]
 
-    const result = applyAutoReadSync(listMessages, folders, "INBOX", 7)
+    const result = applyAutoReadSync(listMessages, folders, "INBOX", 7, true)
 
     expect(result.shouldInvalidateActiveList).toBe(true)
+    expect(result.shouldInvalidateFolders).toBe(false)
     expect(result.nextFolders[0]!.unseenMessages).toBe(2)
   })
 
@@ -630,7 +665,7 @@ describe("thread-open auto-read back-nav sync", () => {
     }
     const folders: Folder[] = [{ path: "INBOX", unseenMessages: 0 }]
 
-    const result = applyAutoReadSync(listMessages, folders, "INBOX", 7)
+    const result = applyAutoReadSync(listMessages, folders, "INBOX", 7, true)
 
     expect(result.nextFolders[0]!.unseenMessages).toBe(0)
   })
