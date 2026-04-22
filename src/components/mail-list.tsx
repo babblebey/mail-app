@@ -37,6 +37,8 @@ import {
   classifyMixedFolderEmail,
   computeSelectAllChecked,
   toggleSelectItem,
+  getUnreadDeltaForReadToggle,
+  applyUnreadDeltaWithClamp,
 } from "~/lib/mail-utils"
 import {
   Avatar,
@@ -673,7 +675,21 @@ export function MailList({ folder }: { folder: string }) {
   const batchMarkAsRead = api.mail.batchMarkAsRead.useMutation({
     onMutate: async (variables) => {
       await utils.mail.listMessages.cancel()
+      await utils.mail.listFolders.cancel()
       const previousMessages = utils.mail.listMessages.getInfiniteData({ folder, limit: 50 })
+      const previousFolders = utils.mail.listFolders.getData({})
+
+      const selectedUidSet = new Set(variables.uids)
+      let unreadDelta = 0
+      if (previousMessages) {
+        for (const page of previousMessages.pages) {
+          for (const msg of page.messages) {
+            if (!selectedUidSet.has(msg.uid)) continue
+            unreadDelta += getUnreadDeltaForReadToggle(msg.read, variables.read)
+          }
+        }
+      }
+
       utils.mail.listMessages.setInfiniteData({ folder, limit: 50 }, (oldData) => {
         if (!oldData) return oldData
         return {
@@ -686,12 +702,32 @@ export function MailList({ folder }: { folder: string }) {
           })),
         }
       })
+
+      if (unreadDelta !== 0) {
+        utils.mail.listFolders.setData({}, (oldFolders) => {
+          if (!oldFolders) return oldFolders
+          return oldFolders.map((folderData) => {
+            if (folderData.path !== folder) return folderData
+            if (typeof folderData.unseenMessages !== "number") return folderData
+            return {
+              ...folderData,
+              unseenMessages:
+                applyUnreadDeltaWithClamp(folderData.unseenMessages, unreadDelta) ??
+                folderData.unseenMessages,
+            }
+          }) as typeof oldFolders
+        })
+      }
+
       setSelected(new Set())
-      return { previousMessages }
+      return { previousMessages, previousFolders }
     },
     onError: (_err, _variables, context) => {
       if (context?.previousMessages) {
         utils.mail.listMessages.setInfiniteData({ folder, limit: 50 }, context.previousMessages)
+      }
+      if (context?.previousFolders) {
+        utils.mail.listFolders.setData({}, context.previousFolders)
       }
     },
     onSettled: () => {

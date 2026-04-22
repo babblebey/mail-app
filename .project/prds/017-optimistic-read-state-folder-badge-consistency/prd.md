@@ -76,7 +76,7 @@ This PRD closes these gaps by making list rows and folder badges update immediat
   - Reconciliation requirement: keep targeted `onSettled` invalidation for all touched read-state surfaces to converge to server truth.
 - Shared helper added in `src/lib/mail-utils.ts`:
   - `getUnreadDeltaForReadToggle(currentRead, nextRead)` for canonical transition delta math.
-  - `applyUnreadDeltaWithClamp(currentUnread, delta)` for non-negative unread count clamping while preserving `undefined`/`null` counts.
+  - `applyUnreadDeltaWithClamp(currentUnread, delta)` for non-negative unread count clamping while preserving `undefined` counts.
 
 ### Phase 2: Mail List Read/Unread Folder Badge Optimism
 
@@ -84,10 +84,20 @@ This PRD closes these gaps by making list rows and folder badges update immediat
 
 #### Tasks
 
-- [ ] In `src/components/mail-list.tsx`, extend `batchMarkAsRead.onMutate` to snapshot `listFolders` cache in addition to `listMessages`.
-- [ ] Apply optimistic unread-count delta updates to the active folder badge based on only messages that actually change read state.
-- [ ] In `onError`, restore both `listMessages` and `listFolders` snapshots.
-- [ ] Keep `onSettled` invalidation for `listMessages` and `listFolders` to reconcile counts with server truth.
+- [x] In `src/components/mail-list.tsx`, extend `batchMarkAsRead.onMutate` to snapshot `listFolders` cache in addition to `listMessages`.
+- [x] Apply optimistic unread-count delta updates to the active folder badge based on only messages that actually change read state.
+- [x] In `onError`, restore both `listMessages` and `listFolders` snapshots.
+- [x] Keep `onSettled` invalidation for `listMessages` and `listFolders` to reconcile counts with server truth.
+
+#### Phase 2 Implementation Notes (2026-04-22)
+
+- `src/components/mail-list.tsx` `batchMarkAsRead.onMutate` now cancels and snapshots both `listMessages` and `listFolders`.
+- Optimistic unread badge delta is computed from currently cached list rows and includes only messages where read-state actually transitions (`currentRead !== nextRead`).
+- Active folder badge (`listFolders` entry matching current `folder`) is updated optimistically using shared helpers:
+  - `getUnreadDeltaForReadToggle`
+  - `applyUnreadDeltaWithClamp`
+- `onError` restores both snapshots (`previousMessages`, `previousFolders`).
+- `onSettled` continues targeted reconciliation invalidation for both `listMessages` and `listFolders`.
 
 ### Phase 3: Thread Read/Unread Consistency and Navigation Safety
 
@@ -125,7 +135,7 @@ This PRD closes these gaps by making list rows and folder badges update immediat
 
 ## Acceptance Criteria
 
-- [ ] Folder unread badge in sidebar updates optimistically when list batch mark read/unread is triggered.
+- [x] Folder unread badge in sidebar updates optimistically when list batch mark read/unread is triggered.
 - [ ] Folder unread badge updates optimistically when thread-level mark read/unread is triggered.
 - [ ] Marking unread from thread view keeps instant navigation behavior and remains rollback-safe on failure.
 - [ ] Opening unread mail then navigating back updates list row read state without delayed or missing transition.

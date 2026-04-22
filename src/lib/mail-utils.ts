@@ -151,12 +151,12 @@ export function getUnreadDeltaForReadToggle(
 
 /**
  * Applies an unread delta to a count and clamps at 0.
- * Undefined/null counts are preserved because some providers may omit unread.
+ * Undefined counts are preserved because some providers may omit unread.
  */
 export function applyUnreadDeltaWithClamp(
-  currentUnread: number | null | undefined,
+  currentUnread: number | undefined,
   delta: number,
-): number | null | undefined {
+): number | undefined {
   if (typeof currentUnread !== "number") return currentUnread
   return Math.max(0, currentUnread + delta)
 }
