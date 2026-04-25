@@ -11,6 +11,9 @@ references:
   - type: prd
     url: .project/prds/018-optimistic-move-folder-badge-consistency/prd.md
     description: "Extended optimistic folder badge deltas to move actions"
+  - type: pull-request
+    url: https://github.com/babblebey/mail-app/pull/27
+    description: "Implementation PR — server folder read-state write-through for move and read/unread actions"
 ---
 
 > **Instructions for AI Agents:**
