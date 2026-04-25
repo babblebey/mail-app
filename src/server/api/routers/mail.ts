@@ -1130,16 +1130,60 @@ export const mailRouter = createTRPCRouter({
           uid: true,
         });
 
-        // Write-through: remove from source folder cache
+        // Write-through: remove from source folder cache and adjust unseen counts
         const folder = await ctx.db.mailFolder.findUnique({
           where: {
             mailAccountId_path: { mailAccountId: accountId, path: input.folder },
           },
         });
         if (folder) {
+          const cached = await ctx.db.mailMessage.findMany({
+            where: { folderId: folder.id, uid: { in: input.uids } },
+            select: { read: true },
+          });
+          const unreadCount = cached.reduce(
+            (count, msg) => (msg.read ? count : count + 1),
+            0,
+          );
+
           await ctx.db.mailMessage.deleteMany({
             where: { folderId: folder.id, uid: { in: input.uids } },
           });
+
+          const movedToDifferentFolder = input.destinationFolder !== input.folder;
+          if (unreadCount > 0 && movedToDifferentFolder) {
+            const decrementBy = Math.min(folder.unseenMessages, unreadCount);
+            if (decrementBy > 0) {
+              await ctx.db.mailFolder.updateMany({
+                where: {
+                  id: folder.id,
+                  unseenMessages: { gte: decrementBy },
+                },
+                data: {
+                  unseenMessages: { decrement: decrementBy },
+                },
+              });
+            }
+
+            const destinationFolder = await ctx.db.mailFolder.findUnique({
+              where: {
+                mailAccountId_path: {
+                  mailAccountId: accountId,
+                  path: input.destinationFolder,
+                },
+              },
+              select: { id: true },
+            });
+
+            if (destinationFolder) {
+              await ctx.db.mailFolder.update({
+                where: { id: destinationFolder.id },
+                data: {
+                  unseenMessages: { increment: unreadCount },
+                },
+              });
+            }
+          }
         }
 
         return { ok: true };

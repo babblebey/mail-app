@@ -101,12 +101,12 @@ No client cache strategy changes are introduced in this PRD.
 
 #### Tasks
 
-- [ ] In `src/server/api/routers/mail.ts`, in `batchMoveMessages`, read candidate messages before delete using `select: { read: true }`.
-- [ ] Compute `unreadCount` from those messages.
-- [ ] After successful `deleteMany`, if `unreadCount > 0`:
+- [x] In `src/server/api/routers/mail.ts`, in `batchMoveMessages`, read candidate messages before delete using `select: { read: true }`.
+- [x] Compute `unreadCount` from those messages.
+- [x] After successful `deleteMany`, if `unreadCount > 0`:
   - decrement source folder unseen with atomic update semantics, bounded so persisted values cannot go below `0`
   - best-effort increment destination folder unseen by `unreadCount` using atomic `increment` when destination row exists
-- [ ] Preserve current mutation response shape and existing move semantics.
+- [x] Preserve current mutation response shape and existing move semantics.
 
 ### Phase 5: Validation and Regression Safety
 
@@ -129,7 +129,7 @@ No client cache strategy changes are introduced in this PRD.
 - [x] `markAsRead` writes through unseen count deltas to `mailFolder.unseenMessages` when read-state changes.
 - [x] `batchMarkAsRead` applies correct net unseen delta for all changed messages.
 - [x] `moveMessage` decrements source unseen and increments destination unseen for unread moves when destination folder row exists.
-- [ ] `batchMoveMessages` applies source decrement and destination increment by unread-count only.
+- [x] `batchMoveMessages` applies source decrement and destination increment by unread-count only.
 - [ ] All folder unseen write-through mutations use atomic Prisma `increment`/`decrement` updates rather than absolute count assignments.
 - [ ] No write-through path can persist a negative unseen count.
 - [ ] Existing client optimistic cache behavior and invalidation flow remain unchanged.
