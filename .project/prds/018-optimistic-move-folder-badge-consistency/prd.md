@@ -1,6 +1,6 @@
 ---
 title: "Optimistic Move-Action Folder Badge Consistency"
-status: in-progress
+status: completed
 references:
   - type: doc
     url: .project/brief.md
@@ -108,7 +108,7 @@ This work is explicitly scoped to **move-action badge optimism only** and does n
   - Batch move rollback: `onError` restores both `listMessages` and `listFolders`.
   - Non-negative clamp: source badge does not go below 0 under any delta input.
 - [x] Run the unit test suite (`pnpm test`) and confirm all new and existing mail-interaction tests pass.
-- [ ] Perform manual verification:
+- [x] Perform manual verification:
   - Delete an unread message from thread view → source folder badge decrements immediately, Trash badge increments immediately.
   - Report spam on an unread message from thread view → source badge decrements, Junk badge increments immediately.
   - Move unread message to a folder from thread view → source and destination badges update immediately.
