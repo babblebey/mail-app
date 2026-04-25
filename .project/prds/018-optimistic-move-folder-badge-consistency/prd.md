@@ -11,6 +11,9 @@ references:
   - type: prd
     url: .project/prds/017-optimistic-read-state-folder-badge-consistency/prd.md
     description: "Read-toggle folder badge consistency — established shared delta helpers and dual-layer cache contract"
+  - type: pr
+    url: https://github.com/babblebey/mail-app/pull/26
+    description: "Implementation PR — Optimistic Move-Action Folder Badge Consistency"
 ---
 
 > **Instructions for AI Agents:**
