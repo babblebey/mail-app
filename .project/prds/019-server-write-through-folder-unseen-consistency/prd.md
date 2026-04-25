@@ -1,6 +1,6 @@
 ---
 title: "Server Write-Through Folder Unseen Consistency for Move and Read Mutations"
-status: draft
+status: in-progress
 references:
   - type: doc
     url: .project/brief.md
@@ -63,12 +63,12 @@ No client cache strategy changes are introduced in this PRD.
 
 #### Tasks
 
-- [ ] In `src/server/api/routers/mail.ts`, update `markAsRead` to compute a read-toggle delta when `cached.read !== input.read`.
-- [ ] After successful `mailMessage.update`, apply folder write-through with atomic update semantics:
+- [x] In `src/server/api/routers/mail.ts`, update `markAsRead` to compute a read-toggle delta when `cached.read !== input.read`.
+- [x] After successful `mailMessage.update`, apply folder write-through with atomic update semantics:
   - `delta = input.read ? -1 : 1`
   - for increment paths, use Prisma `increment: 1`
   - for decrement paths, only issue `decrement: 1` when the folder has unseen count available to reduce
-- [ ] Keep existing IMAP and message flag behavior unchanged.
+- [x] Keep existing IMAP and message flag behavior unchanged.
 
 ### Phase 2: Batch Read Toggle Write-Through
 
@@ -126,7 +126,7 @@ No client cache strategy changes are introduced in this PRD.
 
 ## Acceptance Criteria
 
-- [ ] `markAsRead` writes through unseen count deltas to `mailFolder.unseenMessages` when read-state changes.
+- [x] `markAsRead` writes through unseen count deltas to `mailFolder.unseenMessages` when read-state changes.
 - [ ] `batchMarkAsRead` applies correct net unseen delta for all changed messages.
 - [ ] `moveMessage` decrements source unseen and increments destination unseen for unread moves when destination folder row exists.
 - [ ] `batchMoveMessages` applies source decrement and destination increment by unread-count only.
