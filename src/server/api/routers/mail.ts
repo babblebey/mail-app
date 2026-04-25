@@ -841,6 +841,7 @@ export const mailRouter = createTRPCRouter({
             where: { folderId_uid: { folderId: folder.id, uid: input.uid } },
           });
           if (cached) {
+            const readStateChanged = cached.read !== input.read;
             const newFlags = input.read
               ? cached.flags.includes("\\Seen") ? cached.flags : [...cached.flags, "\\Seen"]
               : cached.flags.filter((f) => f !== "\\Seen");
@@ -848,6 +849,27 @@ export const mailRouter = createTRPCRouter({
               where: { id: cached.id },
               data: { read: input.read, flags: newFlags },
             });
+
+            if (readStateChanged) {
+              if (input.read) {
+                await ctx.db.mailFolder.updateMany({
+                  where: {
+                    id: folder.id,
+                    unseenMessages: { gt: 0 },
+                  },
+                  data: {
+                    unseenMessages: { decrement: 1 },
+                  },
+                });
+              } else {
+                await ctx.db.mailFolder.update({
+                  where: { id: folder.id },
+                  data: {
+                    unseenMessages: { increment: 1 },
+                  },
+                });
+              }
+            }
           }
         }
 
@@ -943,16 +965,53 @@ export const mailRouter = createTRPCRouter({
           { uid: true },
         );
 
-        // Write-through: remove from source folder cache
+        // Write-through: remove from source folder cache and adjust unseen counts
         const folder = await ctx.db.mailFolder.findUnique({
           where: {
             mailAccountId_path: { mailAccountId: accountId, path: input.folder },
           },
         });
         if (folder) {
+          const cached = await ctx.db.mailMessage.findUnique({
+            where: { folderId_uid: { folderId: folder.id, uid: input.uid } },
+            select: { read: true },
+          });
+
           await ctx.db.mailMessage.deleteMany({
             where: { folderId: folder.id, uid: input.uid },
           });
+
+          const movedToDifferentFolder = input.destinationFolder !== input.folder;
+          if (cached && !cached.read && movedToDifferentFolder) {
+            await ctx.db.mailFolder.updateMany({
+              where: {
+                id: folder.id,
+                unseenMessages: { gt: 0 },
+              },
+              data: {
+                unseenMessages: { decrement: 1 },
+              },
+            });
+
+            const destinationFolder = await ctx.db.mailFolder.findUnique({
+              where: {
+                mailAccountId_path: {
+                  mailAccountId: accountId,
+                  path: input.destinationFolder,
+                },
+              },
+              select: { id: true },
+            });
+
+            if (destinationFolder) {
+              await ctx.db.mailFolder.update({
+                where: { id: destinationFolder.id },
+                data: {
+                  unseenMessages: { increment: 1 },
+                },
+              });
+            }
+          }
         }
 
         return { ok: true };
@@ -1000,7 +1059,13 @@ export const mailRouter = createTRPCRouter({
           const cached = await ctx.db.mailMessage.findMany({
             where: { folderId: folder.id, uid: { in: input.uids } },
           });
+          let unseenDelta = 0;
+
           for (const msg of cached) {
+            if (msg.read !== input.read) {
+              unseenDelta += input.read ? -1 : 1;
+            }
+
             const newFlags = input.read
               ? msg.flags.includes("\\Seen") ? msg.flags : [...msg.flags, "\\Seen"]
               : msg.flags.filter((f) => f !== "\\Seen");
@@ -1008,6 +1073,28 @@ export const mailRouter = createTRPCRouter({
               where: { id: msg.id },
               data: { read: input.read, flags: newFlags },
             });
+          }
+
+          if (unseenDelta > 0) {
+            await ctx.db.mailFolder.update({
+              where: { id: folder.id },
+              data: {
+                unseenMessages: { increment: unseenDelta },
+              },
+            });
+          } else if (unseenDelta < 0) {
+            const decrementBy = Math.min(folder.unseenMessages, -unseenDelta);
+            if (decrementBy > 0) {
+              await ctx.db.mailFolder.updateMany({
+                where: {
+                  id: folder.id,
+                  unseenMessages: { gte: decrementBy },
+                },
+                data: {
+                  unseenMessages: { decrement: decrementBy },
+                },
+              });
+            }
           }
         }
 
@@ -1043,16 +1130,60 @@ export const mailRouter = createTRPCRouter({
           uid: true,
         });
 
-        // Write-through: remove from source folder cache
+        // Write-through: remove from source folder cache and adjust unseen counts
         const folder = await ctx.db.mailFolder.findUnique({
           where: {
             mailAccountId_path: { mailAccountId: accountId, path: input.folder },
           },
         });
         if (folder) {
+          const cached = await ctx.db.mailMessage.findMany({
+            where: { folderId: folder.id, uid: { in: input.uids } },
+            select: { read: true },
+          });
+          const unreadCount = cached.reduce(
+            (count, msg) => (msg.read ? count : count + 1),
+            0,
+          );
+
           await ctx.db.mailMessage.deleteMany({
             where: { folderId: folder.id, uid: { in: input.uids } },
           });
+
+          const movedToDifferentFolder = input.destinationFolder !== input.folder;
+          if (unreadCount > 0 && movedToDifferentFolder) {
+            const decrementBy = Math.min(folder.unseenMessages, unreadCount);
+            if (decrementBy > 0) {
+              await ctx.db.mailFolder.updateMany({
+                where: {
+                  id: folder.id,
+                  unseenMessages: { gte: decrementBy },
+                },
+                data: {
+                  unseenMessages: { decrement: decrementBy },
+                },
+              });
+            }
+
+            const destinationFolder = await ctx.db.mailFolder.findUnique({
+              where: {
+                mailAccountId_path: {
+                  mailAccountId: accountId,
+                  path: input.destinationFolder,
+                },
+              },
+              select: { id: true },
+            });
+
+            if (destinationFolder) {
+              await ctx.db.mailFolder.update({
+                where: { id: destinationFolder.id },
+                data: {
+                  unseenMessages: { increment: unreadCount },
+                },
+              });
+            }
+          }
         }
 
         return { ok: true };
