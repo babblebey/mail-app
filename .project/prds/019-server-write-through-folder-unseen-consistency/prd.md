@@ -114,15 +114,27 @@ No client cache strategy changes are introduced in this PRD.
 
 #### Tasks
 
-- [ ] Run unit tests (`pnpm test`) and verify existing suites remain green.
-- [ ] Confirm implementation uses Prisma atomic `increment`/`decrement` updates for folder unseen write-through paths rather than absolute read-modify-write assignments.
+- [x] Run unit tests (`pnpm test`) and verify existing suites remain green.
+- [x] Confirm implementation uses Prisma atomic `increment`/`decrement` updates for folder unseen write-through paths rather than absolute read-modify-write assignments.
 - [ ] Manual verification scenarios:
   - mark unread -> read and confirm badge does not revert after settle/invalidate
   - mark read -> unread and confirm badge remains incremented after refetch
   - move single unread message and confirm source decrement and destination increment remain stable after invalidate
   - batch move mixed read/unread set and confirm only unread contribution persists post-invalidation
-- [ ] Confirm no negative unseen counts are persisted under repeated read/move actions.
-- [ ] Document residual sync-race behavior in implementation notes or PR summary: sync remains eventual authority and may still overwrite a just-written count if it commits an older IMAP snapshot after the mutation.
+- [x] Confirm no negative unseen counts are persisted under repeated read/move actions.
+- [x] Document residual sync-race behavior in implementation notes or PR summary: sync remains eventual authority and may still overwrite a just-written count if it commits an older IMAP snapshot after the mutation.
+
+#### Phase 5 Implementation Notes (2026-04-25)
+
+- Automated validation completed with `pnpm test` (70 tests passed, 0 failed).
+- Atomic write-through verified in `src/server/api/routers/mail.ts` for all four target mutations:
+  - `markAsRead` uses atomic decrement/increment for folder unseen updates.
+  - `batchMarkAsRead` applies net delta with one atomic increment/decrement folder update.
+  - `moveMessage` decrements source and increments destination using atomic updates for unread moves.
+  - `batchMoveMessages` decrements source and increments destination using atomic updates by unread count.
+- Non-negative persistence guard is enforced in decrement paths via bounded decrement values and conditional updates.
+- Residual race behavior documented: background sync remains eventual authority and can still overwrite a just-written unseen value if it commits a slightly older IMAP snapshot after a foreground mutation (last-writer-wins across processes).
+- Manual UI verification scenarios remain pending and require interactive runtime checks.
 
 ## Acceptance Criteria
 
@@ -130,8 +142,8 @@ No client cache strategy changes are introduced in this PRD.
 - [x] `batchMarkAsRead` applies correct net unseen delta for all changed messages.
 - [x] `moveMessage` decrements source unseen and increments destination unseen for unread moves when destination folder row exists.
 - [x] `batchMoveMessages` applies source decrement and destination increment by unread-count only.
-- [ ] All folder unseen write-through mutations use atomic Prisma `increment`/`decrement` updates rather than absolute count assignments.
-- [ ] No write-through path can persist a negative unseen count.
-- [ ] Existing client optimistic cache behavior and invalidation flow remain unchanged.
+- [x] All folder unseen write-through mutations use atomic Prisma `increment`/`decrement` updates rather than absolute count assignments.
+- [x] No write-through path can persist a negative unseen count.
+- [x] Existing client optimistic cache behavior and invalidation flow remain unchanged.
 - [ ] After mutation settle and `listFolders` invalidation, sidebar badges no longer snap back to stale pre-action counts.
-- [ ] The implementation explicitly acknowledges sync-worker last-writer-wins behavior as a residual risk rather than silently assuming full serialization.
+- [x] The implementation explicitly acknowledges sync-worker last-writer-wins behavior as a residual risk rather than silently assuming full serialization.
