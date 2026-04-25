@@ -1022,7 +1022,13 @@ export const mailRouter = createTRPCRouter({
           const cached = await ctx.db.mailMessage.findMany({
             where: { folderId: folder.id, uid: { in: input.uids } },
           });
+          let unseenDelta = 0;
+
           for (const msg of cached) {
+            if (msg.read !== input.read) {
+              unseenDelta += input.read ? -1 : 1;
+            }
+
             const newFlags = input.read
               ? msg.flags.includes("\\Seen") ? msg.flags : [...msg.flags, "\\Seen"]
               : msg.flags.filter((f) => f !== "\\Seen");
@@ -1030,6 +1036,28 @@ export const mailRouter = createTRPCRouter({
               where: { id: msg.id },
               data: { read: input.read, flags: newFlags },
             });
+          }
+
+          if (unseenDelta > 0) {
+            await ctx.db.mailFolder.update({
+              where: { id: folder.id },
+              data: {
+                unseenMessages: { increment: unseenDelta },
+              },
+            });
+          } else if (unseenDelta < 0) {
+            const decrementBy = Math.min(folder.unseenMessages, -unseenDelta);
+            if (decrementBy > 0) {
+              await ctx.db.mailFolder.updateMany({
+                where: {
+                  id: folder.id,
+                  unseenMessages: { gte: decrementBy },
+                },
+                data: {
+                  unseenMessages: { decrement: decrementBy },
+                },
+              });
+            }
           }
         }
 

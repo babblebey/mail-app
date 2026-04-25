@@ -76,11 +76,11 @@ No client cache strategy changes are introduced in this PRD.
 
 #### Tasks
 
-- [ ] In `src/server/api/routers/mail.ts`, update `batchMarkAsRead` to accumulate `unseenDelta` across cached messages where `msg.read !== input.read`.
-- [ ] Apply a single atomic folder update after the loop when `unseenDelta !== 0`:
+- [x] In `src/server/api/routers/mail.ts`, update `batchMarkAsRead` to accumulate `unseenDelta` across cached messages where `msg.read !== input.read`.
+- [x] Apply a single atomic folder update after the loop when `unseenDelta !== 0`:
   - use Prisma `increment` when `unseenDelta > 0`
   - use Prisma `decrement` when `unseenDelta < 0`, clamped so persisted values cannot go below `0`
-- [ ] Preserve existing per-message flag update logic and error handling.
+- [x] Preserve existing per-message flag update logic and error handling.
 
 ### Phase 3: Single Move Write-Through (Source and Destination)
 
@@ -127,7 +127,7 @@ No client cache strategy changes are introduced in this PRD.
 ## Acceptance Criteria
 
 - [x] `markAsRead` writes through unseen count deltas to `mailFolder.unseenMessages` when read-state changes.
-- [ ] `batchMarkAsRead` applies correct net unseen delta for all changed messages.
+- [x] `batchMarkAsRead` applies correct net unseen delta for all changed messages.
 - [ ] `moveMessage` decrements source unseen and increments destination unseen for unread moves when destination folder row exists.
 - [ ] `batchMoveMessages` applies source decrement and destination increment by unread-count only.
 - [ ] All folder unseen write-through mutations use atomic Prisma `increment`/`decrement` updates rather than absolute count assignments.
