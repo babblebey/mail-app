@@ -965,16 +965,53 @@ export const mailRouter = createTRPCRouter({
           { uid: true },
         );
 
-        // Write-through: remove from source folder cache
+        // Write-through: remove from source folder cache and adjust unseen counts
         const folder = await ctx.db.mailFolder.findUnique({
           where: {
             mailAccountId_path: { mailAccountId: accountId, path: input.folder },
           },
         });
         if (folder) {
+          const cached = await ctx.db.mailMessage.findUnique({
+            where: { folderId_uid: { folderId: folder.id, uid: input.uid } },
+            select: { read: true },
+          });
+
           await ctx.db.mailMessage.deleteMany({
             where: { folderId: folder.id, uid: input.uid },
           });
+
+          const movedToDifferentFolder = input.destinationFolder !== input.folder;
+          if (cached && !cached.read && movedToDifferentFolder) {
+            await ctx.db.mailFolder.updateMany({
+              where: {
+                id: folder.id,
+                unseenMessages: { gt: 0 },
+              },
+              data: {
+                unseenMessages: { decrement: 1 },
+              },
+            });
+
+            const destinationFolder = await ctx.db.mailFolder.findUnique({
+              where: {
+                mailAccountId_path: {
+                  mailAccountId: accountId,
+                  path: input.destinationFolder,
+                },
+              },
+              select: { id: true },
+            });
+
+            if (destinationFolder) {
+              await ctx.db.mailFolder.update({
+                where: { id: destinationFolder.id },
+                data: {
+                  unseenMessages: { increment: 1 },
+                },
+              });
+            }
+          }
         }
 
         return { ok: true };
