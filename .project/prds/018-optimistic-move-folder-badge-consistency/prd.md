@@ -64,14 +64,14 @@ This work is explicitly scoped to **move-action badge optimism only** and does n
 
 #### Tasks
 
-- [ ] In `src/components/mail-thread.tsx`, update `moveMessageMutation.onMutate` to:
+- [x] In `src/components/mail-thread.tsx`, update `moveMessageMutation.onMutate` to:
   - Cancel and snapshot `listFolders` alongside the existing `listMessages` cancel/snapshot.
   - Resolve the moved message's current read state from `getMessage` cache or `listMessages` cache.
   - If the message is unread, apply `-1` to the source folder (`folder`) `unseenMessages` via `applyUnreadDeltaWithClamp`.
   - If the message is unread and the destination folder has a defined `unseenMessages`, apply `+1` to the destination folder's entry via `applyUnreadDeltaWithClamp`.
   - Return `{ previousMessages, previousFolders }` context.
-- [ ] In `moveMessageMutation.onError`, restore the `previousFolders` snapshot alongside the existing `previousMessages` restoration.
-- [ ] Confirm `moveMessageMutation.onSettled` already invalidates `listFolders` (it does — no change needed, only verify).
+- [x] In `moveMessageMutation.onError`, restore the `previousFolders` snapshot alongside the existing `previousMessages` restoration.
+- [x] Confirm `moveMessageMutation.onSettled` already invalidates `listFolders` (it does — no change needed, only verify).
 
 ### Phase 3: List Batch-Move Optimistic Badges
 
