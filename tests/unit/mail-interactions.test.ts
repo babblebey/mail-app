@@ -13,6 +13,8 @@ import {
   classifyMixedFolderEmail,
   computeSelectAllChecked,
   toggleSelectItem,
+  getUnreadDeltaForReadToggle,
+  applyUnreadDeltaWithClamp,
   type Contact,
 } from "~/lib/mail-utils"
 
@@ -369,5 +371,302 @@ describe("optimistic-update rollback shape contract", () => {
   it("moveMessages — does not mutate the original data object", () => {
     applyOptimisticRemove(seed, [2])
     expect(seed.pages[0]!.messages).toHaveLength(3)
+  })
+})
+
+// ─── Read/unread optimistic consistency contracts ───────────────────────────
+
+describe("optimistic unread delta helpers", () => {
+  it("computes unread deltas for each read transition", () => {
+    expect(getUnreadDeltaForReadToggle(false, true)).toBe(-1)
+    expect(getUnreadDeltaForReadToggle(true, false)).toBe(1)
+    expect(getUnreadDeltaForReadToggle(true, true)).toBe(0)
+    expect(getUnreadDeltaForReadToggle(false, false)).toBe(0)
+  })
+
+  it("clamps unread counts at zero", () => {
+    expect(applyUnreadDeltaWithClamp(5, -2)).toBe(3)
+    expect(applyUnreadDeltaWithClamp(1, -5)).toBe(0)
+    expect(applyUnreadDeltaWithClamp(0, -1)).toBe(0)
+    expect(applyUnreadDeltaWithClamp(3, 2)).toBe(5)
+  })
+
+  it("preserves undefined unread counts", () => {
+    expect(applyUnreadDeltaWithClamp(undefined, -1)).toBeUndefined()
+  })
+})
+
+describe("thread mark-unread fast path and rollback", () => {
+  type Message = { uid: number; read: boolean }
+  type InfiniteData<T> = { pages: Array<{ messages: T[]; nextCursor: string | null }> }
+  type Folder = { path: string; unseenMessages?: number }
+
+  type ThreadState = {
+    folder: string
+    uid: number
+    message: Message | undefined
+    listMessages: InfiniteData<Message>
+    folders: Folder[]
+  }
+
+  function applyThreadMarkReadOptimistic(
+    state: ThreadState,
+    nextRead: boolean,
+    actions: string[],
+  ) {
+    if (!nextRead) {
+      // Contract: navigate first for instant mark-unread UX.
+      actions.push("navigate-back")
+    }
+
+    const previous = {
+      message: state.message,
+      listMessages: state.listMessages,
+      folders: state.folders,
+    }
+
+    const currentRead =
+      state.message?.read ??
+      state.listMessages.pages
+        .flatMap((page) => page.messages)
+        .find((msg) => msg.uid === state.uid)?.read
+
+    const unreadDelta =
+      typeof currentRead === "boolean"
+        ? getUnreadDeltaForReadToggle(currentRead, nextRead)
+        : 0
+
+    const nextState: ThreadState = {
+      ...state,
+      message: state.message ? { ...state.message, read: nextRead } : state.message,
+      listMessages: {
+        ...state.listMessages,
+        pages: state.listMessages.pages.map((page) => ({
+          ...page,
+          messages: page.messages.map((msg) =>
+            msg.uid === state.uid ? { ...msg, read: nextRead } : msg,
+          ),
+        })),
+      },
+      folders:
+        unreadDelta === 0
+          ? state.folders
+          : state.folders.map((f) =>
+              f.path === state.folder
+                ? {
+                    ...f,
+                    unseenMessages:
+                      applyUnreadDeltaWithClamp(f.unseenMessages, unreadDelta) ??
+                      f.unseenMessages,
+                  }
+                : f,
+            ),
+    }
+
+    return { previous, nextState }
+  }
+
+  function rollback(
+    _current: ThreadState,
+    previous: {
+      message: Message | undefined
+      listMessages: InfiniteData<Message>
+      folders: Folder[]
+    },
+  ): ThreadState {
+    return {
+      folder: "INBOX",
+      uid: 42,
+      message: previous.message,
+      listMessages: previous.listMessages,
+      folders: previous.folders,
+    }
+  }
+
+  const seed: ThreadState = {
+    folder: "INBOX",
+    uid: 42,
+    message: { uid: 42, read: true },
+    listMessages: {
+      pages: [{ messages: [{ uid: 42, read: true }, { uid: 43, read: false }], nextCursor: null }],
+    },
+    folders: [
+      { path: "INBOX", unseenMessages: 1 },
+      { path: "Archive", unseenMessages: 10 },
+    ],
+  }
+
+  it("navigates immediately on mark-unread before optimistic writes", () => {
+    const actions: string[] = []
+    const { nextState } = applyThreadMarkReadOptimistic(seed, false, actions)
+
+    expect(actions[0]).toBe("navigate-back")
+    expect(nextState.message?.read).toBe(false)
+    expect(nextState.listMessages.pages[0]!.messages[0]!.read).toBe(false)
+    expect(nextState.folders.find((f) => f.path === "INBOX")!.unseenMessages).toBe(2)
+  })
+
+  it("rolls back message, list rows, and folder counts on error", () => {
+    const actions: string[] = []
+    const { previous, nextState } = applyThreadMarkReadOptimistic(seed, false, actions)
+    expect(nextState.folders.find((f) => f.path === "INBOX")!.unseenMessages).toBe(2)
+
+    const restored = rollback(nextState, previous)
+    expect(restored.message).toStrictEqual(seed.message)
+    expect(restored.listMessages).toStrictEqual(seed.listMessages)
+    expect(restored.folders).toStrictEqual(seed.folders)
+  })
+})
+
+describe("thread-open auto-read back-nav sync", () => {
+  type Row = { uid: number; read: boolean }
+  type InfiniteData<T> = { pages: Array<{ messages: T[]; nextCursor: string | null }> }
+  type Folder = { path: string; unseenMessages?: number }
+
+  function applyAutoReadSync(
+    listMessages: InfiniteData<Row>,
+    folders: Folder[],
+    folderPath: string,
+    uid: number,
+    autoMarkedRead: boolean,
+  ): {
+    nextList: InfiniteData<Row>
+    nextFolders: Folder[]
+    shouldInvalidateActiveList: boolean
+    shouldInvalidateFolders: boolean
+  } {
+    let targetFound = false
+    let targetWasUnread = false
+
+    for (const page of listMessages.pages) {
+      for (const row of page.messages) {
+        if (row.uid !== uid) continue
+        targetFound = true
+        targetWasUnread = !row.read
+        break
+      }
+      if (targetFound) break
+    }
+
+    if (!targetFound) {
+      return {
+        nextList: listMessages,
+        nextFolders: folders,
+        shouldInvalidateActiveList: true,
+        shouldInvalidateFolders: false,
+      }
+    }
+
+    if (!targetWasUnread) {
+      return {
+        nextList: listMessages,
+        nextFolders: folders,
+        shouldInvalidateActiveList: false,
+        shouldInvalidateFolders: false,
+      }
+    }
+
+    const nextList: InfiniteData<Row> = {
+      ...listMessages,
+      pages: listMessages.pages.map((page) => ({
+        ...page,
+        messages: page.messages.map((row) =>
+          row.uid === uid ? { ...row, read: true } : row,
+        ),
+      })),
+    }
+
+    if (!autoMarkedRead) {
+      return {
+        nextList,
+        nextFolders: folders,
+        shouldInvalidateActiveList: false,
+        shouldInvalidateFolders: true,
+      }
+    }
+
+    const unreadDelta = getUnreadDeltaForReadToggle(false, true)
+    const nextFolders = folders.map((f) =>
+      f.path === folderPath
+        ? {
+            ...f,
+            unseenMessages:
+              applyUnreadDeltaWithClamp(f.unseenMessages, unreadDelta) ??
+              f.unseenMessages,
+          }
+        : f,
+    )
+
+    return {
+      nextList,
+      nextFolders,
+      shouldInvalidateActiveList: false,
+      shouldInvalidateFolders: false,
+    }
+  }
+
+  it("marks row as read and decrements active-folder badge when row was unread", () => {
+    const listMessages: InfiniteData<Row> = {
+      pages: [{ messages: [{ uid: 7, read: false }, { uid: 8, read: true }], nextCursor: null }],
+    }
+    const folders: Folder[] = [{ path: "INBOX", unseenMessages: 4 }]
+
+    const result = applyAutoReadSync(listMessages, folders, "INBOX", 7, true)
+
+    expect(result.shouldInvalidateActiveList).toBe(false)
+    expect(result.shouldInvalidateFolders).toBe(false)
+    expect(result.nextList.pages[0]!.messages[0]!.read).toBe(true)
+    expect(result.nextFolders[0]!.unseenMessages).toBe(3)
+  })
+
+  it("keeps badge unchanged and requests folder refetch when autoMarkedRead is false", () => {
+    const listMessages: InfiniteData<Row> = {
+      pages: [{ messages: [{ uid: 7, read: false }], nextCursor: null }],
+    }
+    const folders: Folder[] = [{ path: "INBOX", unseenMessages: 2 }]
+
+    const result = applyAutoReadSync(listMessages, folders, "INBOX", 7, false)
+
+    expect(result.shouldInvalidateActiveList).toBe(false)
+    expect(result.shouldInvalidateFolders).toBe(true)
+    expect(result.nextList.pages[0]!.messages[0]!.read).toBe(true)
+    expect(result.nextFolders[0]!.unseenMessages).toBe(2)
+  })
+
+  it("keeps badge unchanged when row is already read", () => {
+    const listMessages: InfiniteData<Row> = {
+      pages: [{ messages: [{ uid: 7, read: true }], nextCursor: null }],
+    }
+    const folders: Folder[] = [{ path: "INBOX", unseenMessages: 0 }]
+
+    const result = applyAutoReadSync(listMessages, folders, "INBOX", 7, true)
+
+    expect(result.shouldInvalidateActiveList).toBe(false)
+    expect(result.shouldInvalidateFolders).toBe(false)
+    expect(result.nextFolders[0]!.unseenMessages).toBe(0)
+  })
+
+  it("requests scoped list invalidation when target row is absent", () => {
+    const listMessages: InfiniteData<Row> = {
+      pages: [{ messages: [{ uid: 8, read: false }], nextCursor: null }],
+    }
+    const folders: Folder[] = [{ path: "INBOX", unseenMessages: 2 }]
+
+    const result = applyAutoReadSync(listMessages, folders, "INBOX", 7, true)
+
+    expect(result.shouldInvalidateActiveList).toBe(true)
+    expect(result.shouldInvalidateFolders).toBe(false)
+    expect(result.nextFolders[0]!.unseenMessages).toBe(2)
+  })
+
+  it("never drives folder badge below zero during auto-read sync", () => {
+    const listMessages: InfiniteData<Row> = {
+      pages: [{ messages: [{ uid: 7, read: false }], nextCursor: null }],
+    }
+    const folders: Folder[] = [{ path: "INBOX", unseenMessages: 0 }]
+
+    const result = applyAutoReadSync(listMessages, folders, "INBOX", 7, true)
+
+    expect(result.nextFolders[0]!.unseenMessages).toBe(0)
   })
 })

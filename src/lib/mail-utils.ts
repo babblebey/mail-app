@@ -130,3 +130,33 @@ export function toggleSelectItem(prev: Set<string>, id: string): Set<string> {
   else next.add(id)
   return next
 }
+
+// ---------------------------------------------------------------------------
+// Optimistic unread-count helpers
+// ---------------------------------------------------------------------------
+
+/**
+ * Computes the unread-count delta for a single read-state transition.
+ * - unread -> read:  -1
+ * - read   -> unread: +1
+ * - no-op transition: 0
+ */
+export function getUnreadDeltaForReadToggle(
+  currentRead: boolean,
+  nextRead: boolean,
+): number {
+  if (currentRead === nextRead) return 0
+  return nextRead ? -1 : 1
+}
+
+/**
+ * Applies an unread delta to a count and clamps at 0.
+ * Undefined counts are preserved because some providers may omit unread.
+ */
+export function applyUnreadDeltaWithClamp(
+  currentUnread: number | undefined,
+  delta: number,
+): number | undefined {
+  if (typeof currentUnread !== "number") return currentUnread
+  return Math.max(0, currentUnread + delta)
+}

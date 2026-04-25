@@ -68,6 +68,10 @@ import {
   PerformanceProfiler,
   startInteractionTrace,
 } from "~/components/performance-profiler"
+import {
+  applyUnreadDeltaWithClamp,
+  getUnreadDeltaForReadToggle,
+} from "~/lib/mail-utils"
 
 function getInitials(name: string, email?: string) {
   if (name) {
@@ -645,7 +649,23 @@ export function MailThreadView({ uid, folder }: { uid: number; folder: string })
         // Mark as unread: navigate immediately, then update list cache.
         // No awaits before navigation to avoid delay and re-render flicker.
         router.push(backHref)
+        const previousMessage = utils.mail.getMessage.getData({ folder, uid })
         const previousMessages = utils.mail.listMessages.getInfiniteData({ folder, limit: 50 })
+        const previousFolders = utils.mail.listFolders.getData({})
+
+        const currentRead =
+          previousMessage?.read ??
+          previousMessages?.pages
+            .flatMap((page) => page.messages)
+            .find((msg) => msg.uid === variables.uid)?.read
+        const unreadDelta =
+          typeof currentRead === "boolean"
+            ? getUnreadDeltaForReadToggle(currentRead, variables.read)
+            : 0
+
+        utils.mail.getMessage.setData({ folder, uid }, (old) =>
+          old ? { ...old, read: false } : old
+        )
         utils.mail.listMessages.setInfiniteData({ folder, limit: 50 }, (oldData) => {
           if (!oldData) return oldData
           return {
@@ -658,13 +678,42 @@ export function MailThreadView({ uid, folder }: { uid: number; folder: string })
             })),
           }
         })
-        return { previousMessage: undefined, previousMessages }
+        if (unreadDelta !== 0) {
+          utils.mail.listFolders.setData({}, (oldFolders) => {
+            if (!oldFolders) return oldFolders
+            return oldFolders.map((folderData) => {
+              if (folderData.path !== folder) return folderData
+              if (typeof folderData.unseenMessages !== "number") return folderData
+              return {
+                ...folderData,
+                unseenMessages:
+                  applyUnreadDeltaWithClamp(folderData.unseenMessages, unreadDelta) ??
+                  folderData.unseenMessages,
+              }
+            }) as typeof oldFolders
+          })
+        }
+
+        return { previousMessage, previousMessages, previousFolders }
       }
       // Mark as read: staying on page, do full optimistic update.
       await utils.mail.listMessages.cancel()
+      await utils.mail.listFolders.cancel()
       await utils.mail.getMessage.cancel({ folder, uid })
       const previousMessages = utils.mail.listMessages.getInfiniteData({ folder, limit: 50 })
       const previousMessage = utils.mail.getMessage.getData({ folder, uid })
+      const previousFolders = utils.mail.listFolders.getData({})
+
+      const currentRead =
+        previousMessage?.read ??
+        previousMessages?.pages
+          .flatMap((page) => page.messages)
+          .find((msg) => msg.uid === variables.uid)?.read
+      const unreadDelta =
+        typeof currentRead === "boolean"
+          ? getUnreadDeltaForReadToggle(currentRead, variables.read)
+          : 0
+
       utils.mail.getMessage.setData({ folder, uid }, (old) =>
         old ? { ...old, read: true } : old
       )
@@ -680,7 +729,23 @@ export function MailThreadView({ uid, folder }: { uid: number; folder: string })
           })),
         }
       })
-      return { previousMessage, previousMessages }
+      if (unreadDelta !== 0) {
+        utils.mail.listFolders.setData({}, (oldFolders) => {
+          if (!oldFolders) return oldFolders
+          return oldFolders.map((folderData) => {
+            if (folderData.path !== folder) return folderData
+            if (typeof folderData.unseenMessages !== "number") return folderData
+            return {
+              ...folderData,
+              unseenMessages:
+                applyUnreadDeltaWithClamp(folderData.unseenMessages, unreadDelta) ??
+                folderData.unseenMessages,
+            }
+          }) as typeof oldFolders
+        })
+      }
+
+      return { previousMessage, previousMessages, previousFolders }
     },
     onError: (_err, _variables, context) => {
       if (context?.previousMessage) {
@@ -689,11 +754,14 @@ export function MailThreadView({ uid, folder }: { uid: number; folder: string })
       if (context?.previousMessages) {
         utils.mail.listMessages.setInfiniteData({ folder, limit: 50 }, context.previousMessages)
       }
-    },
-    onSettled: (_data, _error, variables) => {
-      if (variables.read) {
-        void utils.mail.getMessage.invalidate({ folder, uid })
+      if (context?.previousFolders) {
+        utils.mail.listFolders.setData({}, context.previousFolders)
       }
+    },
+    onSettled: () => {
+      void utils.mail.getMessage.invalidate({ folder, uid })
+      void utils.mail.listMessages.invalidate({ folder, limit: 50 })
+      void utils.mail.listFolders.invalidate()
     },
   })
 
@@ -724,6 +792,7 @@ export function MailThreadView({ uid, folder }: { uid: number; folder: string })
     onSettled: () => {
       void utils.mail.getMessage.invalidate({ folder, uid })
       void utils.mail.listMessages.invalidate({ folder, limit: 50 })
+      void utils.mail.listFolders.invalidate()
     },
   })
 
@@ -732,6 +801,7 @@ export function MailThreadView({ uid, folder }: { uid: number; folder: string })
   const [replyBody, setReplyBody] = useState("")
   const inlineComposerRef = useRef<HTMLDivElement>(null)
   const threadOpenTraceRef = useRef<(() => void) | null>(null)
+  const autoReadSyncKeyRef = useRef<string | null>(null)
 
   const backHref = `/dashboard?folder=${encodeURIComponent(folder)}`
 
@@ -759,6 +829,77 @@ export function MailThreadView({ uid, folder }: { uid: number; folder: string })
     threadOpenTraceRef.current?.()
     threadOpenTraceRef.current = null
   }, [isError, message])
+
+  useEffect(() => {
+    // Thread-open read-truth sync:
+    // when thread payload is read=true, align list row immediately for back-nav.
+    // This also covers stale list cache when autoMarkedRead=false.
+    if (!message?.read) return
+
+    const syncKey = `${folder}:${message.uid}:read-sync`
+    if (autoReadSyncKeyRef.current === syncKey) return
+    autoReadSyncKeyRef.current = syncKey
+
+    const listKey = { folder, limit: 50 }
+    const currentList = utils.mail.listMessages.getInfiniteData(listKey)
+    if (!currentList) return
+
+    let targetFound = false
+    let targetWasUnread = false
+
+    for (const page of currentList.pages) {
+      for (const row of page.messages) {
+        if (row.uid !== message.uid) continue
+        targetFound = true
+        targetWasUnread = !row.read
+        break
+      }
+      if (targetFound) break
+    }
+
+    if (!targetFound) {
+      // Keep fallback reconciliation scoped to the active folder list only.
+      void utils.mail.listMessages.invalidate(listKey)
+      return
+    }
+
+    if (!targetWasUnread) return
+
+    utils.mail.listMessages.setInfiniteData(listKey, (oldData) => {
+      if (!oldData) return oldData
+      return {
+        ...oldData,
+        pages: oldData.pages.map((page) => ({
+          ...page,
+          messages: page.messages.map((row) =>
+            row.uid === message.uid ? { ...row, read: true } : row
+          ),
+        })),
+      }
+    })
+
+    if (message.autoMarkedRead) {
+      const unreadDelta = getUnreadDeltaForReadToggle(false, true)
+      if (unreadDelta !== 0) {
+        utils.mail.listFolders.setData({}, (oldFolders) => {
+          if (!oldFolders) return oldFolders
+          return oldFolders.map((folderData) => {
+            if (folderData.path !== folder) return folderData
+            if (typeof folderData.unseenMessages !== "number") return folderData
+            return {
+              ...folderData,
+              unseenMessages:
+                applyUnreadDeltaWithClamp(folderData.unseenMessages, unreadDelta) ??
+                folderData.unseenMessages,
+            }
+          }) as typeof oldFolders
+        })
+      }
+    } else {
+      // Keep folder badges server-truth when read state was already applied upstream.
+      void utils.mail.listFolders.invalidate()
+    }
+  }, [folder, message, utils])
 
   function openInlineComposer(action: "reply" | "reply-all" | "forward") {
     setReplyAction(action)

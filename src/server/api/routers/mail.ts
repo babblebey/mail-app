@@ -444,8 +444,12 @@ export const mailRouter = createTRPCRouter({
 
       // ── Cached-body path ──────────────────────────────────────────
       if (cachedMsg?.body) {
+        let autoMarkedRead = false;
+
         // Auto-mark as read on IMAP + local cache
         if (!cachedMsg.read) {
+          autoMarkedRead = true;
+
           // Fire IMAP flag update (best-effort)
           withImapClient(accountId, ctx.session.user.id, async (client) => {
             await client.mailboxOpen(input.folder);
@@ -465,6 +469,13 @@ export const mailRouter = createTRPCRouter({
                 : [...cachedMsg.flags, "\\Seen"],
             },
           });
+
+          if (folder && folder.unseenMessages > 0) {
+            await ctx.db.mailFolder.update({
+              where: { id: folder.id },
+              data: { unseenMessages: folder.unseenMessages - 1 },
+            });
+          }
         }
 
         const flags = cachedMsg.flags.includes("\\Seen")
@@ -537,6 +548,7 @@ export const mailRouter = createTRPCRouter({
           attachments,
           inReplyTo: cachedMsg.inReplyTo ?? undefined,
           references: cachedMsg.references.length > 0 ? cachedMsg.references : undefined,
+          autoMarkedRead,
         };
       }
 
@@ -573,9 +585,10 @@ export const mailRouter = createTRPCRouter({
         );
         const flags = flagMsg && flagMsg.flags ? Array.from(flagMsg.flags) : [];
         const isRead = flags.includes("\\Seen");
+        const autoMarkedRead = !isRead;
 
         // Auto-mark as \Seen if not already read
-        if (!isRead) {
+        if (autoMarkedRead) {
           await client.messageFlagsAdd(
             String(input.uid),
             ["\\Seen"],
@@ -734,15 +747,28 @@ export const mailRouter = createTRPCRouter({
 
         // Auto-mark-as-read in cache
         if (cachedMsg && !cachedMsg.read) {
-          ctx.db.mailMessage.update({
-            where: { id: cachedMsg.id },
-            data: {
-              read: true,
-              flags: cachedMsg.flags.includes("\\Seen")
-                ? cachedMsg.flags
-                : [...cachedMsg.flags, "\\Seen"],
-            },
-          }).catch(() => {/* swallow */});
+          const updates = [
+            ctx.db.mailMessage.update({
+              where: { id: cachedMsg.id },
+              data: {
+                read: true,
+                flags: cachedMsg.flags.includes("\\Seen")
+                  ? cachedMsg.flags
+                  : [...cachedMsg.flags, "\\Seen"],
+              },
+            }),
+          ];
+
+          if (folder && folder.unseenMessages > 0) {
+            updates.push(
+              ctx.db.mailFolder.update({
+                where: { id: folder.id },
+                data: { unseenMessages: folder.unseenMessages - 1 },
+              }),
+            );
+          }
+
+          ctx.db.$transaction(updates).catch(() => {/* swallow */});
         }
 
         return {
@@ -763,6 +789,7 @@ export const mailRouter = createTRPCRouter({
           attachments,
           inReplyTo: parsed.inReplyTo,
           references,
+          autoMarkedRead,
         };
       });
     }),
