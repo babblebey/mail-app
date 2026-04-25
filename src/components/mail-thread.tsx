@@ -768,7 +768,16 @@ export function MailThreadView({ uid, folder }: { uid: number; folder: string })
   const moveMessageMutation = api.mail.moveMessage.useMutation({
     onMutate: async (variables) => {
       await utils.mail.listMessages.cancel()
+      await utils.mail.listFolders.cancel()
       const previousMessages = utils.mail.listMessages.getInfiniteData({ folder, limit: 50 })
+      const previousFolders = utils.mail.listFolders.getData({})
+
+      const movedMessageRead =
+        utils.mail.getMessage.getData({ folder, uid })?.read ??
+        previousMessages?.pages
+          .flatMap((page) => page.messages)
+          .find((msg) => msg.uid === variables.uid)?.read
+
       utils.mail.listMessages.setInfiniteData({ folder, limit: 50 }, (oldData) => {
         if (!oldData) return oldData
         return {
@@ -779,7 +788,37 @@ export function MailThreadView({ uid, folder }: { uid: number; folder: string })
           })),
         }
       })
-      return { previousMessages }
+
+      if (movedMessageRead === false && variables.destinationFolder !== folder) {
+        utils.mail.listFolders.setData({}, (oldFolders) => {
+          if (!oldFolders) return oldFolders
+          return oldFolders.map((folderData) => {
+            if (folderData.path === folder) {
+              if (typeof folderData.unseenMessages !== "number") return folderData
+              return {
+                ...folderData,
+                unseenMessages:
+                  applyUnreadDeltaWithClamp(folderData.unseenMessages, -1) ??
+                  folderData.unseenMessages,
+              }
+            }
+
+            if (folderData.path === variables.destinationFolder) {
+              if (typeof folderData.unseenMessages !== "number") return folderData
+              return {
+                ...folderData,
+                unseenMessages:
+                  applyUnreadDeltaWithClamp(folderData.unseenMessages, 1) ??
+                  folderData.unseenMessages,
+              }
+            }
+
+            return folderData
+          }) as typeof oldFolders
+        })
+      }
+
+      return { previousMessages, previousFolders }
     },
     onSuccess: () => {
       router.push(backHref)
@@ -787,6 +826,9 @@ export function MailThreadView({ uid, folder }: { uid: number; folder: string })
     onError: (_err, _variables, context) => {
       if (context?.previousMessages) {
         utils.mail.listMessages.setInfiniteData({ folder, limit: 50 }, context.previousMessages)
+      }
+      if (context?.previousFolders) {
+        utils.mail.listFolders.setData({}, context.previousFolders)
       }
     },
     onSettled: () => {
