@@ -160,3 +160,10 @@ export function applyUnreadDeltaWithClamp(
   if (typeof currentUnread !== "number") return currentUnread
   return Math.max(0, currentUnread + delta)
 }
+
+/**
+ * Counts unread messages for optimistic move badge deltas.
+ */
+export function countUnreadInMessages(messages: { read: boolean }[]): number {
+  return messages.filter((message) => message.read === false).length
+}

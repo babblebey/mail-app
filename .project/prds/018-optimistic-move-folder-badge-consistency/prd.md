@@ -1,6 +1,6 @@
 ---
 title: "Optimistic Move-Action Folder Badge Consistency"
-status: draft
+status: in-progress
 references:
   - type: doc
     url: .project/brief.md
@@ -55,8 +55,8 @@ This work is explicitly scoped to **move-action badge optimism only** and does n
 
 #### Tasks
 
-- [ ] In `src/lib/mail-utils.ts`, add `countUnreadInMessages(messages: { read: boolean }[]): number` that counts messages where `read === false`.
-- [ ] Document the function's role in optimistic move-delta computation alongside the existing helpers.
+- [x] In `src/lib/mail-utils.ts`, add `countUnreadInMessages(messages: { read: boolean }[]): number` that counts messages where `read === false`.
+- [x] Document the function's role in optimistic move-delta computation alongside the existing helpers.
 
 ### Phase 2: Thread Single-Message Move Optimistic Badges
 

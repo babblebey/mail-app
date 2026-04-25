@@ -15,6 +15,7 @@ import {
   toggleSelectItem,
   getUnreadDeltaForReadToggle,
   applyUnreadDeltaWithClamp,
+  countUnreadInMessages,
   type Contact,
 } from "~/lib/mail-utils"
 
@@ -377,6 +378,32 @@ describe("optimistic-update rollback shape contract", () => {
 // ─── Read/unread optimistic consistency contracts ───────────────────────────
 
 describe("optimistic unread delta helpers", () => {
+  it("counts unread messages across all-read, all-unread, and mixed lists", () => {
+    expect(
+      countUnreadInMessages([
+        { read: true },
+        { read: true },
+      ]),
+    ).toBe(0)
+
+    expect(
+      countUnreadInMessages([
+        { read: false },
+        { read: false },
+        { read: false },
+      ]),
+    ).toBe(3)
+
+    expect(
+      countUnreadInMessages([
+        { read: false },
+        { read: true },
+        { read: false },
+        { read: true },
+      ]),
+    ).toBe(2)
+  })
+
   it("computes unread deltas for each read transition", () => {
     expect(getUnreadDeltaForReadToggle(false, true)).toBe(-1)
     expect(getUnreadDeltaForReadToggle(true, false)).toBe(1)
