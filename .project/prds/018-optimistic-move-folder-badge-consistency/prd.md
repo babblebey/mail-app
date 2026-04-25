@@ -95,7 +95,7 @@ This work is explicitly scoped to **move-action badge optimism only** and does n
 
 #### Tasks
 
-- [ ] In `tests/unit/mail-interactions.test.ts`, add or extend tests for:
+- [x] In `tests/unit/mail-interactions.test.ts`, add or extend tests for:
   - `countUnreadInMessages` — returns correct count for all-read, all-unread, and mixed inputs.
   - Thread single-move optimistic: moving an unread message decrements source badge.
   - Thread single-move optimistic: moving a read message leaves source badge unchanged.
@@ -107,7 +107,7 @@ This work is explicitly scoped to **move-action badge optimism only** and does n
   - Batch move optimistic: destination badge increments by the correct unread count.
   - Batch move rollback: `onError` restores both `listMessages` and `listFolders`.
   - Non-negative clamp: source badge does not go below 0 under any delta input.
-- [ ] Run the unit test suite (`pnpm test`) and confirm all new and existing mail-interaction tests pass.
+- [x] Run the unit test suite (`pnpm test`) and confirm all new and existing mail-interaction tests pass.
 - [ ] Perform manual verification:
   - Delete an unread message from thread view → source folder badge decrements immediately, Trash badge increments immediately.
   - Report spam on an unread message from thread view → source badge decrements, Junk badge increments immediately.
@@ -117,12 +117,12 @@ This work is explicitly scoped to **move-action badge optimism only** and does n
 
 ## Acceptance Criteria
 
-- [ ] Moving an unread message from thread view decrements the source folder unread badge immediately (before server response).
-- [ ] Moving an unread message from thread view to a destination with a known unread count increments the destination folder badge immediately.
-- [ ] Batch-moving messages from the mail list applies the correct unread-count delta to source and destination folder badges immediately.
-- [ ] Moving read-only messages produces no folder badge delta in either direction.
-- [ ] On mutation failure, both `listMessages` and `listFolders` are fully restored to their pre-mutation snapshots.
-- [ ] `unseenMessages` never goes below `0` under any optimistic delta path.
-- [ ] Destination folder badge is left unchanged if `unseenMessages` is `undefined` in the cache.
-- [ ] `countUnreadInMessages` helper is covered by unit tests with all-read, all-unread, and mixed inputs.
-- [ ] All new and existing unit tests in `tests/unit/mail-interactions.test.ts` pass.
+- [x] Moving an unread message from thread view decrements the source folder unread badge immediately (before server response).
+- [x] Moving an unread message from thread view to a destination with a known unread count increments the destination folder badge immediately.
+- [x] Batch-moving messages from the mail list applies the correct unread-count delta to source and destination folder badges immediately.
+- [x] Moving read-only messages produces no folder badge delta in either direction.
+- [x] On mutation failure, both `listMessages` and `listFolders` are fully restored to their pre-mutation snapshots.
+- [x] `unseenMessages` never goes below `0` under any optimistic delta path.
+- [x] Destination folder badge is left unchanged if `unseenMessages` is `undefined` in the cache.
+- [x] `countUnreadInMessages` helper is covered by unit tests with all-read, all-unread, and mixed inputs.
+- [x] All new and existing unit tests in `tests/unit/mail-interactions.test.ts` pass.

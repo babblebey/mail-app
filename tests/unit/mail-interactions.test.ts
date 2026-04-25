@@ -697,3 +697,364 @@ describe("thread-open auto-read back-nav sync", () => {
     expect(result.nextFolders[0]!.unseenMessages).toBe(0)
   })
 })
+
+describe("move-action optimistic folder badge consistency", () => {
+  type Message = { uid: number; read: boolean }
+  type InfiniteData<T> = { pages: Array<{ messages: T[]; nextCursor: string | null }> }
+  type Folder = { path: string; unseenMessages?: number }
+
+  function applyThreadMoveOptimistic(params: {
+    sourceFolder: string
+    destinationFolder: string
+    uid: number
+    getMessageRead?: boolean
+    listMessages: InfiniteData<Message>
+    listFolders: Folder[]
+  }): {
+    previousMessages: InfiniteData<Message>
+    previousFolders: Folder[]
+    nextMessages: InfiniteData<Message>
+    nextFolders: Folder[]
+  } {
+    const previousMessages = params.listMessages
+    const previousFolders = params.listFolders
+
+    const movedMessageRead =
+      params.getMessageRead ??
+      previousMessages.pages
+        .flatMap((page) => page.messages)
+        .find((msg) => msg.uid === params.uid)?.read
+
+    const nextMessages: InfiniteData<Message> = {
+      ...previousMessages,
+      pages: previousMessages.pages.map((page) => ({
+        ...page,
+        messages: page.messages.filter((msg) => msg.uid !== params.uid),
+      })),
+    }
+
+    const nextFolders =
+      movedMessageRead === false && params.destinationFolder !== params.sourceFolder
+        ? previousFolders.map((folderData) => {
+            if (folderData.path === params.sourceFolder) {
+              if (typeof folderData.unseenMessages !== "number") return folderData
+              return {
+                ...folderData,
+                unseenMessages:
+                  applyUnreadDeltaWithClamp(folderData.unseenMessages, -1) ??
+                  folderData.unseenMessages,
+              }
+            }
+            if (folderData.path === params.destinationFolder) {
+              if (typeof folderData.unseenMessages !== "number") return folderData
+              return {
+                ...folderData,
+                unseenMessages:
+                  applyUnreadDeltaWithClamp(folderData.unseenMessages, 1) ??
+                  folderData.unseenMessages,
+              }
+            }
+            return folderData
+          })
+        : previousFolders
+
+    return { previousMessages, previousFolders, nextMessages, nextFolders }
+  }
+
+  function applyBatchMoveOptimistic(params: {
+    sourceFolder: string
+    destinationFolder: string
+    uids: number[]
+    listMessages: InfiniteData<Message>
+    listFolders: Folder[]
+  }): {
+    previousMessages: InfiniteData<Message>
+    previousFolders: Folder[]
+    nextMessages: InfiniteData<Message>
+    nextFolders: Folder[]
+    unreadCount: number
+  } {
+    const previousMessages = params.listMessages
+    const previousFolders = params.listFolders
+
+    const selectedUidSet = new Set(params.uids)
+    const movedMessages = previousMessages.pages.flatMap((page) =>
+      page.messages.filter((msg) => selectedUidSet.has(msg.uid)),
+    )
+    const unreadCount = countUnreadInMessages(movedMessages)
+
+    const nextMessages: InfiniteData<Message> = {
+      ...previousMessages,
+      pages: previousMessages.pages.map((page) => ({
+        ...page,
+        messages: page.messages.filter((msg) => !selectedUidSet.has(msg.uid)),
+      })),
+    }
+
+    const nextFolders =
+      unreadCount > 0 && params.destinationFolder !== params.sourceFolder
+        ? previousFolders.map((folderData) => {
+            if (folderData.path === params.sourceFolder) {
+              if (typeof folderData.unseenMessages !== "number") return folderData
+              return {
+                ...folderData,
+                unseenMessages:
+                  applyUnreadDeltaWithClamp(folderData.unseenMessages, -unreadCount) ??
+                  folderData.unseenMessages,
+              }
+            }
+            if (folderData.path === params.destinationFolder) {
+              if (typeof folderData.unseenMessages !== "number") return folderData
+              return {
+                ...folderData,
+                unseenMessages:
+                  applyUnreadDeltaWithClamp(folderData.unseenMessages, unreadCount) ??
+                  folderData.unseenMessages,
+              }
+            }
+            return folderData
+          })
+        : previousFolders
+
+    return { previousMessages, previousFolders, nextMessages, nextFolders, unreadCount }
+  }
+
+  it("thread single-move decrements source badge when moved message is unread", () => {
+    const result = applyThreadMoveOptimistic({
+      sourceFolder: "INBOX",
+      destinationFolder: "Trash",
+      uid: 10,
+      getMessageRead: false,
+      listMessages: {
+        pages: [{ messages: [{ uid: 10, read: false }], nextCursor: null }],
+      },
+      listFolders: [
+        { path: "INBOX", unseenMessages: 5 },
+        { path: "Trash", unseenMessages: 0 },
+      ],
+    })
+
+    expect(result.nextFolders.find((f) => f.path === "INBOX")!.unseenMessages).toBe(4)
+  })
+
+  it("thread single-move leaves source badge unchanged when moved message is read", () => {
+    const result = applyThreadMoveOptimistic({
+      sourceFolder: "INBOX",
+      destinationFolder: "Trash",
+      uid: 10,
+      getMessageRead: true,
+      listMessages: {
+        pages: [{ messages: [{ uid: 10, read: true }], nextCursor: null }],
+      },
+      listFolders: [
+        { path: "INBOX", unseenMessages: 5 },
+        { path: "Trash", unseenMessages: 0 },
+      ],
+    })
+
+    expect(result.nextFolders.find((f) => f.path === "INBOX")!.unseenMessages).toBe(5)
+  })
+
+  it("thread single-move increments destination badge when destination unseenMessages is defined", () => {
+    const result = applyThreadMoveOptimistic({
+      sourceFolder: "INBOX",
+      destinationFolder: "Archive",
+      uid: 10,
+      getMessageRead: false,
+      listMessages: {
+        pages: [{ messages: [{ uid: 10, read: false }], nextCursor: null }],
+      },
+      listFolders: [
+        { path: "INBOX", unseenMessages: 2 },
+        { path: "Archive", unseenMessages: 10 },
+      ],
+    })
+
+    expect(result.nextFolders.find((f) => f.path === "Archive")!.unseenMessages).toBe(11)
+  })
+
+  it("thread single-move leaves destination badge undefined when destination unseenMessages is undefined", () => {
+    const result = applyThreadMoveOptimistic({
+      sourceFolder: "INBOX",
+      destinationFolder: "Archive",
+      uid: 10,
+      getMessageRead: false,
+      listMessages: {
+        pages: [{ messages: [{ uid: 10, read: false }], nextCursor: null }],
+      },
+      listFolders: [
+        { path: "INBOX", unseenMessages: 2 },
+        { path: "Archive" },
+      ],
+    })
+
+    expect(result.nextFolders.find((f) => f.path === "Archive")!.unseenMessages).toBeUndefined()
+  })
+
+  it("thread single-move rollback restores both listMessages and listFolders snapshots", () => {
+    const seedMessages: InfiniteData<Message> = {
+      pages: [{ messages: [{ uid: 10, read: false }, { uid: 11, read: true }], nextCursor: null }],
+    }
+    const seedFolders: Folder[] = [
+      { path: "INBOX", unseenMessages: 3 },
+      { path: "Trash", unseenMessages: 0 },
+    ]
+
+    const result = applyThreadMoveOptimistic({
+      sourceFolder: "INBOX",
+      destinationFolder: "Trash",
+      uid: 10,
+      getMessageRead: false,
+      listMessages: seedMessages,
+      listFolders: seedFolders,
+    })
+
+    expect(result.nextMessages.pages[0]!.messages).toHaveLength(1)
+    expect(result.nextFolders.find((f) => f.path === "INBOX")!.unseenMessages).toBe(2)
+
+    const restoredMessages = result.previousMessages
+    const restoredFolders = result.previousFolders
+
+    expect(restoredMessages).toStrictEqual(seedMessages)
+    expect(restoredFolders).toStrictEqual(seedFolders)
+  })
+
+  it("batch move decrements source badge only by unread count (3 unread + 2 read)", () => {
+    const result = applyBatchMoveOptimistic({
+      sourceFolder: "INBOX",
+      destinationFolder: "Trash",
+      uids: [1, 2, 3, 4, 5],
+      listMessages: {
+        pages: [{
+          messages: [
+            { uid: 1, read: false },
+            { uid: 2, read: false },
+            { uid: 3, read: false },
+            { uid: 4, read: true },
+            { uid: 5, read: true },
+          ],
+          nextCursor: null,
+        }],
+      },
+      listFolders: [
+        { path: "INBOX", unseenMessages: 7 },
+        { path: "Trash", unseenMessages: 1 },
+      ],
+    })
+
+    expect(result.unreadCount).toBe(3)
+    expect(result.nextFolders.find((f) => f.path === "INBOX")!.unseenMessages).toBe(4)
+  })
+
+  it("batch move leaves source badge unchanged when unread count is zero", () => {
+    const result = applyBatchMoveOptimistic({
+      sourceFolder: "INBOX",
+      destinationFolder: "Trash",
+      uids: [1, 2],
+      listMessages: {
+        pages: [{ messages: [{ uid: 1, read: true }, { uid: 2, read: true }], nextCursor: null }],
+      },
+      listFolders: [
+        { path: "INBOX", unseenMessages: 4 },
+        { path: "Trash", unseenMessages: 0 },
+      ],
+    })
+
+    expect(result.unreadCount).toBe(0)
+    expect(result.nextFolders.find((f) => f.path === "INBOX")!.unseenMessages).toBe(4)
+    expect(result.nextFolders.find((f) => f.path === "Trash")!.unseenMessages).toBe(0)
+  })
+
+  it("batch move increments destination badge by unread count when destination is defined", () => {
+    const result = applyBatchMoveOptimistic({
+      sourceFolder: "INBOX",
+      destinationFolder: "Archive",
+      uids: [1, 2, 3],
+      listMessages: {
+        pages: [{
+          messages: [
+            { uid: 1, read: false },
+            { uid: 2, read: true },
+            { uid: 3, read: false },
+          ],
+          nextCursor: null,
+        }],
+      },
+      listFolders: [
+        { path: "INBOX", unseenMessages: 6 },
+        { path: "Archive", unseenMessages: 2 },
+      ],
+    })
+
+    expect(result.unreadCount).toBe(2)
+    expect(result.nextFolders.find((f) => f.path === "Archive")!.unseenMessages).toBe(4)
+  })
+
+  it("batch move rollback restores both listMessages and listFolders snapshots", () => {
+    const seedMessages: InfiniteData<Message> = {
+      pages: [{ messages: [{ uid: 1, read: false }, { uid: 2, read: true }], nextCursor: null }],
+    }
+    const seedFolders: Folder[] = [
+      { path: "INBOX", unseenMessages: 2 },
+      { path: "Trash", unseenMessages: 1 },
+    ]
+
+    const result = applyBatchMoveOptimistic({
+      sourceFolder: "INBOX",
+      destinationFolder: "Trash",
+      uids: [1, 2],
+      listMessages: seedMessages,
+      listFolders: seedFolders,
+    })
+
+    expect(result.nextMessages.pages[0]!.messages).toHaveLength(0)
+
+    const restoredMessages = result.previousMessages
+    const restoredFolders = result.previousFolders
+
+    expect(restoredMessages).toStrictEqual(seedMessages)
+    expect(restoredFolders).toStrictEqual(seedFolders)
+  })
+
+  it("batch move leaves destination badge undefined when destination unseenMessages is undefined", () => {
+    const result = applyBatchMoveOptimistic({
+      sourceFolder: "INBOX",
+      destinationFolder: "Archive",
+      uids: [1, 2],
+      listMessages: {
+        pages: [{ messages: [{ uid: 1, read: false }, { uid: 2, read: false }], nextCursor: null }],
+      },
+      listFolders: [
+        { path: "INBOX", unseenMessages: 5 },
+        { path: "Archive" },
+      ],
+    })
+
+    expect(result.unreadCount).toBe(2)
+    expect(result.nextFolders.find((f) => f.path === "Archive")!.unseenMessages).toBeUndefined()
+  })
+
+  it("batch move source badge never goes below zero under optimistic delta", () => {
+    const result = applyBatchMoveOptimistic({
+      sourceFolder: "INBOX",
+      destinationFolder: "Trash",
+      uids: [1, 2, 3],
+      listMessages: {
+        pages: [{
+          messages: [
+            { uid: 1, read: false },
+            { uid: 2, read: false },
+            { uid: 3, read: false },
+          ],
+          nextCursor: null,
+        }],
+      },
+      listFolders: [
+        { path: "INBOX", unseenMessages: 1 },
+        { path: "Trash", unseenMessages: 0 },
+      ],
+    })
+
+    expect(result.nextFolders.find((f) => f.path === "INBOX")!.unseenMessages).toBe(0)
+  })
+})
