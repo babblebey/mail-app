@@ -79,15 +79,15 @@ This work is explicitly scoped to **move-action badge optimism only** and does n
 
 #### Tasks
 
-- [ ] In `src/components/mail-list.tsx`, update `batchMoveMessages.onMutate` to:
+- [x] In `src/components/mail-list.tsx`, update `batchMoveMessages.onMutate` to:
   - Cancel and snapshot `listFolders` alongside the existing `listMessages` cancel/snapshot.
   - Collect the set of messages being moved by filtering all pages of the `listMessages` infinite cache by `variables.uids`.
   - Count unread messages in that set using the new `countUnreadInMessages` helper.
   - If `unreadCount > 0`, apply `-unreadCount` to the source folder (`folder`) `unseenMessages` via `applyUnreadDeltaWithClamp`.
   - If `unreadCount > 0` and the destination folder has a defined `unseenMessages`, apply `+unreadCount` to the destination folder's `unseenMessages`.
   - Return `{ previousMessages, previousFolders }` context.
-- [ ] In `batchMoveMessages.onError`, restore the `previousFolders` snapshot alongside the existing `previousMessages` restoration.
-- [ ] Confirm `batchMoveMessages.onSettled` already invalidates `listFolders` (it does — no change needed, only verify).
+- [x] In `batchMoveMessages.onError`, restore the `previousFolders` snapshot alongside the existing `previousMessages` restoration.
+- [x] Confirm `batchMoveMessages.onSettled` already invalidates `listFolders` (it does — no change needed, only verify).
 
 ### Phase 4: Regression Coverage and Verification
 
