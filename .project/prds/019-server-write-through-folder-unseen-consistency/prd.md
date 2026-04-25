@@ -1,6 +1,6 @@
 ---
 title: "Server Write-Through Folder Unseen Consistency for Move and Read Mutations"
-status: in-progress
+status: completed
 references:
   - type: doc
     url: .project/brief.md
@@ -116,7 +116,7 @@ No client cache strategy changes are introduced in this PRD.
 
 - [x] Run unit tests (`pnpm test`) and verify existing suites remain green.
 - [x] Confirm implementation uses Prisma atomic `increment`/`decrement` updates for folder unseen write-through paths rather than absolute read-modify-write assignments.
-- [ ] Manual verification scenarios:
+- [x] Manual verification scenarios:
   - mark unread -> read and confirm badge does not revert after settle/invalidate
   - mark read -> unread and confirm badge remains incremented after refetch
   - move single unread message and confirm source decrement and destination increment remain stable after invalidate
@@ -145,5 +145,5 @@ No client cache strategy changes are introduced in this PRD.
 - [x] All folder unseen write-through mutations use atomic Prisma `increment`/`decrement` updates rather than absolute count assignments.
 - [x] No write-through path can persist a negative unseen count.
 - [x] Existing client optimistic cache behavior and invalidation flow remain unchanged.
-- [ ] After mutation settle and `listFolders` invalidation, sidebar badges no longer snap back to stale pre-action counts.
+- [x] After mutation settle and `listFolders` invalidation, sidebar badges no longer snap back to stale pre-action counts.
 - [x] The implementation explicitly acknowledges sync-worker last-writer-wins behavior as a residual risk rather than silently assuming full serialization.
