@@ -153,7 +153,7 @@ type MessageData = {
   read: boolean
   textBody: string | null
   htmlBody: string | null
-  attachments: { filename: string; contentType: string; size: number; cid?: string }[]
+  attachments: { filename: string; contentType: string; size: number; cid?: string; index: number }[]
 }
 
 const MessageBody = memo(function MessageBody({ message }: { message: MessageData }) {
@@ -483,8 +483,8 @@ function MessageView({
         <div className="px-4 pb-4 pl-18">
           <div className="flex flex-wrap gap-2">
             {message.attachments.map((att, i) => {
-              const downloadUrl = getAttachmentUrl(folder, message.uid, i)
-              const previewUrl = getAttachmentUrl(folder, message.uid, i, true)
+              const downloadUrl = getAttachmentUrl(folder, message.uid, att.index)
+              const previewUrl = getAttachmentUrl(folder, message.uid, att.index, true)
               const previewing = isPreviewable(att.contentType)
 
               if (previewing) {
@@ -495,7 +495,7 @@ function MessageView({
                       onClick={() => {
                         setPreviewLoaded(false)
                         setPreviewAttachment({
-                          index: i,
+                          index: att.index,
                           filename: att.filename,
                           contentType: att.contentType,
                           url: previewUrl,
@@ -511,15 +511,15 @@ function MessageView({
                     </button>
                     <button
                       type="button"
-                      disabled={downloadingIndex === i}
+                      disabled={downloadingIndex === att.index}
                       className="flex items-center rounded-r-lg border border-l-0 px-2 py-2 transition-colors hover:bg-muted/50 disabled:opacity-50"
                       title={`Download ${att.filename}`}
                       onClick={(e) => {
                         e.stopPropagation()
-                        void handleDownload(downloadUrl, att.filename, i)
+                        void handleDownload(downloadUrl, att.filename, att.index)
                       }}
                     >
-                      {downloadingIndex === i
+                      {downloadingIndex === att.index
                         ? <Loader2Icon className="size-4 animate-spin text-muted-foreground" />
                         : <DownloadIcon className="size-4 text-muted-foreground" />}
                     </button>
@@ -531,11 +531,11 @@ function MessageView({
                 <div key={i} className="flex items-center gap-0">
                   <button
                     type="button"
-                    disabled={downloadingIndex === i}
+                    disabled={downloadingIndex === att.index}
                     className="flex items-center gap-2 rounded-l-lg border px-3 py-2 text-sm transition-colors hover:bg-muted/50 disabled:opacity-50"
-                    onClick={() => void handleDownload(downloadUrl, att.filename, i)}
+                    onClick={() => void handleDownload(downloadUrl, att.filename, att.index)}
                   >
-                    {downloadingIndex === i
+                    {downloadingIndex === att.index
                       ? <Loader2Icon className="size-4 shrink-0 animate-spin text-muted-foreground" />
                       : <FileIcon className="size-4 shrink-0 text-muted-foreground" />}
                     <span className="truncate">{att.filename}</span>
@@ -545,15 +545,15 @@ function MessageView({
                   </button>
                   <button
                     type="button"
-                    disabled={downloadingIndex === i}
+                    disabled={downloadingIndex === att.index}
                     className="flex items-center rounded-r-lg border border-l-0 px-2 py-2 transition-colors hover:bg-muted/50 disabled:opacity-50"
                     title={`Download ${att.filename}`}
                     onClick={(e) => {
                       e.stopPropagation()
-                      void handleDownload(downloadUrl, att.filename, i)
+                      void handleDownload(downloadUrl, att.filename, att.index)
                     }}
                   >
-                    {downloadingIndex === i
+                    {downloadingIndex === att.index
                       ? <Loader2Icon className="size-4 animate-spin text-muted-foreground" />
                       : <DownloadIcon className="size-4 text-muted-foreground" />}
                   </button>
