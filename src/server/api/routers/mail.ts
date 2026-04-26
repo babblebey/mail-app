@@ -526,7 +526,7 @@ export const mailRouter = createTRPCRouter({
 
         const attachments = rawAttachments
           .filter((att) => !inlineIndices.has(att.index) && !att.inline)
-          .map(({ index: _index, cid: _cid, inline: _inline, ...rest }) => rest);
+          .map(({ cid: _cid, inline: _inline, ...rest }) => rest);
 
         return {
           uid: cachedMsg.uid,
@@ -708,9 +708,7 @@ export const mailRouter = createTRPCRouter({
           : null;
 
         // Exclude inline CID attachments from the attachment list
-        const attachments = allAttachments
-          .filter((att) => !inlineIndices.has(att.index))
-          .map(({ index: _index, ...rest }) => rest);
+        const attachments = allAttachments.filter((att) => !inlineIndices.has(att.index));
 
         // Normalise references to string[]
         const references = parsed.references
