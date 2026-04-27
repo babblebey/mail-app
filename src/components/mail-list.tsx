@@ -405,7 +405,14 @@ const MailRow = memo(function MailRow({
           )}
           onContextMenu={() => onContextMenu(mailId)}
         >
-          <div onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}>
+          <div
+            className="group/checkbox relative flex size-4 shrink-0 items-center justify-center"
+            onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}
+          >
+            <span
+              aria-hidden
+              className="pointer-events-none absolute left-1/2 top-1/2 size-10 -translate-x-1/2 -translate-y-1/2 rounded-full bg-sidebar-accent opacity-0 transition-opacity group-hover/checkbox:opacity-100"
+            />
             <Checkbox
               checked={isSelected}
               onCheckedChange={() => onToggleSelect(mailId)}
@@ -418,7 +425,7 @@ const MailRow = memo(function MailRow({
                     ? `Select mail to ${getRecipientLabel(mail.to, mail.cc, mail.bcc)}`
                     : `Select mail from ${getSenderName(mail.from)}`
               }
-              className="shrink-0"
+              className="relative z-10 shrink-0 cursor-pointer"
             />
           </div>
           <MailRowContent
@@ -501,11 +508,18 @@ const MailListToolbar = memo(function MailListToolbar({
   return (
     <div className="flex items-center gap-2 border-b px-4 py-2">
       <div className="flex items-center gap-1">
-        <Checkbox
-          checked={selectAllChecked}
-          onCheckedChange={onToggleSelectAll}
-          aria-label="Select all"
-        />
+        <div className="group/checkbox relative flex size-4 shrink-0 items-center justify-center">
+          <span
+            aria-hidden
+            className="pointer-events-none absolute left-1/2 top-1/2 size-10 -translate-x-1/2 -translate-y-1/2 rounded-full bg-sidebar-accent opacity-0 transition-opacity group-hover/checkbox:opacity-100"
+          />
+          <Checkbox
+            checked={selectAllChecked}
+            onCheckedChange={onToggleSelectAll}
+            aria-label="Select all"
+            className="relative z-10 cursor-pointer"
+          />
+        </div>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" size="icon-xs">
