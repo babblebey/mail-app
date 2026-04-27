@@ -1,5 +1,6 @@
 import { z } from "zod";
 import type { MessageStructureObject, MessageEnvelopeObject } from "imapflow";
+import type { AddressObject } from "mailparser";
 import { simpleParser } from "mailparser";
 import sanitizeHtml from "sanitize-html";
 import iconv from "iconv-lite";
@@ -339,10 +340,8 @@ export const mailRouter = createTRPCRouter({
               const text = iconv.encodingExists(charset)
                 ? iconv.decode(rawBuf, charset)
                 : rawBuf.toString("utf-8");
-              // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
               const plain =
                 snippetPart.type === "text/html"
-                  // eslint-disable-next-line @typescript-eslint/no-unsafe-call
                   ? convert(text, {
                       wordwrap: false,
                       selectors: [
@@ -351,9 +350,7 @@ export const mailRouter = createTRPCRouter({
                       ],
                     })
                   : text;
-              // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call
               snippet = plain
-                // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
                 .replace(/\r?\n/g, " ").replace(/\s+/g, " ").trim().slice(0, 120);
             } catch {
               // If downloading the part fails, leave snippet empty
@@ -526,7 +523,7 @@ export const mailRouter = createTRPCRouter({
 
         const attachments = rawAttachments
           .filter((att) => !inlineIndices.has(att.index) && !att.inline)
-          .map(({ index: _index, cid: _cid, inline: _inline, ...rest }) => rest);
+          .map(({ cid: _cid, inline: _inline, ...rest }) => rest);
 
         return {
           uid: cachedMsg.uid,
@@ -600,8 +597,8 @@ export const mailRouter = createTRPCRouter({
         // Helper to normalise mailparser address objects
         const normaliseAddresses = (
           addr:
-            | import("mailparser").AddressObject
-            | import("mailparser").AddressObject[]
+            | AddressObject
+            | AddressObject[]
             | undefined,
         ) => {
           if (!addr) return [];
@@ -708,9 +705,7 @@ export const mailRouter = createTRPCRouter({
           : null;
 
         // Exclude inline CID attachments from the attachment list
-        const attachments = allAttachments
-          .filter((att) => !inlineIndices.has(att.index))
-          .map(({ index: _index, ...rest }) => rest);
+        const attachments = allAttachments.filter((att) => !inlineIndices.has(att.index));
 
         // Normalise references to string[]
         const references = parsed.references
@@ -747,7 +742,7 @@ export const mailRouter = createTRPCRouter({
 
         // Auto-mark-as-read in cache
         if (cachedMsg && !cachedMsg.read) {
-          const updates = [
+          ctx.db.$transaction([
             ctx.db.mailMessage.update({
               where: { id: cachedMsg.id },
               data: {
@@ -757,18 +752,13 @@ export const mailRouter = createTRPCRouter({
                   : [...cachedMsg.flags, "\\Seen"],
               },
             }),
-          ];
-
-          if (folder && folder.unseenMessages > 0) {
-            updates.push(
-              ctx.db.mailFolder.update({
-                where: { id: folder.id },
-                data: { unseenMessages: folder.unseenMessages - 1 },
-              }),
-            );
-          }
-
-          ctx.db.$transaction(updates).catch(() => {/* swallow */});
+            ...(folder && folder.unseenMessages > 0
+              ? [ctx.db.mailFolder.update({
+                  where: { id: folder.id },
+                  data: { unseenMessages: folder.unseenMessages - 1 },
+                })]
+              : []),
+          ]).catch(() => {/* swallow */});
         }
 
         return {
